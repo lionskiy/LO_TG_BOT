@@ -3,13 +3,33 @@ import logging
 from collections import defaultdict
 from typing import Dict, List
 
+logger = logging.getLogger(__name__)
+
+
+def _llm_error_message(exc: Exception) -> str:
+    """Краткое сообщение об ошибке LLM для пользователя (без деталей)."""
+    try:
+        from openai import (
+            APIConnectionError,
+            APITimeoutError,
+            AuthenticationError,
+            RateLimitError,
+        )
+        if isinstance(exc, AuthenticationError):
+            return "Ошибка доступа к API: проверьте API-ключ в .env (неверный или истёкший)."
+        if isinstance(exc, RateLimitError):
+            return "Слишком много запросов. Подождите минуту и попробуйте снова."
+        if isinstance(exc, (APIConnectionError, APITimeoutError)):
+            return "Нет связи с API модели или таймаут. Проверьте интернет и попробуйте позже."
+    except ImportError:
+        pass
+    return "Произошла ошибка при обращении к модели. Подробности в логах (LOG_LEVEL=DEBUG). Попробуйте позже."
+
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 from bot.config import BOT_TOKEN, validate_config
 from bot.llm import get_reply
-
-logger = logging.getLogger(__name__)
 
 # Per-chat conversation history for LLM context (last N messages)
 MAX_HISTORY_MESSAGES = 20
@@ -73,9 +93,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         reply = await get_reply(messages)
     except Exception as e:
         logger.exception("LLM request failed: %s", e)
-        await update.message.reply_text(
-            "Произошла ошибка при обращении к модели. Попробуй позже."
-        )
+        user_msg = _llm_error_message(e)
+        await update.message.reply_text(user_msg)
         return
 
     if reply:
@@ -98,14 +117,8 @@ def build_application() -> Application:
     return app
 
 
-async def run_polling() -> None:
-    """Run bot with long polling."""
+def run_polling() -> None:
+    """Run bot with long polling (blocking until shutdown)."""
     app = build_application()
-    await app.initialize()
-    await app.start()
-    logger.info("Bot started, polling (drop_pending_updates=True)")
-    await app.updater.start_polling(drop_pending_updates=True)
-    await app.updater.idle()
-    logger.info("Polling idle ended, shutting down")
-    await app.stop()
-    await app.shutdown()
+    logger.info("Starting polling (drop_pending_updates=True)")
+    app.run_polling(drop_pending_updates=True)

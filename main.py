@@ -1,5 +1,4 @@
 """Entry point: run Telegram bot with LLM."""
-import asyncio
 import logging
 import sys
 
@@ -33,4 +32,4 @@ if __name__ == "__main__":
     _setup_logging()
     logger = logging.getLogger(__name__)
     logger.info("Starting bot (LOG_LEVEL=%s)", LOG_LEVEL)
-    asyncio.run(run_polling())
+    run_polling()
