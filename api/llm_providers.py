@@ -12,6 +12,7 @@ DEFAULT_BASE_URLS = {
     "groq": "https://api.groq.com/openai/v1",
     "openrouter": "https://openrouter.ai/api/v1",
     "ollama": "http://localhost:11434/v1",
+    "azure": "https://your-resource.openai.azure.com/",
     "custom": "",
 }
 
@@ -70,6 +71,15 @@ PROVIDERS_LIST = [
         "name": "DeepSeek",
         "defaultBaseUrl": DEFAULT_BASE_URLS["deepseek"],
         "models": {"standard": ["deepseek-chat", "deepseek-coder"], "reasoning": ["deepseek-reasoner"]},
+    },
+    {
+        "id": "azure",
+        "name": "Azure OpenAI",
+        "defaultBaseUrl": DEFAULT_BASE_URLS["azure"],
+        "models": {
+            "standard": ["gpt-4o", "gpt-4o-mini", "gpt-35-turbo", "gpt-4"],
+            "reasoning": [],
+        },
     },
     {
         "id": "custom",

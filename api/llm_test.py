@@ -39,6 +39,33 @@ def _test_openai_compatible(creds: dict) -> Tuple[bool, str]:
     return False, msg or f"HTTP {r.status_code}"
 
 
+def _test_azure(creds: dict) -> Tuple[bool, str]:
+    """Azure OpenAI: GET {endpoint}/openai/models?api-version={version}."""
+    endpoint = (creds.get("azure_endpoint") or creds.get("base_url") or "").strip().rstrip("/")
+    version = (creds.get("api_version") or "2024-02-15-preview").strip()
+    key = (creds.get("api_key") or "").strip()
+    if not endpoint:
+        return False, "Azure endpoint is empty"
+    if not key:
+        return False, "API key is empty"
+    url = f"{endpoint}/openai/models?api-version={version}"
+    headers = {"Authorization": f"Bearer {key}"}
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            r = client.get(url, headers=headers)
+    except Exception as e:
+        logger.warning("Azure OpenAI models request failed: %s", e)
+        return False, str(e)
+    if r.status_code == 200:
+        return True, "Connection tested successfully"
+    try:
+        data = r.json()
+        msg = data.get("error", {}).get("message", data.get("message", r.text))
+    except Exception:
+        msg = r.text or f"HTTP {r.status_code}"
+    return False, msg or f"HTTP {r.status_code}"
+
+
 def _test_anthropic(creds: dict) -> Tuple[bool, str]:
     """Minimal Anthropic messages API call."""
     try:
@@ -98,8 +125,10 @@ def test_llm_connection() -> Tuple[str, str]:
         ok, message = _test_anthropic(creds)
     elif llm_type == "google":
         ok, message = _test_google(creds)
+    elif llm_type == "azure":
+        ok, message = _test_azure(creds)
     else:
-        # openai, groq, openrouter, ollama, azure, custom, etc.
+        # openai, groq, openrouter, ollama, custom, etc.
         ok, message = _test_openai_compatible(creds)
 
     status = CONNECTION_STATUS_SUCCESS if ok else CONNECTION_STATUS_FAILED

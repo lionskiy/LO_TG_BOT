@@ -315,7 +315,11 @@ body {
   min-height: 4rem;
 }
 
-/* Active token block — PRD: red border, masked token + Delete */
+.llm-azure-fields[hidden] {
+  display: none !important;
+}
+
+/* Active token block — PRD: red border, masked token + Delete. Only visible when not [hidden]. */
 .active-token {
   display: flex;
   flex-wrap: wrap;
@@ -325,6 +329,10 @@ body {
   border: 1px solid #d93025;
   border-radius: 4px;
   background: #fef7f7;
+}
+
+.active-token[hidden] {
+  display: none !important;
 }
 
 .active-token-label {
@@ -361,24 +369,31 @@ body {
   color: #b71c1c;
 }
 
-/* Confirmation modal */
+/* Confirmation modal — above toasts, backdrop closes on click */
 .modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 999;
+  z-index: 1001;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
 }
 
+.modal-overlay[hidden] {
+  display: none !important;
+}
+
 .modal {
+  position: relative;
+  z-index: 1;
   background: #fff;
   border-radius: 8px;
   padding: 1.25rem;
   max-width: 400px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
 }
 
 .modal-title {

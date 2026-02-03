@@ -58,24 +58,43 @@ function setFieldError(fieldId, errorElId, message) {
 function confirmUnbindToken(serviceName) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('confirmModalOverlay');
+    const modal = document.getElementById('confirmModal');
     const textEl = document.getElementById('confirmModalText');
     const cancelBtn = document.getElementById('confirmModalCancel');
     const confirmBtn = document.getElementById('confirmModalConfirm');
+    if (!overlay || !cancelBtn || !confirmBtn) return resolve(false);
     textEl.textContent = `Текущий токен будет удалён. Сервис ${serviceName} перестанет работать до привязки нового токена.`;
-    overlay.hidden = false;
+    overlay.removeAttribute('hidden');
+
     const cleanup = () => {
-      overlay.hidden = true;
+      overlay.setAttribute('hidden', '');
       cancelBtn.removeEventListener('click', onCancel);
       confirmBtn.removeEventListener('click', onConfirm);
+      overlay.removeEventListener('click', onBackdropClick);
+      if (modal) modal.removeEventListener('click', stopProp);
     };
-    const onCancel = () => {
+
+    const stopProp = (e) => e.stopPropagation();
+    const onBackdropClick = (e) => {
+      if (e.target === overlay) {
+        cleanup();
+        resolve(false);
+      }
+    };
+
+    const onCancel = (e) => {
+      e.preventDefault();
       cleanup();
       resolve(false);
     };
-    const onConfirm = () => {
+    const onConfirm = (e) => {
+      e.preventDefault();
       cleanup();
       resolve(true);
     };
+
+    if (modal) modal.addEventListener('click', stopProp);
+    overlay.addEventListener('click', onBackdropClick);
     cancelBtn.addEventListener('click', onCancel);
     confirmBtn.addEventListener('click', onConfirm);
   });
@@ -97,10 +116,10 @@ function isTelegramFormValid() {
   return !!(placeholder && placeholder !== defaultPh);
 }
 
-/** Task 5: empty apiKey + active token = valid (we keep existing key). */
+/** Task 5: empty apiKey + active token = valid (we keep existing key). Uses getEffectiveModelType() for custom provider. */
 function isLlmFormValid() {
   const llmType = (document.getElementById('llmType')?.value || '').trim();
-  const modelType = (document.getElementById('llmModel')?.value || '').trim();
+  const modelType = getEffectiveModelType();
   const apiKeyEl = document.getElementById('llmApiKey');
   const apiKey = (apiKeyEl?.value || '').trim();
   if (!llmType || !modelType) return false;
@@ -166,9 +185,28 @@ function fillLlmTypeSelect(selectedId) {
   if (selectedId) sel.value = selectedId;
 }
 
+/** For custom provider there are no preset models; use text input. Returns true if provider uses custom model input. */
+function isCustomModelProvider(providerId) {
+  return (providerId || '').toLowerCase() === 'custom';
+}
+
 function fillLlmModelSelect(providerId, selectedModel) {
   const sel = document.getElementById('llmModel');
+  const customInput = document.getElementById('llmModelCustom');
   if (!sel) return;
+  if (isCustomModelProvider(providerId)) {
+    sel.style.display = 'none';
+    if (customInput) {
+      customInput.style.display = 'block';
+      customInput.value = selectedModel || '';
+      customInput.placeholder = 'Например: gpt-4o';
+    }
+    sel.innerHTML = '<option value="">— Custom —</option>';
+    sel.value = '';
+    return;
+  }
+  if (customInput) customInput.style.display = 'none';
+  sel.style.display = '';
   sel.innerHTML = '<option value="">— выберите модель —</option>';
   const prov = getProviderById(providerId);
   if (!prov || !prov.models) return;
@@ -205,11 +243,31 @@ function fillLlmModelSelect(providerId, selectedModel) {
   }
 }
 
+/** Get effective model type: from select or from custom input when provider is custom. */
+function getEffectiveModelType() {
+  const llmType = (document.getElementById('llmType')?.value || '').trim();
+  if (isCustomModelProvider(llmType)) {
+    return (document.getElementById('llmModelCustom')?.value || '').trim();
+  }
+  return (document.getElementById('llmModel')?.value || '').trim();
+}
+
 function updateLlmBaseUrlHint(providerId) {
   const hint = document.getElementById('llmBaseUrlHint');
   if (!hint) return;
   const prov = getProviderById(providerId);
   hint.textContent = prov?.defaultBaseUrl ? `По умолчанию: ${prov.defaultBaseUrl}` : '';
+}
+
+function toggleLlmAzureFields(providerId) {
+  const block = document.getElementById('llmAzureFields');
+  if (!block) return;
+  const isAzure = (providerId || '').toLowerCase() === 'azure';
+  if (isAzure) {
+    block.removeAttribute('hidden');
+  } else {
+    block.setAttribute('hidden', '');
+  }
 }
 
 async function loadSettings() {
@@ -232,12 +290,14 @@ async function loadSettings() {
 
     const telegramActiveEl = document.getElementById('telegramActiveToken');
     const telegramActiveValueEl = document.getElementById('telegramActiveTokenValue');
-    if (tg.isActive && tg.activeTokenMasked) {
-      telegramActiveEl.hidden = false;
-      telegramActiveValueEl.textContent = tg.activeTokenMasked;
-    } else {
-      telegramActiveEl.hidden = true;
-      telegramActiveValueEl.textContent = '';
+    if (telegramActiveEl) {
+      if (tg.isActive === true && tg.activeTokenMasked) {
+        telegramActiveEl.removeAttribute('hidden');
+        if (telegramActiveValueEl) telegramActiveValueEl.textContent = tg.activeTokenMasked;
+      } else {
+        telegramActiveEl.setAttribute('hidden', '');
+        if (telegramActiveValueEl) telegramActiveValueEl.textContent = '';
+      }
     }
 
     const status = tg.connectionStatus || 'not_configured';
@@ -274,12 +334,14 @@ async function loadSettings() {
     if (systemPromptEl) systemPromptEl.value = llm.systemPrompt || '';
     const llmActiveEl = document.getElementById('llmActiveToken');
     const llmActiveValueEl = document.getElementById('llmActiveTokenValue');
-    if (llm.isActive && llm.activeTokenMasked) {
-      llmActiveEl.hidden = false;
-      llmActiveValueEl.textContent = llm.activeTokenMasked;
-    } else {
-      llmActiveEl.hidden = true;
-      llmActiveValueEl.textContent = '';
+    if (llmActiveEl) {
+      if (llm.isActive === true && llm.activeTokenMasked) {
+        llmActiveEl.removeAttribute('hidden');
+        if (llmActiveValueEl) llmActiveValueEl.textContent = llm.activeTokenMasked;
+      } else {
+        llmActiveEl.setAttribute('hidden', '');
+        if (llmActiveValueEl) llmActiveValueEl.textContent = '';
+      }
     }
     updateLlmBaseUrlHint(llm.llmType || '');
     const llmStatus = llm.connectionStatus || 'not_configured';
@@ -295,6 +357,14 @@ async function loadSettings() {
     if (llm.apiKeyMasked && llmCheckTimer === null) {
       startLlmAutoCheck();
     }
+    toggleLlmAzureFields(llm.llmType || '');
+    if (llm.llmType === 'azure') {
+      const azureEndEl = document.getElementById('llmAzureEndpoint');
+      const azureVerEl = document.getElementById('llmAzureApiVersion');
+      if (azureEndEl) azureEndEl.value = llm.azureEndpoint || '';
+      if (azureVerEl) azureVerEl.value = llm.apiVersion || '';
+    }
+    updateLlmSaveDisabled();
   } catch (e) {
     showToast('Ошибка загрузки настроек: ' + e.message, 'error');
   }
@@ -398,12 +468,14 @@ async function telegramSave() {
     document.getElementById('telegramToken').placeholder = tg.accessTokenMasked || 'Токен бота';
     const telegramActiveEl = document.getElementById('telegramActiveToken');
     const telegramActiveValueEl = document.getElementById('telegramActiveTokenValue');
-    if (tg.isActive && tg.activeTokenMasked) {
-      telegramActiveEl.hidden = false;
-      telegramActiveValueEl.textContent = tg.activeTokenMasked;
-    } else {
-      telegramActiveEl.hidden = true;
-      telegramActiveValueEl.textContent = '';
+    if (telegramActiveEl) {
+      if (tg.isActive === true && tg.activeTokenMasked) {
+        telegramActiveEl.removeAttribute('hidden');
+        if (telegramActiveValueEl) telegramActiveValueEl.textContent = tg.activeTokenMasked;
+      } else {
+        telegramActiveEl.setAttribute('hidden', '');
+        if (telegramActiveValueEl) telegramActiveValueEl.textContent = '';
+      }
     }
     if (!telegramCheckTimer) startTelegramAutoCheck();
   } catch (e) {
@@ -503,8 +575,10 @@ function getLlmChangedFields() {
   const llmType = (document.getElementById('llmType')?.value || '').trim();
   const apiKey = (document.getElementById('llmApiKey')?.value || '').trim();
   let baseUrl = (document.getElementById('llmBaseUrl')?.value || '').trim();
-  const modelType = (document.getElementById('llmModel')?.value || '').trim();
+  const modelType = getEffectiveModelType();
   const systemPrompt = (document.getElementById('llmSystemPrompt')?.value || '').trim() || null;
+  const azureEndpoint = (document.getElementById('llmAzureEndpoint')?.value || '').trim() || null;
+  const apiVersion = (document.getElementById('llmAzureApiVersion')?.value || '').trim() || null;
   const prov = getProviderById(llmType);
   if (!baseUrl && prov?.defaultBaseUrl) baseUrl = prov.defaultBaseUrl;
   const prev = lastLlm || {};
@@ -514,11 +588,15 @@ function getLlmChangedFields() {
   if (baseUrl !== (prev.baseUrl || '')) changed.push('baseUrl');
   if (modelType !== (prev.modelType || '')) changed.push('modelType');
   if ((systemPrompt || '') !== (prev.systemPrompt || '')) changed.push('systemPrompt');
-  return { changed, llmType, apiKey, baseUrl, modelType, systemPrompt };
+  if (llmType === 'azure') {
+    if ((azureEndpoint || '') !== (prev.azureEndpoint || '')) changed.push('azureEndpoint');
+    if ((apiVersion || '') !== (prev.apiVersion || '')) changed.push('apiVersion');
+  }
+  return { changed, llmType, apiKey, baseUrl, modelType, systemPrompt, azureEndpoint, apiVersion };
 }
 
 async function llmSave() {
-  const { changed, llmType, apiKey, baseUrl, modelType, systemPrompt } = getLlmChangedFields();
+  const { changed, llmType, apiKey, baseUrl, modelType, systemPrompt, azureEndpoint, apiVersion } = getLlmChangedFields();
 
   setFieldError('llmType', 'llmFieldError', '');
   document.getElementById('llmType')?.classList.remove('field-input--error');
@@ -539,7 +617,9 @@ async function llmSave() {
     return;
   }
 
-  const requiresConnectionCheck = changed.some((f) => ['llmType', 'apiKey', 'baseUrl'].includes(f));
+  const requiresConnectionCheck = changed.some((f) =>
+    ['llmType', 'apiKey', 'baseUrl', 'azureEndpoint', 'apiVersion'].includes(f)
+  );
   const onlyModelOrPrompt = changed.length > 0 && !requiresConnectionCheck && (changed.includes('modelType') || changed.includes('systemPrompt'));
 
   if (changed.length === 0) {
@@ -551,9 +631,14 @@ async function llmSave() {
   setButtonLoading(btn, true);
   try {
     if (onlyModelOrPrompt) {
+      const patchBody = { modelType, systemPrompt };
+      if (llmType === 'azure') {
+        patchBody.azureEndpoint = azureEndpoint || undefined;
+        patchBody.apiVersion = apiVersion || undefined;
+      }
       const r = await api('/api/settings/llm', {
         method: 'PATCH',
-        body: JSON.stringify({ modelType, systemPrompt }),
+        body: JSON.stringify(patchBody),
       });
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
@@ -561,7 +646,14 @@ async function llmSave() {
       }
       const data = await r.json();
       lastLlm = { ...data.llm };
-      showToast(modelType !== (lastLlm.modelType || '') ? `Модель изменена на ${modelType}` : 'Системный промпт обновлён', 'success');
+      const modelChanged = changed.includes('modelType');
+      const promptChanged = changed.includes('systemPrompt');
+      const toastMsg = modelChanged && promptChanged
+        ? 'Модель и системный промпт обновлены'
+        : modelChanged
+          ? `Модель изменена на ${modelType}`
+          : 'Системный промпт обновлён';
+      showToast(toastMsg, 'success');
       setLlmStatus(
         data.llm?.connectionStatus === 'success' ? 'success' : data.llm?.connectionStatus === 'not_configured' ? 'not_configured' : 'failed',
         data.llm?.connectionStatus === 'success'
@@ -572,23 +664,30 @@ async function llmSave() {
       );
       const llmActiveEl = document.getElementById('llmActiveToken');
       const llmActiveValueEl = document.getElementById('llmActiveTokenValue');
-      if (data.llm?.isActive && data.llm?.activeTokenMasked) {
-        llmActiveEl.hidden = false;
-        llmActiveValueEl.textContent = data.llm.activeTokenMasked;
-      } else {
-        llmActiveEl.hidden = true;
-        llmActiveValueEl.textContent = '';
+      if (llmActiveEl) {
+        if (data.llm?.isActive === true && data.llm?.activeTokenMasked) {
+          llmActiveEl.removeAttribute('hidden');
+          if (llmActiveValueEl) llmActiveValueEl.textContent = data.llm.activeTokenMasked;
+        } else {
+          llmActiveEl.setAttribute('hidden', '');
+          if (llmActiveValueEl) llmActiveValueEl.textContent = '';
+        }
       }
     } else {
+      const putBody = {
+        llmType,
+        apiKey: apiKey || null,
+        baseUrl,
+        modelType,
+        systemPrompt,
+      };
+      if (llmType === 'azure') {
+        putBody.azureEndpoint = azureEndpoint || null;
+        putBody.apiVersion = apiVersion || null;
+      }
       const r = await api('/api/settings/llm', {
         method: 'PUT',
-        body: JSON.stringify({
-          llmType,
-          apiKey: apiKey || null,
-          baseUrl,
-          modelType,
-          systemPrompt,
-        }),
+        body: JSON.stringify(putBody),
       });
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
@@ -614,12 +713,14 @@ async function llmSave() {
       document.getElementById('llmApiKey').placeholder = data.llm?.apiKeyMasked || 'Ключ API';
       const llmActiveEl = document.getElementById('llmActiveToken');
       const llmActiveValueEl = document.getElementById('llmActiveTokenValue');
-      if (data.llm?.isActive && data.llm?.activeTokenMasked) {
-        llmActiveEl.hidden = false;
-        llmActiveValueEl.textContent = data.llm.activeTokenMasked;
-      } else {
-        llmActiveEl.hidden = true;
-        llmActiveValueEl.textContent = '';
+      if (llmActiveEl) {
+        if (data.llm?.isActive === true && data.llm?.activeTokenMasked) {
+          llmActiveEl.removeAttribute('hidden');
+          if (llmActiveValueEl) llmActiveValueEl.textContent = data.llm.activeTokenMasked;
+        } else {
+          llmActiveEl.setAttribute('hidden', '');
+          if (llmActiveValueEl) llmActiveValueEl.textContent = '';
+        }
       }
       if (!llmCheckTimer) startLlmAutoCheck();
     }
@@ -679,6 +780,12 @@ function onLlmTypeChange() {
   if (baseUrlEl && prov?.defaultBaseUrl) baseUrlEl.value = prov.defaultBaseUrl;
   updateLlmBaseUrlHint(providerId);
   fillLlmModelSelect(providerId, null);
+  toggleLlmAzureFields(providerId);
+  if ((providerId || '').toLowerCase() === 'azure') {
+    const azureVerEl = document.getElementById('llmAzureApiVersion');
+    if (azureVerEl && !azureVerEl.value) azureVerEl.value = '2024-02-15-preview';
+  }
+  updateLlmSaveDisabled();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -720,6 +827,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLlmSaveDisabled();
       });
     }
+  });
+  document.getElementById('llmModelCustom')?.addEventListener('input', () => {
+    setFieldError('llmModel', 'llmFieldError', '');
+    updateLlmSaveDisabled();
   });
   document.getElementById('llmApiKey')?.addEventListener('input', () => {
     setFieldError('llmApiKey', 'llmFieldError', '');
