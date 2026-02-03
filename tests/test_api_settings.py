@@ -4,9 +4,11 @@ import tempfile
 
 import pytest
 
-# Set before any api import so one engine/sqlite file is used for all connections
+# Set before any api import
 _test_db = os.path.join(tempfile.gettempdir(), "lo_tg_bot_test_settings.db")
 os.environ["DATABASE_URL"] = f"sqlite:///{_test_db}"
+# Required for save_telegram_settings/save_llm_settings (encryption)
+os.environ["SETTINGS_ENCRYPTION_KEY"] = "zOkTsCorSklBG_KtNc6s-B_5Mz5HkuDBE5ncOg8yU8Q="
 
 
 @pytest.fixture
@@ -46,3 +48,24 @@ def test_telegram_test_not_configured(client):
     data = r.json()
     assert data["status"] == "not_configured"
     assert "message" in data
+
+
+def test_put_telegram_validation(client):
+    """PUT /api/settings/telegram returns 400 when accessToken is missing."""
+    r = client.put("/api/settings/telegram", json={"baseUrl": "https://api.telegram.org"})
+    assert r.status_code == 400
+    assert "required" in r.json().get("detail", "").lower() or "token" in r.json().get("detail", "").lower()
+
+
+def test_put_telegram_save_and_test(client):
+    """PUT /api/settings/telegram saves and runs test; invalid token -> applied false."""
+    r = client.put(
+        "/api/settings/telegram",
+        json={"accessToken": "invalid_token_12345", "baseUrl": "https://api.telegram.org"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "telegram" in data
+    assert data["applied"] is False
+    assert data["telegram"]["accessTokenMasked"] == "...12345"
+    assert data["telegram"]["connectionStatus"] == "failed"
