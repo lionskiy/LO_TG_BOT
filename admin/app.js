@@ -55,9 +55,7 @@ async function loadSettings() {
     const tg = data.telegram || {};
 
     document.getElementById('telegramToken').value = '';
-    document.getElementById('telegramToken').placeholder = tg.accessTokenMasked
-      ? `•••${tg.accessTokenMasked.slice(-5)}`
-      : 'Токен бота';
+    document.getElementById('telegramToken').placeholder = tg.accessTokenMasked || 'Токен бота';
     document.getElementById('telegramBaseUrl').value = tg.baseUrl || TELEGRAM_DEFAULT_BASE_URL;
 
     const status = tg.connectionStatus || 'not_configured';
@@ -103,10 +101,11 @@ async function telegramTest() {
 
 function startTelegramAutoCheck() {
   if (telegramCheckTimer) return;
+  const defaultPlaceholder = 'Токен бота';
   telegramCheckTimer = setInterval(() => {
     const tokenEl = document.getElementById('telegramToken');
-    const placeholder = tokenEl.placeholder || '';
-    if (placeholder.includes('•••') || tokenEl.value.trim()) {
+    const placeholder = (tokenEl.placeholder || '').trim();
+    if ((placeholder && placeholder !== defaultPlaceholder) || tokenEl.value.trim()) {
       telegramTest();
     }
   }, STATUS_CHECK_INTERVAL_MS);
@@ -151,9 +150,7 @@ async function telegramSave() {
           : 'Connection failed'
     );
     document.getElementById('telegramToken').value = '';
-    document.getElementById('telegramToken').placeholder = data.telegram?.accessTokenMasked
-      ? `•••${String(data.telegram.accessTokenMasked).slice(-5)}`
-      : 'Токен бота';
+    document.getElementById('telegramToken').placeholder = data.telegram?.accessTokenMasked || 'Токен бота';
     if (!telegramCheckTimer) startTelegramAutoCheck();
   } catch (e) {
     showToast('Ошибка сохранения: ' + e.message, 'error');

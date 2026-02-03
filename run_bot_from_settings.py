@@ -30,7 +30,11 @@ from bot.telegram_bot import run_polling_with_token
 
 def main() -> None:
     init_db()
-    creds = get_telegram_settings_decrypted()
+    try:
+        creds = get_telegram_settings_decrypted()
+    except ValueError as e:
+        logger.warning("Cannot read Telegram settings (missing or invalid SETTINGS_ENCRYPTION_KEY): %s; exiting", e)
+        return
     if not creds or not creds.get("access_token"):
         logger.warning("No active Telegram settings in DB; exiting")
         return
