@@ -8,11 +8,16 @@ logger = logging.getLogger(__name__)
 
 def _llm_error_message(exc: Exception) -> str:
     """Краткое сообщение об ошибке LLM для пользователя (без деталей)."""
+    # Всегда логируем тип и текст — видно при любом LOG_LEVEL
+    logger.error("LLM error type=%s message=%s", type(exc).__name__, str(exc))
     try:
         from openai import (
             APIConnectionError,
             APITimeoutError,
             AuthenticationError,
+            BadRequestError,
+            NotFoundError,
+            PermissionDeniedError,
             RateLimitError,
         )
         if isinstance(exc, AuthenticationError):
@@ -21,9 +26,15 @@ def _llm_error_message(exc: Exception) -> str:
             return "Слишком много запросов. Подождите минуту и попробуйте снова."
         if isinstance(exc, (APIConnectionError, APITimeoutError)):
             return "Нет связи с API модели или таймаут. Проверьте интернет и попробуйте позже."
+        if isinstance(exc, BadRequestError):
+            return "Неверный запрос к модели (например, неверное имя модели в .env). Проверьте OPENAI_MODEL и попробуйте снова."
+        if isinstance(exc, NotFoundError):
+            return "Модель или ресурс не найден. Проверьте имя модели в .env (OPENAI_MODEL)."
+        if isinstance(exc, PermissionDeniedError):
+            return "Нет доступа к модели или API. Проверьте ключ и права доступа в .env."
     except ImportError:
         pass
-    return "Произошла ошибка при обращении к модели. Подробности в логах (LOG_LEVEL=DEBUG). Попробуйте позже."
+    return f"Ошибка при обращении к модели ({type(exc).__name__}). Проверьте .env и логи. Попробуйте позже."
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
