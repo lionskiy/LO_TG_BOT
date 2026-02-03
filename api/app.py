@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from api.db import init_db
 from api.settings_repository import get_llm_settings, get_telegram_settings
+from api.telegram_test import test_telegram_connection
 
 logger = logging.getLogger(__name__)
 
@@ -28,3 +29,10 @@ def get_settings():
         "telegram": get_telegram_settings(),
         "llm": get_llm_settings(),
     }
+
+
+@app.post("/api/settings/telegram/test")
+def telegram_test():
+    """Test Telegram Bot API connection (getMe). Uses saved settings from DB."""
+    status, message = test_telegram_connection()
+    return {"status": status, "message": message}

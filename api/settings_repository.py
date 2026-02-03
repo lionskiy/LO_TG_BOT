@@ -75,6 +75,21 @@ def get_telegram_settings_decrypted() -> Optional[dict]:
         }
 
 
+def get_telegram_credentials_for_test() -> Optional[dict]:
+    """Return saved token and base_url for connection test (any saved, not only active)."""
+    with SessionLocal() as session:
+        row = _telegram_row(session)
+        if not row or not row.access_token_encrypted:
+            return None
+        token = decrypt_secret(row.access_token_encrypted)
+        if not token:
+            return None
+        return {
+            "access_token": token,
+            "base_url": row.base_url or TELEGRAM_DEFAULT_BASE_URL,
+        }
+
+
 def save_telegram_settings(
     access_token: Optional[str],
     base_url: Optional[str],

@@ -37,3 +37,12 @@ def test_get_settings_empty(client):
     assert llm["apiKeyMasked"] == ""
     assert llm["connectionStatus"] == "not_configured"
     assert llm["isActive"] is False
+
+
+def test_telegram_test_not_configured(client):
+    """POST /api/settings/telegram/test returns not_configured when no token saved."""
+    r = client.post("/api/settings/telegram/test")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["status"] == "not_configured"
+    assert "message" in data
