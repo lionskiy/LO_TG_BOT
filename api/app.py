@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 
 from api.db import CONNECTION_STATUS_SUCCESS, init_db
-from api.llm_providers import get_default_base_url
+from api.llm_providers import get_default_base_url, PROVIDERS_LIST
 from api.llm_test import test_llm_connection
 from api.settings_repository import (
     get_llm_settings,
@@ -123,3 +123,18 @@ def put_llm_settings(body: dict):
     set_llm_active(applied)
     settings = get_llm_settings()
     return {"llm": settings, "applied": applied}
+
+
+@app.post("/api/settings/llm/activate")
+def llm_activate():
+    """Run connection test; if success, mark saved LLM settings as active."""
+    status, message = test_llm_connection()
+    activated = status == CONNECTION_STATUS_SUCCESS
+    set_llm_active(activated)
+    return {"activated": activated, "message": message}
+
+
+@app.get("/api/settings/llm/providers")
+def get_llm_providers():
+    """Return list of LLM providers with default base URLs and model lists (standard + reasoning)."""
+    return {"providers": PROVIDERS_LIST}

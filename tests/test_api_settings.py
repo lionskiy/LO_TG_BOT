@@ -108,3 +108,30 @@ def test_put_llm_validation(client):
         json={"llmType": "openai", "apiKey": "sk-x"},
     )
     assert r2.status_code == 400
+
+
+def test_llm_activate_not_configured(client):
+    """POST /api/settings/llm/activate returns activated false when no LLM saved."""
+    from api.settings_repository import clear_llm_settings
+    clear_llm_settings()
+    r = client.post("/api/settings/llm/activate")
+    assert r.status_code == 200
+    assert r.json().get("activated") is False
+
+
+def test_get_llm_providers(client):
+    """GET /api/settings/llm/providers returns list with openai, anthropic, etc."""
+    r = client.get("/api/settings/llm/providers")
+    assert r.status_code == 200
+    data = r.json()
+    assert "providers" in data
+    providers = data["providers"]
+    ids = [p["id"] for p in providers]
+    assert "openai" in ids
+    assert "anthropic" in ids
+    assert "custom" in ids
+    openai_p = next(p for p in providers if p["id"] == "openai")
+    assert "defaultBaseUrl" in openai_p
+    assert "models" in openai_p
+    assert "standard" in openai_p["models"]
+    assert "reasoning" in openai_p["models"]
