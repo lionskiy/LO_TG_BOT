@@ -51,7 +51,15 @@ python main.py
 docker compose up --build
 ```
 
-Остановка: `Ctrl+C`, затем при необходимости `docker compose down`.
+Остановка: `Ctrl+C` в том же терминале, затем при необходимости `docker compose down`.
+
+Запуск в фоне (контейнеры не остановятся при закрытии терминала):
+
+```bash
+docker compose up -d --build
+```
+
+Остановка фоновых контейнеров: `docker compose down`.
 
 Запуск тестов в контейнере:
 

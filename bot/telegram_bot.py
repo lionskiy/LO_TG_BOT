@@ -37,6 +37,7 @@ def _llm_error_message(exc: Exception) -> str:
     return f"Ошибка при обращении к модели ({type(exc).__name__}). Проверьте .env и логи. Попробуйте позже."
 
 from telegram import Update
+from telegram.error import Conflict
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 from bot.config import BOT_TOKEN, validate_config
@@ -118,6 +119,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("Не удалось получить ответ. Попробуй ещё раз.")
 
 
+async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Логируем ошибки; для Conflict — явная подсказка про один экземпляр."""
+    exc = context.error
+    if isinstance(exc, Conflict):
+        logger.error(
+            "Conflict: запущено несколько экземпляров бота с одним токеном. "
+            "Остановите все кроме одного (docker compose down ИЛИ завершите python main.py)."
+        )
+    else:
+        logger.exception("Update %s caused error: %s", update, exc)
+
+
 def build_application() -> Application:
     """Create and configure the Telegram application."""
     logger.info("Building application, validating config")
@@ -125,6 +138,7 @@ def build_application() -> Application:
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_error_handler(_error_handler)
     return app
 
 
