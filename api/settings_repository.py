@@ -149,6 +149,8 @@ def get_llm_settings() -> dict[str, Any]:
                 "baseUrl": "",
                 "modelType": "",
                 "systemPrompt": None,
+                "azureEndpoint": None,
+                "apiVersion": None,
                 "connectionStatus": CONNECTION_STATUS_NOT_CONFIGURED,
                 "isActive": False,
                 "lastActivatedAt": None,
@@ -162,6 +164,8 @@ def get_llm_settings() -> dict[str, Any]:
             "baseUrl": row.base_url,
             "modelType": row.model_type,
             "systemPrompt": row.system_prompt or None,
+            "azureEndpoint": getattr(row, "azure_endpoint", None) or None,
+            "apiVersion": getattr(row, "api_version", None) or None,
             "connectionStatus": row.connection_status,
             "isActive": row.is_active,
             "lastActivatedAt": row.last_activated_at.isoformat() if row.last_activated_at else None,
@@ -184,6 +188,8 @@ def get_llm_settings_decrypted() -> Optional[dict]:
             "base_url": row.base_url,
             "model_type": row.model_type,
             "system_prompt": row.system_prompt or None,
+            "azure_endpoint": getattr(row, "azure_endpoint", None) or None,
+            "api_version": getattr(row, "api_version", None) or None,
         }
 
 
@@ -201,6 +207,8 @@ def get_llm_credentials_for_test() -> Optional[dict]:
             "api_key": key or "ollama",
             "base_url": row.base_url,
             "model_type": row.model_type,
+            "azure_endpoint": getattr(row, "azure_endpoint", None) or None,
+            "api_version": getattr(row, "api_version", None) or None,
         }
 
 
@@ -212,9 +220,13 @@ def save_llm_settings(
     system_prompt: Optional[str],
     connection_status: str,
     is_active: bool = False,
+    azure_endpoint: Optional[str] = None,
+    api_version: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Save LLM block. Returns API-shaped dict."""
+    """Save LLM block. Returns API-shaped dict. azure_endpoint/api_version for Azure provider."""
     encrypted = encrypt_secret(api_key) if api_key else None
+    azure_endpoint = (azure_endpoint or "").strip() or None
+    api_version = (api_version or "").strip() or None
 
     with SessionLocal() as session:
         row = _llm_row(session)
@@ -225,6 +237,8 @@ def save_llm_settings(
             row.base_url = base_url
             row.model_type = model_type
             row.system_prompt = (system_prompt or "").strip() or None
+            row.azure_endpoint = azure_endpoint
+            row.api_version = api_version
             row.connection_status = connection_status
             row.is_active = is_active
             if is_active:
@@ -238,6 +252,8 @@ def save_llm_settings(
                 base_url=base_url,
                 model_type=model_type,
                 system_prompt=(system_prompt or "").strip() or None,
+                azure_endpoint=azure_endpoint,
+                api_version=api_version,
                 connection_status=connection_status,
                 is_active=is_active,
                 last_activated_at=now if is_active else None,
@@ -255,6 +271,8 @@ def save_llm_settings(
         "baseUrl": row.base_url,
         "modelType": row.model_type,
         "systemPrompt": row.system_prompt,
+        "azureEndpoint": row.azure_endpoint,
+        "apiVersion": row.api_version,
         "connectionStatus": row.connection_status,
         "isActive": row.is_active,
         "lastActivatedAt": row.last_activated_at.isoformat() if row.last_activated_at else None,

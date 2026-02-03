@@ -13,6 +13,8 @@ from api.llm_providers import get_default_base_url, PROVIDERS_LIST
 from api.llm_test import test_llm_connection
 from api.bot_runner import restart_bot, start_bot, stop_bot
 from api.settings_repository import (
+    clear_llm_settings,
+    clear_telegram_settings,
     get_llm_settings,
     get_telegram_settings,
     get_telegram_settings_decrypted,
@@ -106,6 +108,15 @@ def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
     return {"telegram": settings, "applied": applied}
 
 
+@app.delete("/api/settings/telegram")
+def delete_telegram_settings(_: None = Depends(_require_admin)):
+    """Clear saved Telegram settings (token, base URL). Stops bot subprocess."""
+    clear_telegram_settings()
+    stop_bot()
+    logger.info("settings_cleared block=telegram")
+    return {"telegram": get_telegram_settings()}
+
+
 @app.post("/api/settings/telegram/activate")
 def telegram_activate(_: None = Depends(_require_admin)):
     """Run connection test; if success, mark saved Telegram settings as active."""
@@ -136,6 +147,8 @@ def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
     base_url = (body.get("baseUrl") or "").strip()
     model_type = (body.get("modelType") or "").strip()
     system_prompt = (body.get("systemPrompt") or "").strip() or None
+    azure_endpoint = (body.get("azureEndpoint") or "").strip() or None
+    api_version = (body.get("apiVersion") or "").strip() or None
     if not llm_type:
         raise HTTPException(status_code=400, detail="LLM type is required")
     if not model_type:
@@ -153,6 +166,8 @@ def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
             system_prompt=system_prompt,
             connection_status="not_configured",
             is_active=False,
+            azure_endpoint=azure_endpoint,
+            api_version=api_version,
         )
     except ValueError as e:
         if "SETTINGS_ENCRYPTION_KEY" in str(e):
@@ -167,6 +182,14 @@ def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
     logger.info("settings_changed block=llm action=put applied=%s", applied)
     settings = get_llm_settings()
     return {"llm": settings, "applied": applied}
+
+
+@app.delete("/api/settings/llm")
+def delete_llm_settings(_: None = Depends(_require_admin)):
+    """Clear saved LLM settings (provider, API key, model, etc.)."""
+    clear_llm_settings()
+    logger.info("settings_cleared block=llm")
+    return {"llm": get_llm_settings()}
 
 
 @app.post("/api/settings/llm/activate")

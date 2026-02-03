@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from sqlalchemy import Boolean, DateTime, String, Text, create_engine
+from sqlalchemy import Boolean, DateTime, String, Text, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -60,12 +60,38 @@ class LLMSettingsModel(Base):
     base_url: Mapped[str] = mapped_column(String(512), nullable=False)
     model_type: Mapped[str] = mapped_column(String(128), nullable=False)
     system_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    azure_endpoint: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    api_version: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     connection_status: Mapped[str] = mapped_column(String(32), nullable=False, default=CONNECTION_STATUS_NOT_CONFIGURED)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_checked: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+def _sqlite_migrate_llm_azure_columns() -> None:
+    """Add azure_endpoint and api_version to llm_settings if missing (SQLite)."""
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+    with _engine.connect() as conn:
+        try:
+            r = conn.execute(
+                text(
+                    "SELECT name FROM pragma_table_info('llm_settings') WHERE name IN ('azure_endpoint', 'api_version')"
+                )
+            )
+            existing = {row[0] for row in r}
+        except Exception:
+            return
+        for col, typ in [("azure_endpoint", "VARCHAR(512)"), ("api_version", "VARCHAR(64)")]:
+            if col not in existing:
+                try:
+                    conn.execute(text(f"ALTER TABLE llm_settings ADD COLUMN {col} {typ}"))
+                    conn.commit()
+                    logger.info("Added column llm_settings.%s", col)
+                except Exception as e:
+                    logger.debug("Migration add %s: %s", col, e)
 
 
 def init_db() -> None:
@@ -75,4 +101,5 @@ def init_db() -> None:
         if path.startswith("./"):
             Path(path).parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=_engine)
+    _sqlite_migrate_llm_azure_columns()
     logger.debug("Database tables created or already exist")
