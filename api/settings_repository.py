@@ -13,6 +13,7 @@ from api.db import (
 from api.encryption import decrypt_secret, encrypt_secret
 
 MASK_TAIL_LEN = 5
+MASK_HEAD_LEN = 3
 TELEGRAM_DEFAULT_BASE_URL = "https://api.telegram.org"
 
 
@@ -24,6 +25,16 @@ def mask_secret(value: Optional[str]) -> str:
     if len(s) <= MASK_TAIL_LEN:
         return "****"
     return "..." + s[-MASK_TAIL_LEN:]
+
+
+def mask_secret_active(value: Optional[str]) -> str:
+    """Mask for active token display: first 3 + stars + last 5 (e.g. 878***...***Yeh6Q)."""
+    if not value or len(value.strip()) == 0:
+        return ""
+    s = value.strip()
+    if len(s) <= MASK_HEAD_LEN + MASK_TAIL_LEN:
+        return "****"
+    return s[:MASK_HEAD_LEN] + "*" * min(20, max(0, len(s) - MASK_HEAD_LEN - MASK_TAIL_LEN)) + s[-MASK_TAIL_LEN:]
 
 
 def _telegram_row(session: Session) -> Optional[TelegramSettingsModel]:
@@ -39,19 +50,21 @@ def get_telegram_settings() -> dict[str, Any]:
     with SessionLocal() as session:
         row = _telegram_row(session)
         if not row:
-            return {
-                "accessToken": None,
-                "accessTokenMasked": "",
-                "baseUrl": TELEGRAM_DEFAULT_BASE_URL,
-                "connectionStatus": CONNECTION_STATUS_NOT_CONFIGURED,
-                "isActive": False,
-                "lastActivatedAt": None,
-                "lastChecked": None,
-            }
+        return {
+            "accessToken": None,
+            "accessTokenMasked": "",
+            "activeTokenMasked": None,
+            "baseUrl": TELEGRAM_DEFAULT_BASE_URL,
+            "connectionStatus": CONNECTION_STATUS_NOT_CONFIGURED,
+            "isActive": False,
+            "lastActivatedAt": None,
+            "lastChecked": None,
+        }
         token_plain = decrypt_secret(row.access_token_encrypted) if row.access_token_encrypted else None
         return {
             "accessToken": None,
             "accessTokenMasked": mask_secret(token_plain),
+            "activeTokenMasked": mask_secret_active(token_plain) if row.is_active and token_plain else None,
             "baseUrl": row.base_url or TELEGRAM_DEFAULT_BASE_URL,
             "connectionStatus": row.connection_status,
             "isActive": row.is_active,
@@ -146,6 +159,7 @@ def get_llm_settings() -> dict[str, Any]:
                 "llmType": None,
                 "apiKey": None,
                 "apiKeyMasked": "",
+                "activeTokenMasked": None,
                 "baseUrl": "",
                 "modelType": "",
                 "systemPrompt": None,
@@ -161,6 +175,7 @@ def get_llm_settings() -> dict[str, Any]:
             "llmType": row.llm_type,
             "apiKey": None,
             "apiKeyMasked": mask_secret(key_plain),
+            "activeTokenMasked": mask_secret_active(key_plain) if row.is_active and key_plain else None,
             "baseUrl": row.base_url,
             "modelType": row.model_type,
             "systemPrompt": row.system_prompt or None,
@@ -300,6 +315,31 @@ def update_llm_connection_status(status: str, last_checked: Optional[datetime] =
             session.commit()
 
 
+def update_llm_model_and_prompt(
+    model_type: str,
+    system_prompt: Optional[str] = None,
+    azure_endpoint: Optional[str] = None,
+    api_version: Optional[str] = None,
+) -> bool:
+    """
+    Update only model_type, system_prompt; optionally azure_endpoint, api_version.
+    Does not touch api_key or is_active. Returns True if row was updated, False if no row.
+    """
+    with SessionLocal() as session:
+        row = _llm_row(session)
+        if not row:
+            return False
+        row.model_type = model_type
+        row.system_prompt = (system_prompt or "").strip() or None
+        if azure_endpoint is not None:
+            row.azure_endpoint = (azure_endpoint or "").strip() or None
+        if api_version is not None:
+            row.api_version = (api_version or "").strip() or None
+        row.updated_at = datetime.utcnow()
+        session.commit()
+        return True
+
+
 def clear_telegram_settings() -> None:
     """Remove telegram settings row (for tests)."""
     with SessionLocal() as session:
@@ -307,11 +347,39 @@ def clear_telegram_settings() -> None:
         session.commit()
 
 
+def clear_telegram_token() -> None:
+    """Remove token and deactivate Telegram (unbind token); keep base_url."""
+    with SessionLocal() as session:
+        row = _telegram_row(session)
+        if row:
+            row.access_token_encrypted = None
+            row.is_active = False
+            row.connection_status = CONNECTION_STATUS_NOT_CONFIGURED
+            row.last_activated_at = None
+            row.last_checked = datetime.utcnow()
+            row.updated_at = datetime.utcnow()
+            session.commit()
+
+
 def clear_llm_settings() -> None:
     """Remove LLM settings row (for tests)."""
     with SessionLocal() as session:
         session.query(LLMSettingsModel).delete()
         session.commit()
+
+
+def clear_llm_token() -> None:
+    """Remove API key and deactivate LLM (unbind token); keep provider, base_url, model, system_prompt."""
+    with SessionLocal() as session:
+        row = _llm_row(session)
+        if row:
+            row.api_key_encrypted = None
+            row.is_active = False
+            row.connection_status = CONNECTION_STATUS_NOT_CONFIGURED
+            row.last_activated_at = None
+            row.last_checked = datetime.utcnow()
+            row.updated_at = datetime.utcnow()
+            session.commit()
 
 
 def set_telegram_active(active: bool) -> None:

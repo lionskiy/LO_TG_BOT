@@ -14,14 +14,19 @@ from api.llm_test import test_llm_connection
 from api.bot_runner import restart_bot, start_bot, stop_bot
 from api.settings_repository import (
     clear_llm_settings,
+    clear_llm_token,
     clear_telegram_settings,
+    clear_telegram_token,
+    get_llm_credentials_for_test,
     get_llm_settings,
+    get_telegram_credentials_for_test,
     get_telegram_settings,
     get_telegram_settings_decrypted,
     save_llm_settings,
     save_telegram_settings,
     set_llm_active,
     set_telegram_active,
+    update_llm_model_and_prompt,
 )
 from api.telegram_test import test_telegram_connection, test_telegram_connection_async
 
@@ -74,13 +79,18 @@ async def telegram_test(_: None = Depends(_require_admin)):
 @app.put("/api/settings/telegram")
 def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
     """
-    Save Telegram block. Validate (accessToken required), save, run test.
-    If test success, mark active. Returns saved settings and applied flag.
+    Save Telegram block. Validate (accessToken required unless existing token).
+    Task 5: if accessToken empty but we have saved token, keep it and only update base_url.
+    Save, run test. If test fails, deactivate and stop bot (Task 3).
     """
     access_token = (body.get("accessToken") or "").strip() or None
     base_url = (body.get("baseUrl") or "").strip() or None
     if not access_token:
-        raise HTTPException(status_code=400, detail="Access Token is required")
+        creds = get_telegram_credentials_for_test()
+        if creds and (creds.get("access_token") or "").strip():
+            access_token = (creds["access_token"] or "").strip()
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Access Token is required")
     try:
         save_telegram_settings(
             access_token=access_token,
@@ -101,10 +111,8 @@ def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
         set_telegram_active(True)
     else:
         set_telegram_active(False)
-    # Re-fetch to get updated status and lastChecked
+    restart_bot()
     settings = get_telegram_settings()
-    if applied:
-        restart_bot()
     return {"telegram": settings, "applied": applied}
 
 
@@ -114,6 +122,15 @@ def delete_telegram_settings(_: None = Depends(_require_admin)):
     clear_telegram_settings()
     stop_bot()
     logger.info("settings_cleared block=telegram")
+    return {"telegram": get_telegram_settings()}
+
+
+@app.delete("/api/settings/telegram/token")
+def delete_telegram_token(_: None = Depends(_require_admin)):
+    """Unbind Telegram token (remove token, set is_active=False). Stops bot subprocess."""
+    clear_telegram_token()
+    stop_bot()
+    logger.info("telegram_token_unbound")
     return {"telegram": get_telegram_settings()}
 
 
@@ -136,11 +153,36 @@ async def llm_test(_: None = Depends(_require_admin)):
     return {"status": status, "message": message}
 
 
+@app.patch("/api/settings/llm")
+def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
+    """
+    Update only model_type, system_prompt, azure fields. No connection test; keeps is_active.
+    Use when only model or system prompt changed (Task 4, 6).
+    """
+    model_type = (body.get("modelType") or "").strip()
+    system_prompt = (body.get("systemPrompt") or "").strip() or None
+    azure_endpoint = (body.get("azureEndpoint") or "").strip() or None
+    api_version = (body.get("apiVersion") or "").strip() or None
+    if not model_type:
+        raise HTTPException(status_code=400, detail="Model type is required")
+    updated = update_llm_model_and_prompt(
+        model_type=model_type,
+        system_prompt=system_prompt,
+        azure_endpoint=azure_endpoint,
+        api_version=api_version,
+    )
+    if not updated:
+        raise HTTPException(status_code=400, detail="No LLM settings to update (save provider and API key first)")
+    logger.info("settings_updated block=llm fields_only model=%s", model_type)
+    return {"llm": get_llm_settings(), "applied": True}
+
+
 @app.put("/api/settings/llm")
 def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
     """
     Save LLM block. Validate llmType, apiKey (optional for ollama), modelType.
-    Base URL default from provider if empty. Save, run test, set active if success.
+    If apiKey empty but active LLM exists, keep existing key. Base URL default from provider if empty.
+    Save, run test, set active if success.
     """
     llm_type = (body.get("llmType") or "").strip()
     api_key = (body.get("apiKey") or "").strip() or None
@@ -153,8 +195,13 @@ def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
         raise HTTPException(status_code=400, detail="LLM type is required")
     if not model_type:
         raise HTTPException(status_code=400, detail="Model type is required")
+    # Task 5: empty apiKey with existing active token → keep existing key
     if not api_key and llm_type.lower() != "ollama":
-        raise HTTPException(status_code=400, detail="API key is required")
+        creds = get_llm_credentials_for_test()
+        if creds and creds.get("llm_type") == llm_type and (creds.get("api_key") or "").strip():
+            api_key = (creds.get("api_key") or "").strip() or None
+        if not api_key:
+            raise HTTPException(status_code=400, detail="API key is required")
     if not base_url:
         base_url = get_default_base_url(llm_type) or ""
     try:
@@ -189,6 +236,14 @@ def delete_llm_settings(_: None = Depends(_require_admin)):
     """Clear saved LLM settings (provider, API key, model, etc.)."""
     clear_llm_settings()
     logger.info("settings_cleared block=llm")
+    return {"llm": get_llm_settings()}
+
+
+@app.delete("/api/settings/llm/token")
+def delete_llm_token(_: None = Depends(_require_admin)):
+    """Unbind LLM API key (remove key, set is_active=False). Keeps provider, base_url, model, system_prompt."""
+    clear_llm_token()
+    logger.info("llm_token_unbound")
     return {"llm": get_llm_settings()}
 
 

@@ -11,6 +11,9 @@ let telegramCheckTimer = null;
 let llmCheckTimer = null;
 /** @type {Array<{id: string, name: string, defaultBaseUrl: string, models: {standard: string[], reasoning: string[]}}>} */
 let llmProviders = [];
+/** Last loaded settings snapshot for change detection (Task 7). */
+let lastTelegram = {};
+let lastLlm = {};
 
 function getHeaders() {
   const key = document.getElementById('adminKey').value.trim();
@@ -51,25 +54,62 @@ function setFieldError(fieldId, errorElId, message) {
   }
 }
 
-function isTelegramFormValid() {
-  const tokenEl = document.getElementById('telegramToken');
-  const v = (tokenEl?.value || '').trim();
-  const placeholder = (tokenEl?.placeholder || '').trim();
-  const defaultPh = 'Токен бота';
-  return !!(v || (placeholder && placeholder !== defaultPh));
+/** Show confirmation modal; resolve with true if user confirms, false if cancel. */
+function confirmUnbindToken(serviceName) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('confirmModalOverlay');
+    const textEl = document.getElementById('confirmModalText');
+    const cancelBtn = document.getElementById('confirmModalCancel');
+    const confirmBtn = document.getElementById('confirmModalConfirm');
+    textEl.textContent = `Текущий токен будет удалён. Сервис ${serviceName} перестанет работать до привязки нового токена.`;
+    overlay.hidden = false;
+    const cleanup = () => {
+      overlay.hidden = true;
+      cancelBtn.removeEventListener('click', onCancel);
+      confirmBtn.removeEventListener('click', onConfirm);
+    };
+    const onCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+    const onConfirm = () => {
+      cleanup();
+      resolve(true);
+    };
+    cancelBtn.addEventListener('click', onCancel);
+    confirmBtn.addEventListener('click', onConfirm);
+  });
 }
 
+/** True if we have token (typed or from placeholder/masked). Task 5: empty field + active token = valid. */
+function hasTelegramTokenInput() {
+  const tokenEl = document.getElementById('telegramToken');
+  const v = (tokenEl?.value || '').trim();
+  return !!v;
+}
+
+function isTelegramFormValid() {
+  if (hasTelegramTokenInput()) return true;
+  if (lastTelegram.isActive && lastTelegram.activeTokenMasked) return true;
+  const tokenEl = document.getElementById('telegramToken');
+  const placeholder = (tokenEl?.placeholder || '').trim();
+  const defaultPh = 'Токен бота';
+  return !!(placeholder && placeholder !== defaultPh);
+}
+
+/** Task 5: empty apiKey + active token = valid (we keep existing key). */
 function isLlmFormValid() {
   const llmType = (document.getElementById('llmType')?.value || '').trim();
   const modelType = (document.getElementById('llmModel')?.value || '').trim();
   const apiKeyEl = document.getElementById('llmApiKey');
   const apiKey = (apiKeyEl?.value || '').trim();
-  const placeholder = (apiKeyEl?.placeholder || '').trim();
-  const defaultPh = 'Ключ API';
-  const hasKey = !!(apiKey || (placeholder && placeholder !== defaultPh));
   if (!llmType || !modelType) return false;
   if (llmType.toLowerCase() === 'ollama') return true;
-  return hasKey;
+  if (apiKey) return true;
+  if (lastLlm.isActive && lastLlm.activeTokenMasked) return true;
+  const placeholder = (apiKeyEl?.placeholder || '').trim();
+  const defaultPh = 'Ключ API';
+  return !!(placeholder && placeholder !== defaultPh);
 }
 
 function updateTelegramSaveDisabled() {
@@ -184,10 +224,21 @@ async function loadSettings() {
     }
     const data = await r.json();
     const tg = data.telegram || {};
+    lastTelegram = { ...tg };
 
     document.getElementById('telegramToken').value = '';
     document.getElementById('telegramToken').placeholder = tg.accessTokenMasked || 'Токен бота';
     document.getElementById('telegramBaseUrl').value = tg.baseUrl || TELEGRAM_DEFAULT_BASE_URL;
+
+    const telegramActiveEl = document.getElementById('telegramActiveToken');
+    const telegramActiveValueEl = document.getElementById('telegramActiveTokenValue');
+    if (tg.isActive && tg.activeTokenMasked) {
+      telegramActiveEl.hidden = false;
+      telegramActiveValueEl.textContent = tg.activeTokenMasked;
+    } else {
+      telegramActiveEl.hidden = true;
+      telegramActiveValueEl.textContent = '';
+    }
 
     const status = tg.connectionStatus || 'not_configured';
     const statusText =
@@ -206,6 +257,7 @@ async function loadSettings() {
     updateTelegramSaveDisabled();
 
     const llm = data.llm || {};
+    lastLlm = { ...llm };
     if (llmProviders.length === 0) {
       await loadLlmProviders();
     }
@@ -220,6 +272,15 @@ async function loadSettings() {
       apiKeyEl.placeholder = llm.apiKeyMasked || 'Ключ API';
     }
     if (systemPromptEl) systemPromptEl.value = llm.systemPrompt || '';
+    const llmActiveEl = document.getElementById('llmActiveToken');
+    const llmActiveValueEl = document.getElementById('llmActiveTokenValue');
+    if (llm.isActive && llm.activeTokenMasked) {
+      llmActiveEl.hidden = false;
+      llmActiveValueEl.textContent = llm.activeTokenMasked;
+    } else {
+      llmActiveEl.hidden = true;
+      llmActiveValueEl.textContent = '';
+    }
     updateLlmBaseUrlHint(llm.llmType || '');
     const llmStatus = llm.connectionStatus || 'not_configured';
     const llmStatusText =
@@ -300,7 +361,7 @@ async function telegramSave() {
   if (!baseUrl) baseUrl = TELEGRAM_DEFAULT_BASE_URL;
 
   setFieldError('telegramToken', 'telegramFieldError', '');
-  if (!token) {
+  if (!token && !(lastTelegram.isActive && lastTelegram.activeTokenMasked)) {
     showToast('Заполните обязательные поля', 'warning');
     setFieldError('telegramToken', 'telegramFieldError', 'Заполните обязательные поля');
     return;
@@ -311,7 +372,7 @@ async function telegramSave() {
   try {
     const r = await api('/api/settings/telegram', {
       method: 'PUT',
-      body: JSON.stringify({ accessToken: token, baseUrl }),
+      body: JSON.stringify({ accessToken: token || null, baseUrl }),
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
@@ -319,21 +380,31 @@ async function telegramSave() {
     }
     const data = await r.json();
     const applied = data.applied === true;
+    const tg = data.telegram || {};
     if (applied) {
       showToast('Настройки сохранены и применены', 'success');
     } else {
-      showToast('Настройки сохранены, но не применены (ошибка подключения)', 'warning');
+      showToast('Ошибка подключения. Сервис остановлен. Проверьте токен', 'error');
     }
     setTelegramStatus(
-      data.telegram?.connectionStatus === 'success' ? 'success' : 'failed',
-      data.telegram?.connectionStatus === 'success'
+      tg.connectionStatus === 'success' ? 'success' : tg.connectionStatus === 'not_configured' ? 'not_configured' : 'failed',
+      tg.connectionStatus === 'success'
         ? 'Connection tested successfully'
-        : data.telegram?.connectionStatus === 'not_configured'
+        : tg.connectionStatus === 'not_configured'
           ? 'Not configured'
           : 'Connection failed'
     );
     document.getElementById('telegramToken').value = '';
-    document.getElementById('telegramToken').placeholder = data.telegram?.accessTokenMasked || 'Токен бота';
+    document.getElementById('telegramToken').placeholder = tg.accessTokenMasked || 'Токен бота';
+    const telegramActiveEl = document.getElementById('telegramActiveToken');
+    const telegramActiveValueEl = document.getElementById('telegramActiveTokenValue');
+    if (tg.isActive && tg.activeTokenMasked) {
+      telegramActiveEl.hidden = false;
+      telegramActiveValueEl.textContent = tg.activeTokenMasked;
+    } else {
+      telegramActiveEl.hidden = true;
+      telegramActiveValueEl.textContent = '';
+    }
     if (!telegramCheckTimer) startTelegramAutoCheck();
   } catch (e) {
     showToast('Ошибка сохранения: ' + e.message, 'error');
@@ -360,6 +431,27 @@ async function telegramClear() {
     showToast('Ошибка: ' + e.message, 'error');
   } finally {
     setButtonLoading(btn, false);
+  }
+}
+
+async function telegramTokenDelete() {
+  const ok = await confirmUnbindToken('Телеграм бот');
+  if (!ok) return;
+  const btn = document.getElementById('telegramTokenDelete');
+  if (btn) setButtonLoading(btn, true);
+  try {
+    const r = await api('/api/settings/telegram/token', { method: 'DELETE' });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || r.statusText);
+    }
+    stopTelegramAutoCheck();
+    await loadSettings();
+    showToast('Токен удалён. Сервис остановлен', 'success');
+  } catch (e) {
+    showToast('Ошибка: ' + e.message, 'error');
+  } finally {
+    if (btn) setButtonLoading(btn, false);
   }
 }
 
@@ -406,12 +498,27 @@ function startLlmAutoCheck() {
   }, STATUS_CHECK_INTERVAL_MS);
 }
 
-async function llmSave() {
+/** Detect which LLM fields changed (Task 7). Credential-related require connection check. */
+function getLlmChangedFields() {
   const llmType = (document.getElementById('llmType')?.value || '').trim();
   const apiKey = (document.getElementById('llmApiKey')?.value || '').trim();
   let baseUrl = (document.getElementById('llmBaseUrl')?.value || '').trim();
   const modelType = (document.getElementById('llmModel')?.value || '').trim();
   const systemPrompt = (document.getElementById('llmSystemPrompt')?.value || '').trim() || null;
+  const prov = getProviderById(llmType);
+  if (!baseUrl && prov?.defaultBaseUrl) baseUrl = prov.defaultBaseUrl;
+  const prev = lastLlm || {};
+  const changed = [];
+  if (llmType !== (prev.llmType || '')) changed.push('llmType');
+  if (apiKey) changed.push('apiKey');
+  if (baseUrl !== (prev.baseUrl || '')) changed.push('baseUrl');
+  if (modelType !== (prev.modelType || '')) changed.push('modelType');
+  if ((systemPrompt || '') !== (prev.systemPrompt || '')) changed.push('systemPrompt');
+  return { changed, llmType, apiKey, baseUrl, modelType, systemPrompt };
+}
+
+async function llmSave() {
+  const { changed, llmType, apiKey, baseUrl, modelType, systemPrompt } = getLlmChangedFields();
 
   setFieldError('llmType', 'llmFieldError', '');
   document.getElementById('llmType')?.classList.remove('field-input--error');
@@ -425,53 +532,97 @@ async function llmSave() {
     if (!modelType) document.getElementById('llmModel')?.classList.add('field-input--error');
     return;
   }
-  if (!apiKey && llmType.toLowerCase() !== 'ollama') {
-    showToast('Заполните обязательные поля', 'warning');
-    setFieldError('llmApiKey', 'llmFieldError', 'Заполните обязательные поля');
+  if (!apiKey && llmType.toLowerCase() !== 'ollama' && !(lastLlm.isActive && lastLlm.activeTokenMasked)) {
+    showToast('Введите API key', 'warning');
+    setFieldError('llmApiKey', 'llmFieldError', 'Введите API key');
     document.getElementById('llmApiKey')?.classList.add('field-input--error');
     return;
   }
 
-  if (!baseUrl) {
-    const prov = getProviderById(llmType);
-    baseUrl = prov?.defaultBaseUrl || '';
+  const requiresConnectionCheck = changed.some((f) => ['llmType', 'apiKey', 'baseUrl'].includes(f));
+  const onlyModelOrPrompt = changed.length > 0 && !requiresConnectionCheck && (changed.includes('modelType') || changed.includes('systemPrompt'));
+
+  if (changed.length === 0) {
+    showToast('Нет изменений', 'success');
+    return;
   }
 
   const btn = document.getElementById('llmSave');
   setButtonLoading(btn, true);
   try {
-    const r = await api('/api/settings/llm', {
-      method: 'PUT',
-      body: JSON.stringify({
-        llmType,
-        apiKey: apiKey || null,
-        baseUrl,
-        modelType,
-        systemPrompt,
-      }),
-    });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      throw new Error(err.detail || r.statusText);
-    }
-    const data = await r.json();
-    const applied = data.applied === true;
-    if (applied) {
-      showToast('Настройки сохранены и применены', 'success');
+    if (onlyModelOrPrompt) {
+      const r = await api('/api/settings/llm', {
+        method: 'PATCH',
+        body: JSON.stringify({ modelType, systemPrompt }),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || r.statusText);
+      }
+      const data = await r.json();
+      lastLlm = { ...data.llm };
+      showToast(modelType !== (lastLlm.modelType || '') ? `Модель изменена на ${modelType}` : 'Системный промпт обновлён', 'success');
+      setLlmStatus(
+        data.llm?.connectionStatus === 'success' ? 'success' : data.llm?.connectionStatus === 'not_configured' ? 'not_configured' : 'failed',
+        data.llm?.connectionStatus === 'success'
+          ? 'Connection tested successfully'
+          : data.llm?.connectionStatus === 'not_configured'
+            ? 'Not configured'
+            : 'Connection failed'
+      );
+      const llmActiveEl = document.getElementById('llmActiveToken');
+      const llmActiveValueEl = document.getElementById('llmActiveTokenValue');
+      if (data.llm?.isActive && data.llm?.activeTokenMasked) {
+        llmActiveEl.hidden = false;
+        llmActiveValueEl.textContent = data.llm.activeTokenMasked;
+      } else {
+        llmActiveEl.hidden = true;
+        llmActiveValueEl.textContent = '';
+      }
     } else {
-      showToast('Настройки сохранены, но не применены (ошибка подключения)', 'warning');
+      const r = await api('/api/settings/llm', {
+        method: 'PUT',
+        body: JSON.stringify({
+          llmType,
+          apiKey: apiKey || null,
+          baseUrl,
+          modelType,
+          systemPrompt,
+        }),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || r.statusText);
+      }
+      const data = await r.json();
+      const applied = data.applied === true;
+      lastLlm = { ...data.llm };
+      if (applied) {
+        showToast('Настройки сохранены и применены', 'success');
+      } else {
+        showToast('Ошибка подключения. Сервис остановлен. Проверьте токен', 'error');
+      }
+      setLlmStatus(
+        data.llm?.connectionStatus === 'success' ? 'success' : data.llm?.connectionStatus === 'not_configured' ? 'not_configured' : 'failed',
+        data.llm?.connectionStatus === 'success'
+          ? 'Connection tested successfully'
+          : data.llm?.connectionStatus === 'not_configured'
+            ? 'Not configured'
+            : 'Connection failed'
+      );
+      document.getElementById('llmApiKey').value = '';
+      document.getElementById('llmApiKey').placeholder = data.llm?.apiKeyMasked || 'Ключ API';
+      const llmActiveEl = document.getElementById('llmActiveToken');
+      const llmActiveValueEl = document.getElementById('llmActiveTokenValue');
+      if (data.llm?.isActive && data.llm?.activeTokenMasked) {
+        llmActiveEl.hidden = false;
+        llmActiveValueEl.textContent = data.llm.activeTokenMasked;
+      } else {
+        llmActiveEl.hidden = true;
+        llmActiveValueEl.textContent = '';
+      }
+      if (!llmCheckTimer) startLlmAutoCheck();
     }
-    setLlmStatus(
-      data.llm?.connectionStatus === 'success' ? 'success' : 'failed',
-      data.llm?.connectionStatus === 'success'
-        ? 'Connection tested successfully'
-        : data.llm?.connectionStatus === 'not_configured'
-          ? 'Not configured'
-          : 'Connection failed'
-    );
-    document.getElementById('llmApiKey').value = '';
-    document.getElementById('llmApiKey').placeholder = data.llm?.apiKeyMasked || 'Ключ API';
-    if (!llmCheckTimer) startLlmAutoCheck();
   } catch (e) {
     showToast('Ошибка сохранения: ' + e.message, 'error');
   } finally {
@@ -500,6 +651,27 @@ async function llmClear() {
   }
 }
 
+async function llmTokenDelete() {
+  const ok = await confirmUnbindToken('LLM');
+  if (!ok) return;
+  const btn = document.getElementById('llmTokenDelete');
+  if (btn) setButtonLoading(btn, true);
+  try {
+    const r = await api('/api/settings/llm/token', { method: 'DELETE' });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || r.statusText);
+    }
+    stopLlmAutoCheck();
+    await loadSettings();
+    showToast('Токен удалён. Сервис остановлен', 'success');
+  } catch (e) {
+    showToast('Ошибка: ' + e.message, 'error');
+  } finally {
+    if (btn) setButtonLoading(btn, false);
+  }
+}
+
 function onLlmTypeChange() {
   const providerId = document.getElementById('llmType')?.value || '';
   const prov = getProviderById(providerId);
@@ -523,11 +695,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('telegramSave').addEventListener('click', telegramSave);
   document.getElementById('telegramClear').addEventListener('click', telegramClear);
+  document.getElementById('telegramTokenDelete')?.addEventListener('click', telegramTokenDelete);
 
   document.getElementById('llmType')?.addEventListener('change', onLlmTypeChange);
   document.getElementById('llmRetry')?.addEventListener('click', () => llmTest());
   document.getElementById('llmSave')?.addEventListener('click', llmSave);
   document.getElementById('llmClear')?.addEventListener('click', llmClear);
+  document.getElementById('llmTokenDelete')?.addEventListener('click', llmTokenDelete);
 
   document.getElementById('telegramToken')?.addEventListener('input', () => {
     setFieldError('telegramToken', 'telegramFieldError', '');

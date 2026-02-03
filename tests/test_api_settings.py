@@ -33,6 +33,7 @@ def test_get_settings_empty(client):
     tg = data["telegram"]
     assert tg["accessToken"] is None
     assert tg["accessTokenMasked"] == ""
+    assert tg.get("activeTokenMasked") is None
     assert tg["baseUrl"] == "https://api.telegram.org"
     assert tg["connectionStatus"] == "not_configured"
     assert tg["isActive"] is False
@@ -40,6 +41,7 @@ def test_get_settings_empty(client):
     assert llm["llmType"] is None
     assert llm["apiKey"] is None
     assert llm["apiKeyMasked"] == ""
+    assert llm.get("activeTokenMasked") is None
     assert llm["connectionStatus"] == "not_configured"
     assert llm["isActive"] is False
 
@@ -56,7 +58,9 @@ def test_telegram_test_not_configured(client):
 
 
 def test_put_telegram_validation(client):
-    """PUT /api/settings/telegram returns 400 when accessToken is missing."""
+    """PUT /api/settings/telegram returns 400 when accessToken is missing and no saved token."""
+    from api.settings_repository import clear_telegram_settings
+    clear_telegram_settings()
     r = client.put("/api/settings/telegram", json={"baseUrl": "https://api.telegram.org"})
     assert r.status_code == 400
     assert "required" in r.json().get("detail", "").lower() or "token" in r.json().get("detail", "").lower()
@@ -171,3 +175,76 @@ def test_get_llm_providers(client):
     assert "models" in openai_p
     assert "standard" in openai_p["models"]
     assert "reasoning" in openai_p["models"]
+
+
+def test_delete_telegram_token(client):
+    """DELETE /api/settings/telegram/token unbinds token, keeps base_url, sets not_configured."""
+    from api.settings_repository import clear_telegram_settings
+    clear_telegram_settings()
+    client.put(
+        "/api/settings/telegram",
+        json={"accessToken": "dummy_token_xyz", "baseUrl": "https://api.telegram.org"},
+    )
+    r = client.delete("/api/settings/telegram/token")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["telegram"]["accessTokenMasked"] == ""
+    assert data["telegram"].get("activeTokenMasked") is None
+    assert data["telegram"]["connectionStatus"] == "not_configured"
+    assert data["telegram"]["isActive"] is False
+    assert data["telegram"]["baseUrl"] == "https://api.telegram.org"
+
+
+def test_delete_llm_token(client):
+    """DELETE /api/settings/llm/token unbinds API key, keeps provider/model/baseUrl."""
+    from api.settings_repository import clear_llm_settings
+    clear_llm_settings()
+    client.put(
+        "/api/settings/llm",
+        json={
+            "llmType": "openai",
+            "apiKey": "sk-x",
+            "baseUrl": "https://api.openai.com/v1",
+            "modelType": "gpt-4o",
+        },
+    )
+    r = client.delete("/api/settings/llm/token")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["llm"]["apiKeyMasked"] == ""
+    assert data["llm"].get("activeTokenMasked") is None
+    assert data["llm"]["connectionStatus"] == "not_configured"
+    assert data["llm"]["isActive"] is False
+    assert data["llm"]["llmType"] == "openai"
+    assert data["llm"]["modelType"] == "gpt-4o"
+    assert data["llm"]["baseUrl"] == "https://api.openai.com/v1"
+
+
+def test_patch_llm_model_only(client):
+    """PATCH /api/settings/llm updates only model/systemPrompt, no connection test."""
+    from api.settings_repository import clear_llm_settings
+    clear_llm_settings()
+    client.put(
+        "/api/settings/llm",
+        json={
+            "llmType": "openai",
+            "apiKey": "sk-x",
+            "baseUrl": "https://api.openai.com/v1",
+            "modelType": "gpt-4o",
+        },
+    )
+    r = client.patch("/api/settings/llm", json={"modelType": "gpt-4.1", "systemPrompt": "You are helpful."})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["llm"]["modelType"] == "gpt-4.1"
+    assert data["llm"]["systemPrompt"] == "You are helpful."
+    assert data["applied"] is True
+    assert data["llm"]["apiKeyMasked"]  # key still there
+
+
+def test_patch_llm_no_row(client):
+    """PATCH /api/settings/llm returns 400 when no LLM settings exist."""
+    from api.settings_repository import clear_llm_settings
+    clear_llm_settings()
+    r = client.patch("/api/settings/llm", json={"modelType": "gpt-4o"})
+    assert r.status_code == 400

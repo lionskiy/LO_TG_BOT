@@ -315,6 +315,91 @@ body {
   min-height: 4rem;
 }
 
+/* Active token block — PRD: red border, masked token + Delete */
+.active-token {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #d93025;
+  border-radius: 4px;
+  background: #fef7f7;
+}
+
+.active-token-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #5f6368;
+}
+
+.active-token-value {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  color: #202124;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  font-size: 13px;
+  color: var(--sidebar-accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: #1557b0;
+}
+
+.btn-link--danger {
+  color: #d93025;
+}
+
+.btn-link--danger:hover {
+  color: #b71c1c;
+}
+
+/* Confirmation modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.25rem;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.modal-text {
+  margin: 0 0 1.25rem;
+  font-size: 14px;
+  color: #5f6368;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 /* Toast — PRD 5.6 */
 .toast-container {
   position: fixed;

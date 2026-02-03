@@ -35,6 +35,11 @@
               <input type="password" id="telegramToken" class="field-input" placeholder="Токен бота">
               <span class="field-error" id="telegramFieldError" role="alert"></span>
             </label>
+            <div class="active-token" id="telegramActiveToken" hidden>
+              <span class="active-token-label">Активный токен</span>
+              <span class="active-token-value" id="telegramActiveTokenValue"></span>
+              <button type="button" class="btn btn-link btn-link--danger" id="telegramTokenDelete">Delete</button>
+            </div>
             <label class="field">
               <span class="field-label">Base URL</span>
               <input type="text" id="telegramBaseUrl" class="field-input" placeholder="https://api.telegram.org">
@@ -65,6 +70,11 @@
               <input type="password" id="llmApiKey" class="field-input" placeholder="Ключ API" autocomplete="off">
               <span class="field-hint">Для Ollama можно оставить пустым.</span>
             </label>
+            <div class="active-token" id="llmActiveToken" hidden>
+              <span class="active-token-label">Активный токен</span>
+              <span class="active-token-value" id="llmActiveTokenValue"></span>
+              <button type="button" class="btn btn-link btn-link--danger" id="llmTokenDelete">Delete</button>
+            </div>
             <label class="field">
               <span class="field-label">Base URL</span>
               <input type="text" id="llmBaseUrl" class="field-input" placeholder="URL API провайдера">
@@ -91,6 +101,16 @@
     </main>
   </div>
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <div id="confirmModalOverlay" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <div class="modal" id="confirmModal">
+      <h4 class="modal-title" id="confirmModalTitle">Отвязать токен?</h4>
+      <p class="modal-text" id="confirmModalText"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="confirmModalCancel">Отмена</button>
+        <button type="button" class="btn btn-outline" id="confirmModalConfirm">Удалить</button>
+      </div>
+    </div>
+  </div>
   <script src="/admin/app.js"></script>
 </body>
 </html>
