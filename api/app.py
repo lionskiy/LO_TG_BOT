@@ -20,7 +20,7 @@ from api.settings_repository import (
     set_llm_active,
     set_telegram_active,
 )
-from api.telegram_test import test_telegram_connection
+from api.telegram_test import test_telegram_connection, test_telegram_connection_async
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +62,9 @@ def get_settings(_: None = Depends(_require_admin)):
 
 
 @app.post("/api/settings/telegram/test")
-def telegram_test(_: None = Depends(_require_admin)):
-    """Test Telegram Bot API connection (getMe). Uses saved settings from DB."""
-    status, message = test_telegram_connection()
+async def telegram_test(_: None = Depends(_require_admin)):
+    """Test Telegram Bot API connection (getMe). Uses saved settings from DB. Async to avoid blocking."""
+    status, message = await test_telegram_connection_async()
     return {"status": status, "message": message}
 
 
