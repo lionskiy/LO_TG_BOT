@@ -78,13 +78,20 @@ def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
     base_url = (body.get("baseUrl") or "").strip() or None
     if not access_token:
         raise HTTPException(status_code=400, detail="Access Token is required")
-    # Save with temporary status; test will update it
-    save_telegram_settings(
-        access_token=access_token,
-        base_url=base_url,
-        connection_status="not_configured",
-        is_active=False,
-    )
+    try:
+        save_telegram_settings(
+            access_token=access_token,
+            base_url=base_url,
+            connection_status="not_configured",
+            is_active=False,
+        )
+    except ValueError as e:
+        if "SETTINGS_ENCRYPTION_KEY" in str(e):
+            raise HTTPException(
+                status_code=503,
+                detail="SETTINGS_ENCRYPTION_KEY is not set. Add it to .env and restart the app.",
+            ) from e
+        raise
     status, _message = test_telegram_connection()
     applied = status == CONNECTION_STATUS_SUCCESS
     if applied:
@@ -136,15 +143,23 @@ def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
         raise HTTPException(status_code=400, detail="API key is required")
     if not base_url:
         base_url = get_default_base_url(llm_type) or ""
-    save_llm_settings(
-        llm_type=llm_type,
-        api_key=api_key,
-        base_url=base_url,
-        model_type=model_type,
-        system_prompt=system_prompt,
-        connection_status="not_configured",
-        is_active=False,
-    )
+    try:
+        save_llm_settings(
+            llm_type=llm_type,
+            api_key=api_key,
+            base_url=base_url,
+            model_type=model_type,
+            system_prompt=system_prompt,
+            connection_status="not_configured",
+            is_active=False,
+        )
+    except ValueError as e:
+        if "SETTINGS_ENCRYPTION_KEY" in str(e):
+            raise HTTPException(
+                status_code=503,
+                detail="SETTINGS_ENCRYPTION_KEY is not set. Add it to .env and restart the app.",
+            ) from e
+        raise
     status, _message = test_llm_connection()
     applied = status == CONNECTION_STATUS_SUCCESS
     set_llm_active(applied)
