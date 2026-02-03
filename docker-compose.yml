@@ -2,6 +2,11 @@ services:
   bot:
     build: .
     env_file: .env
-    # Полный доступ к сети: исходящие запросы к Telegram и API LLM без ограничений
-    # Сеть по умолчанию (bridge) даёт доступ в интернет
+    ports:
+      - "8000:8000"
+    volumes:
+      - bot_data:/app/data
     restart: unless-stopped
+
+volumes:
+  bot_data:
