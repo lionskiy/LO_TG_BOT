@@ -25,6 +25,7 @@ function api(path, options = {}) {
   });
 }
 
+/** PRD 5.6: success / warning (saved but not applied, validation) / error */
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
   const el = document.createElement('div');
