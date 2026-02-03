@@ -1,5 +1,6 @@
 """LLM client: active provider from settings DB (if active) or from config (.env)."""
 import logging
+import os
 from typing import Dict, List, Optional
 
 from bot.config import get_active_llm
@@ -138,6 +139,57 @@ async def _reply_google(messages: List[dict], model: str, kwargs: dict) -> str:
     return (resp.text or "").strip()
 
 
+async def _reply_yandex(messages: List[dict], model: str, kwargs: dict) -> str:
+    """Yandex GPT: POST .../completion with modelUri (gpt://folder_id/model/latest). Folder from YANDEX_FOLDER_ID."""
+    import httpx
+
+    base = (kwargs.get("base_url") or "").strip().rstrip("/")
+    api_key = (kwargs.get("api_key") or "").strip()
+    if not base or not api_key:
+        raise ValueError("Yandex: base_url and api_key required")
+    folder_id = os.getenv("YANDEX_FOLDER_ID", "").strip()
+    if model.startswith("gpt://"):
+        model_uri = model
+    elif folder_id:
+        model_uri = f"gpt://{folder_id}/{model}/latest"
+    else:
+        raise ValueError(
+            "Yandex: set YANDEX_FOLDER_ID in env or use full model_uri (gpt://folder_id/model/latest) in model field"
+        )
+    yandex_messages = []
+    for m in messages:
+        if m.get("role") == "system":
+            continue
+        role = "user" if m.get("role") == "user" else "assistant"
+        yandex_messages.append({"role": role, "text": (m.get("content") or "").strip()})
+    if not yandex_messages or yandex_messages[-1]["role"] != "user":
+        raise ValueError("Yandex: last message must be from user")
+    payload = {
+        "modelUri": model_uri,
+        "messages": yandex_messages,
+        "completionOptions": {"maxTokens": 1024},
+    }
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.post(
+            f"{base}/completion",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+    if r.status_code != 200:
+        try:
+            err = r.json()
+            msg = err.get("error", {}).get("message", err.get("message", r.text))
+        except Exception:
+            msg = r.text or f"HTTP {r.status_code}"
+        raise RuntimeError(msg or f"HTTP {r.status_code}")
+    data = r.json()
+    result = (data.get("result") or {}) if isinstance(data, dict) else {}
+    alternatives = result.get("alternatives") or []
+    if not alternatives:
+        return ""
+    return (alternatives[0].get("message", {}).get("text") or "").strip()
+
+
 _HANDLERS: Dict[str, object] = {
     "openai": _reply_openai,
     "groq": _reply_groq,
@@ -149,6 +201,7 @@ _HANDLERS: Dict[str, object] = {
     "perplexity": _reply_openai,
     "xai": _reply_openai,
     "deepseek": _reply_openai,
+    "yandex": _reply_yandex,
     "custom": _reply_openai,
 }
 

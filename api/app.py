@@ -13,6 +13,7 @@ from api.llm_providers import (
     OPENAI_KNOWN_MODEL_IDS,
     fetch_models_anthropic,
     fetch_models_from_api,
+    fetch_models_google,
     get_default_base_url,
     PROVIDERS_LIST,
 )
@@ -288,6 +289,10 @@ def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
         if not api_key:
             return {"models": [], "error": "API key is required"}
         models, err = fetch_models_anthropic(api_key or "")
+    elif llm_type == "google":
+        if not api_key:
+            return {"models": [], "error": "API key is required"}
+        models, err = fetch_models_google(api_key or "")
     else:
         if not base_url:
             return {"models": [], "error": "Base URL is required"}

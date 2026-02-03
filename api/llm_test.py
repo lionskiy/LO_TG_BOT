@@ -109,6 +109,47 @@ def _test_google(creds: dict) -> Tuple[bool, str]:
         return False, str(e)
 
 
+def _test_yandex(creds: dict) -> Tuple[bool, str]:
+    """Yandex GPT: POST .../completion with minimal body (model_uri requires folder_id from env)."""
+    import os
+
+    base = (creds.get("base_url") or "").strip().rstrip("/")
+    key = (creds.get("api_key") or "").strip()
+    folder_id = (os.getenv("YANDEX_FOLDER_ID") or "").strip()
+    if not base:
+        return False, "Base URL is empty"
+    if not key:
+        return False, "API key is empty"
+    model_uri = creds.get("model_type") or ""
+    if model_uri.startswith("gpt://"):
+        pass
+    elif folder_id:
+        model_uri = f"gpt://{folder_id}/yandexgpt-lite/latest"
+    else:
+        return False, "Set YANDEX_FOLDER_ID in env or save full model_uri (gpt://folder_id/model/latest)"
+    url = f"{base}/completion"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    body = {
+        "modelUri": model_uri,
+        "messages": [{"role": "user", "text": "Hi"}],
+        "completionOptions": {"maxTokens": 5},
+    }
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            r = client.post(url, headers=headers, json=body)
+    except Exception as e:
+        logger.warning("Yandex test request failed: %s", e)
+        return False, str(e)
+    if r.status_code == 200:
+        return True, "Connection tested successfully"
+    try:
+        data = r.json()
+        msg = data.get("error", {}).get("message", data.get("message", r.text))
+    except Exception:
+        msg = r.text or f"HTTP {r.status_code}"
+    return False, msg or f"HTTP {r.status_code}"
+
+
 def _test_perplexity(creds: dict) -> Tuple[bool, str]:
     """Perplexity has no GET /models; test via POST /chat/completions with minimal body."""
     base = (creds.get("base_url") or "").strip().rstrip("/")
@@ -160,6 +201,8 @@ def test_llm_connection() -> Tuple[str, str]:
         ok, message = _test_azure(creds)
     elif llm_type == "perplexity":
         ok, message = _test_perplexity(creds)
+    elif llm_type == "yandex":
+        ok, message = _test_yandex(creds)
     else:
         # openai, groq, openrouter, ollama, xai, deepseek, custom, etc.
         ok, message = _test_openai_compatible(creds)

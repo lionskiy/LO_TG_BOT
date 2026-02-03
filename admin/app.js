@@ -193,10 +193,10 @@ function isCustomModelProvider(providerId) {
   return (providerId || '').toLowerCase() === 'custom';
 }
 
-/** Providers that support fetch models from API (OpenAI GET /models or Anthropic GET /v1/models). Perplexity: no list API, static list. */
+/** Providers that support fetch models from API (OpenAI GET /models, Anthropic GET /v1/models, Google GET /v1beta/models). Perplexity, Yandex: no list API, static list. */
 function isOpenAiCompatibleProvider(providerId) {
   const id = (providerId || '').toLowerCase();
-  return ['openai', 'anthropic', 'groq', 'openrouter', 'ollama', 'xai', 'deepseek', 'azure'].includes(id);
+  return ['openai', 'anthropic', 'google', 'groq', 'openrouter', 'ollama', 'xai', 'deepseek', 'azure'].includes(id);
 }
 
 /**

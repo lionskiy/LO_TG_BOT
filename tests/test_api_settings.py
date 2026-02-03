@@ -170,6 +170,8 @@ def test_get_llm_providers(client):
     assert "openai" in ids
     assert "anthropic" in ids
     assert "custom" in ids
+    assert "groq" in ids
+    assert "yandex" in ids
     openai_p = next(p for p in providers if p["id"] == "openai")
     assert "defaultBaseUrl" in openai_p
     assert "models" in openai_p

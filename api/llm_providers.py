@@ -20,6 +20,7 @@ DEFAULT_BASE_URLS = {
     "openrouter": "https://openrouter.ai/api/v1",
     "ollama": "http://localhost:11434/v1",
     "azure": "https://your-resource.openai.azure.com/",
+    "yandex": "https://llm.api.cloud.yandex.net/foundationModels/v1",
     "custom": "",
 }
 
@@ -80,6 +81,33 @@ PROVIDERS_LIST = [
         "models": {"standard": ["deepseek-chat", "deepseek-coder"], "reasoning": ["deepseek-reasoner"]},
     },
     {
+        "id": "groq",
+        "name": "Groq",
+        "defaultBaseUrl": DEFAULT_BASE_URLS["groq"],
+        "models": {
+            "standard": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+            "reasoning": ["llama-3.1-70b-reasoning", "llama-3.1-405b-reasoning"],
+        },
+    },
+    {
+        "id": "openrouter",
+        "name": "OpenRouter",
+        "defaultBaseUrl": DEFAULT_BASE_URLS["openrouter"],
+        "models": {"standard": ["anthropic/claude-3.5-sonnet", "google/gemini-2.0-flash-exp"], "reasoning": []},
+    },
+    {
+        "id": "ollama",
+        "name": "Ollama",
+        "defaultBaseUrl": DEFAULT_BASE_URLS["ollama"],
+        "models": {"standard": ["llama3.2", "mistral", "qwen2.5"], "reasoning": ["deepseek-r1"]},
+    },
+    {
+        "id": "yandex",
+        "name": "Yandex GPT",
+        "defaultBaseUrl": DEFAULT_BASE_URLS["yandex"],
+        "models": {"standard": ["yandexgpt-lite", "yandexgpt"], "reasoning": []},
+    },
+    {
         "id": "azure",
         "name": "Azure OpenAI",
         "defaultBaseUrl": DEFAULT_BASE_URLS["azure"],
@@ -115,11 +143,14 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
     """
     Fetch full model list from OpenAI-compatible GET /models.
     Follows pagination (has_more + after or last_id) when present so all models are returned.
-    Returns (list of {"id": "model-id"}, error_message or None).
+    For OpenAI (api.openai.com) sends limit=100 to get larger pages and continues until no more.
+    Returns (list of {"id": "model-id", "display_name": ...?}, error_message or None).
     """
     base = (base_url or "").strip().rstrip("/")
     if not base:
         return [], "Base URL is empty"
+    is_openai = "api.openai.com" in base
+    page_size = 100 if is_openai else None
     headers: dict[str, str] = {}
     if (api_key or "").strip() and (api_key or "").strip() != "ollama":
         headers["Authorization"] = f"Bearer {(api_key or '').strip()}"
@@ -135,6 +166,8 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
                 params: dict[str, str] = {}
                 if after:
                     params["after"] = after
+                if page_size is not None:
+                    params["limit"] = str(page_size)
                 r = client.get(url, headers=headers or None, params=params or None)
                 if r.status_code != 200:
                     if page == 1:
@@ -162,17 +195,82 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
                         all_models.append({"id": mid, "display_name": display})
                 has_more = data.get("has_more") if isinstance(data, dict) else False
                 last_id = data.get("last_id") if isinstance(data, dict) else None
-                if has_more and raw:
-                    after = last_id or (raw[-1].get("id") or raw[-1].get("model") if isinstance(raw[-1], dict) else None)
-                    if isinstance(after, str):
-                        after = after.strip()
-                    else:
-                        after = None
-                if not has_more or not after:
+                last_item_id: str | None = None
+                if raw and isinstance(raw[-1], dict):
+                    last_item_id = (raw[-1].get("id") or raw[-1].get("model")) or None
+                    if isinstance(last_item_id, str):
+                        last_item_id = last_item_id.strip() or None
+                after = last_id if isinstance(last_id, str) and last_id.strip() else last_item_id
+                if not isinstance(after, str) or not after:
+                    after = None
+                # Continue if API says has_more, or we requested a page size and got a full page (more may exist)
+                if not after:
                     break
+                if has_more is True:
+                    continue
+                if page_size is not None and len(raw) >= page_size:
+                    continue
+                break
         return all_models, None
     except Exception as e:
         logger.warning("Fetch models request failed: %s", e)
+        return [], str(e)
+
+
+def fetch_models_google(api_key: str, timeout: float = 15.0) -> tuple[list[dict[str, Any]], str | None]:
+    """
+    Fetch model list from Google Gemini GET /v1beta/models (key in query).
+    Returns (list of {"id": "baseModelId", "display_name": "..."}, error_message or None).
+    """
+    key = (api_key or "").strip()
+    if not key:
+        return [], "API key is empty"
+    base = "https://generativelanguage.googleapis.com"
+    url = f"{base}/v1beta/models"
+    params: dict[str, str] = {"key": key}
+    all_models: list[dict[str, Any]] = []
+    page_token: str | None = None
+    max_pages = 20
+    page = 0
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            while page < max_pages:
+                page += 1
+                if page_token:
+                    params["pageToken"] = page_token
+                r = client.get(url, params=params)
+                if r.status_code != 200:
+                    if page == 1:
+                        try:
+                            data = r.json()
+                            msg = data.get("error", {}).get("message", data.get("message", r.text))
+                        except Exception:
+                            msg = r.text or f"HTTP {r.status_code}"
+                        return [], msg or f"HTTP {r.status_code}"
+                    break
+                try:
+                    data = r.json()
+                except Exception as e:
+                    if page == 1:
+                        return [], f"Invalid response: {e}"
+                    break
+                raw = data.get("models", []) if isinstance(data, dict) else []
+                for item in raw:
+                    if not isinstance(item, dict):
+                        continue
+                    name = (item.get("name") or "").strip()
+                    base_id = (item.get("baseModelId") or "").strip()
+                    mid = base_id or (name.replace("models/", "").strip() if name else "")
+                    if not mid:
+                        continue
+                    display = (item.get("displayName") or "").strip() or None
+                    all_models.append({"id": mid, "display_name": display})
+                page_token = (data.get("nextPageToken") or "").strip() or None
+                if not page_token:
+                    break
+        return all_models, None
+    except Exception as e:
+        logger.warning("Google fetch models failed: %s", e)
         return [], str(e)
 
 
