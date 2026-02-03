@@ -57,9 +57,11 @@ uvicorn api.app:app --host 0.0.0.0 --port 8000
 |-------|------|----------|
 | GET | `/api/settings` | Все настройки (Telegram + LLM), секреты маскированы |
 | PUT | `/api/settings/telegram` | Сохранить настройки Telegram |
+| DELETE | `/api/settings/telegram` | Удалить сохранённые ключи Telegram (остановка бота) |
 | POST | `/api/settings/telegram/test` | Проверить соединение с Telegram |
 | POST | `/api/settings/telegram/activate` | Применить настройки Telegram (после успешной проверки) |
 | PUT | `/api/settings/llm` | Сохранить настройки LLM |
+| DELETE | `/api/settings/llm` | Удалить сохранённые ключи LLM |
 | POST | `/api/settings/llm/test` | Проверить соединение с LLM |
 | POST | `/api/settings/llm/activate` | Применить настройки LLM |
 | GET | `/api/settings/llm/providers` | Список провайдеров и моделей (без авторизации) |

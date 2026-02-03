@@ -85,6 +85,20 @@ def test_telegram_activate_not_configured(client):
     assert r.json().get("activated") is False
 
 
+def test_delete_telegram(client):
+    """DELETE /api/settings/telegram clears saved Telegram settings."""
+    client.put(
+        "/api/settings/telegram",
+        json={"accessToken": "dummy", "baseUrl": "https://api.telegram.org"},
+    )
+    r = client.delete("/api/settings/telegram")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["telegram"]["accessTokenMasked"] == ""
+    assert data["telegram"]["connectionStatus"] == "not_configured"
+    assert data["telegram"]["isActive"] is False
+
+
 def test_llm_test_not_configured(client):
     """POST /api/settings/llm/test returns not_configured when no LLM saved."""
     from api.settings_repository import clear_llm_settings
@@ -117,6 +131,28 @@ def test_llm_activate_not_configured(client):
     r = client.post("/api/settings/llm/activate")
     assert r.status_code == 200
     assert r.json().get("activated") is False
+
+
+def test_delete_llm(client):
+    """DELETE /api/settings/llm clears saved LLM settings."""
+    from api.settings_repository import clear_llm_settings
+    clear_llm_settings()
+    client.put(
+        "/api/settings/llm",
+        json={
+            "llmType": "openai",
+            "apiKey": "sk-x",
+            "baseUrl": "https://api.openai.com/v1",
+            "modelType": "gpt-4o",
+        },
+    )
+    r = client.delete("/api/settings/llm")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["llm"]["llmType"] is None
+    assert data["llm"]["apiKeyMasked"] == ""
+    assert data["llm"]["connectionStatus"] == "not_configured"
+    assert data["llm"]["isActive"] is False
 
 
 def test_get_llm_providers(client):

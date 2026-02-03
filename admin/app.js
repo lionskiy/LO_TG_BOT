@@ -272,11 +272,25 @@ function startTelegramAutoCheck() {
   const defaultPlaceholder = 'Токен бота';
   telegramCheckTimer = setInterval(() => {
     const tokenEl = document.getElementById('telegramToken');
-    const placeholder = (tokenEl.placeholder || '').trim();
-    if ((placeholder && placeholder !== defaultPlaceholder) || tokenEl.value.trim()) {
+    const placeholder = (tokenEl?.placeholder || '').trim();
+    if ((placeholder && placeholder !== defaultPlaceholder) || (tokenEl?.value || '').trim()) {
       telegramTest();
     }
   }, STATUS_CHECK_INTERVAL_MS);
+}
+
+function stopTelegramAutoCheck() {
+  if (telegramCheckTimer) {
+    clearInterval(telegramCheckTimer);
+    telegramCheckTimer = null;
+  }
+}
+
+function stopLlmAutoCheck() {
+  if (llmCheckTimer) {
+    clearInterval(llmCheckTimer);
+    llmCheckTimer = null;
+  }
 }
 
 async function telegramSave() {
@@ -324,7 +338,28 @@ async function telegramSave() {
   } catch (e) {
     showToast('Ошибка сохранения: ' + e.message, 'error');
   } finally {
-    btn.disabled = false;
+    setButtonLoading(btn, false);
+    updateTelegramSaveDisabled();
+  }
+}
+
+async function telegramClear() {
+  const btn = document.getElementById('telegramClear');
+  if (!btn) return;
+  setButtonLoading(btn, true);
+  try {
+    const r = await api('/api/settings/telegram', { method: 'DELETE' });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || r.statusText);
+    }
+    stopTelegramAutoCheck();
+    await loadSettings();
+    showToast('Ключи Telegram удалены', 'success');
+  } catch (e) {
+    showToast('Ошибка: ' + e.message, 'error');
+  } finally {
+    setButtonLoading(btn, false);
   }
 }
 
@@ -403,7 +438,7 @@ async function llmSave() {
   }
 
   const btn = document.getElementById('llmSave');
-  if (btn) btn.disabled = true;
+  setButtonLoading(btn, true);
   try {
     const r = await api('/api/settings/llm', {
       method: 'PUT',
@@ -445,6 +480,26 @@ async function llmSave() {
   }
 }
 
+async function llmClear() {
+  const btn = document.getElementById('llmClear');
+  if (!btn) return;
+  setButtonLoading(btn, true);
+  try {
+    const r = await api('/api/settings/llm', { method: 'DELETE' });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || r.statusText);
+    }
+    stopLlmAutoCheck();
+    await loadSettings();
+    showToast('Ключи LLM удалены', 'success');
+  } catch (e) {
+    showToast('Ошибка: ' + e.message, 'error');
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
 function onLlmTypeChange() {
   const providerId = document.getElementById('llmType')?.value || '';
   const prov = getProviderById(providerId);
@@ -467,10 +522,12 @@ document.addEventListener('DOMContentLoaded', () => {
     telegramTest();
   });
   document.getElementById('telegramSave').addEventListener('click', telegramSave);
+  document.getElementById('telegramClear').addEventListener('click', telegramClear);
 
   document.getElementById('llmType')?.addEventListener('change', onLlmTypeChange);
   document.getElementById('llmRetry')?.addEventListener('click', () => llmTest());
   document.getElementById('llmSave')?.addEventListener('click', llmSave);
+  document.getElementById('llmClear')?.addEventListener('click', llmClear);
 
   document.getElementById('telegramToken')?.addEventListener('input', () => {
     setFieldError('telegramToken', 'telegramFieldError', '');

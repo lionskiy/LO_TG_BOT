@@ -31,7 +31,7 @@ def start_bot() -> None:
             cwd=str(_project_root),
             env=env,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
         )
         logger.info("Started bot subprocess pid=%s", _process.pid)
     except Exception as e:

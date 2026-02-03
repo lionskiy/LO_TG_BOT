@@ -40,7 +40,10 @@
               <input type="text" id="telegramBaseUrl" class="field-input" placeholder="https://api.telegram.org">
               <span class="field-hint">По умолчанию: https://api.telegram.org</span>
             </label>
-            <button type="button" class="btn btn-primary" id="telegramSave">Сохранить</button>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" id="telegramSave">Сохранить</button>
+              <button type="button" class="btn btn-outline" id="telegramClear">Удалить ключи</button>
+            </div>
           </div>
         </section>
         <section class="block block--llm" id="blockLlm">
@@ -78,7 +81,10 @@
               <span class="field-label">System prompt (optional)</span>
               <textarea id="llmSystemPrompt" class="field-input field-textarea" rows="3" placeholder="Введите системный промпт для настройки поведения модели..."></textarea>
             </label>
-            <button type="button" class="btn btn-primary" id="llmSave">Сохранить</button>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" id="llmSave">Сохранить</button>
+              <button type="button" class="btn btn-outline" id="llmClear">Удалить ключи</button>
+            </div>
           </div>
         </section>
       </div>

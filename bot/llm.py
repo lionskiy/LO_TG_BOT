@@ -22,7 +22,15 @@ def _get_llm_from_settings_db() -> Optional[tuple]:
     base_url = (settings.get("base_url") or "").strip()
     if not model:
         return None
-    kwargs = {"api_key": api_key or "", "base_url": base_url}
+    if provider == "azure":
+        kwargs = {
+            "api_key": api_key or "",
+            "base_url": base_url,
+            "azure_endpoint": (settings.get("azure_endpoint") or base_url).rstrip("/"),
+            "api_version": (settings.get("api_version") or "2024-02-15-preview").strip(),
+        }
+    else:
+        kwargs = {"api_key": api_key or "", "base_url": base_url}
     return (provider, model, kwargs)
 
 # Lazy clients per provider (anthropic, google — config-driven; openai-compatible built per-call for hot-swap)
@@ -79,10 +87,12 @@ async def _reply_ollama(messages: List[dict], model: str, kwargs: dict) -> str:
 async def _reply_azure(messages: List[dict], model: str, kwargs: dict) -> str:
     from openai import AsyncAzureOpenAI
 
+    endpoint = kwargs.get("azure_endpoint") or (kwargs.get("base_url") or "").rstrip("/")
+    version = kwargs.get("api_version") or "2024-02-15-preview"
     client = AsyncAzureOpenAI(
-        api_key=kwargs["api_key"],
-        azure_endpoint=kwargs["azure_endpoint"],
-        api_version=kwargs["api_version"],
+        api_key=kwargs.get("api_key") or "",
+        azure_endpoint=endpoint,
+        api_version=version,
     )
     resp = await client.chat.completions.create(
         model=model, messages=messages, max_tokens=1024
