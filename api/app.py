@@ -10,6 +10,7 @@ from api.settings_repository import (
     save_telegram_settings,
     set_telegram_active,
 )
+from api.llm_test import test_llm_connection
 from api.telegram_test import test_telegram_connection
 
 logger = logging.getLogger(__name__)
@@ -77,3 +78,10 @@ def telegram_activate():
     activated = status == CONNECTION_STATUS_SUCCESS
     set_telegram_active(activated)
     return {"activated": activated, "message": message}
+
+
+@app.post("/api/settings/llm/test")
+def llm_test():
+    """Test LLM provider connection. Uses saved settings from DB."""
+    status, message = test_llm_connection()
+    return {"status": status, "message": message}

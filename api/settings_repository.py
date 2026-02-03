@@ -187,6 +187,23 @@ def get_llm_settings_decrypted() -> Optional[dict]:
         }
 
 
+def get_llm_credentials_for_test() -> Optional[dict]:
+    """Return saved LLM credentials for connection test (any saved, not only active)."""
+    with SessionLocal() as session:
+        row = _llm_row(session)
+        if not row:
+            return None
+        key = decrypt_secret(row.api_key_encrypted) if row.api_key_encrypted else None
+        if not key and row.llm_type != "ollama":
+            return None
+        return {
+            "llm_type": row.llm_type,
+            "api_key": key or "ollama",
+            "base_url": row.base_url,
+            "model_type": row.model_type,
+        }
+
+
 def save_llm_settings(
     llm_type: str,
     api_key: Optional[str],

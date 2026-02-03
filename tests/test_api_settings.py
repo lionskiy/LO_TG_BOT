@@ -83,3 +83,12 @@ def test_telegram_activate_not_configured(client):
     r = client.post("/api/settings/telegram/activate")
     assert r.status_code == 200
     assert r.json().get("activated") is False
+
+
+def test_llm_test_not_configured(client):
+    """POST /api/settings/llm/test returns not_configured when no LLM saved."""
+    from api.settings_repository import clear_llm_settings
+    clear_llm_settings()
+    r = client.post("/api/settings/llm/test")
+    assert r.status_code == 200
+    assert r.json().get("status") == "not_configured"
