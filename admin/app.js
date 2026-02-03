@@ -193,24 +193,26 @@ function isCustomModelProvider(providerId) {
   return (providerId || '').toLowerCase() === 'custom';
 }
 
-/** Providers that support GET /models for listing. Perplexity has no /models, uses static list. */
+/** Providers that support fetch models from API (OpenAI GET /models or Anthropic GET /v1/models). Perplexity: no list API, static list. */
 function isOpenAiCompatibleProvider(providerId) {
   const id = (providerId || '').toLowerCase();
-  return ['openai', 'groq', 'openrouter', 'ollama', 'xai', 'deepseek', 'azure'].includes(id);
+  return ['openai', 'anthropic', 'groq', 'openrouter', 'ollama', 'xai', 'deepseek', 'azure'].includes(id);
 }
 
 /**
- * Heuristic: model id is reasoning-type (OpenAI o-series, gpt-5, or name contains "reasoning").
- * Aligns with OpenAI docs: "gpt-5 and o-series models" and common provider naming.
+ * Heuristic: model is reasoning-type by id or display name (o-series, gpt-5, "reasoning", "thinking").
  */
-function isReasoningModelId(id) {
-  const s = (id || '').toLowerCase();
+function isReasoningModel(model) {
+  const id = (model && model.id) ? String(model.id).toLowerCase() : '';
+  const name = (model && model.display_name) ? String(model.display_name).toLowerCase() : '';
+  const s = id + ' ' + name;
   return (
-    /^o1(-|$)/.test(s) ||
-    /^o3/.test(s) ||
-    /^o4/.test(s) ||
-    /^gpt-5(-|$)/.test(s) ||
-    s.includes('reasoning')
+    /^o1(-|$)/.test(id) ||
+    /^o3/.test(id) ||
+    /^o4/.test(id) ||
+    /^gpt-5(-|$)/.test(id) ||
+    /\breasoning\b/.test(s) ||
+    /\bthinking\b/.test(s)
   );
 }
 
@@ -223,22 +225,23 @@ function getPlaceholderModel(providerId) {
   return std[0] || reas[0] || 'gpt-4o';
 }
 
-/** Fill model select from fetched API list ([{id: "gpt-4o"}, ...]). Splits into standard / reasoning. Keeps selectedModel if in list. */
+/** Fill model select from fetched API list ([{id, display_name?}, ...]). Names as from provider. Splits into standard / reasoning. */
 function fillLlmModelSelectFromIds(modelList, selectedModel) {
   const sel = document.getElementById('llmModel');
   if (!sel) return;
   sel.disabled = false;
   sel.innerHTML = '<option value="">— выберите модель —</option>';
-  const ids = (modelList || []).map((m) => (m && m.id) ? String(m.id).trim() : '').filter(Boolean);
-  const standard = ids.filter((id) => !isReasoningModelId(id));
-  const reasoning = ids.filter(isReasoningModelId);
+  const list = (modelList || []).filter((m) => m && m.id && String(m.id).trim());
+  const standard = list.filter((m) => !isReasoningModel(m));
+  const reasoning = list.filter(isReasoningModel);
+  const label = (m) => (m.display_name && String(m.display_name).trim()) || m.id;
   if (standard.length) {
     const g = document.createElement('optgroup');
     g.label = 'Стандартные модели';
-    standard.forEach((id) => {
+    standard.forEach((m) => {
       const o = document.createElement('option');
-      o.value = id;
-      o.textContent = id;
+      o.value = m.id;
+      o.textContent = label(m);
       g.appendChild(o);
     });
     sel.appendChild(g);
@@ -246,17 +249,17 @@ function fillLlmModelSelectFromIds(modelList, selectedModel) {
   if (reasoning.length) {
     const g = document.createElement('optgroup');
     g.label = 'Reasoning модели (🧠)';
-    reasoning.forEach((id) => {
+    reasoning.forEach((m) => {
       const o = document.createElement('option');
-      o.value = id;
-      o.textContent = id;
+      o.value = m.id;
+      o.textContent = label(m);
       g.appendChild(o);
     });
     sel.appendChild(g);
   }
-  const all = [...standard, ...reasoning];
-  if (selectedModel && all.includes(selectedModel)) sel.value = selectedModel;
-  else if (all.length) sel.value = all[0];
+  const allIds = [...standard, ...reasoning].map((m) => m.id);
+  if (selectedModel && allIds.includes(selectedModel)) sel.value = selectedModel;
+  else if (allIds.length) sel.value = allIds[0];
 }
 
 /** Set model select to "no API key" state: disabled, single option with message. */

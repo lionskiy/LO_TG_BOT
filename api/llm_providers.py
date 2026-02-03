@@ -150,7 +150,8 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
                     mid = item.get("id") or item.get("model") or ""
                     if mid and isinstance(mid, str):
                         mid = mid.strip()
-                        all_models.append({"id": mid})
+                        display = (item.get("display_name") or item.get("name") or "").strip() or None
+                        all_models.append({"id": mid, "display_name": display})
                 has_more = data.get("has_more") if isinstance(data, dict) else False
                 last_id = data.get("last_id") if isinstance(data, dict) else None
                 if has_more and raw:
@@ -164,4 +165,66 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
         return all_models, None
     except Exception as e:
         logger.warning("Fetch models request failed: %s", e)
+        return [], str(e)
+
+
+def fetch_models_anthropic(api_key: str, timeout: float = 15.0) -> tuple[list[dict[str, Any]], str | None]:
+    """
+    Fetch model list from Anthropic GET /v1/models.
+    Returns (list of {"id": "...", "display_name": "..."}, error_message or None).
+    """
+    key = (api_key or "").strip()
+    if not key:
+        return [], "API key is empty"
+    base = "https://api.anthropic.com"
+    url = f"{base}/v1/models"
+    headers = {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+    }
+    all_models: list[dict[str, Any]] = []
+    after_id: str | None = None
+    max_pages = 50
+    page = 0
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            while page < max_pages:
+                page += 1
+                params: dict[str, str] = {}
+                if after_id:
+                    params["after_id"] = after_id
+                r = client.get(url, headers=headers, params=params or None)
+                if r.status_code != 200:
+                    if page == 1:
+                        try:
+                            data = r.json()
+                            msg = data.get("error", {}).get("message", data.get("message", r.text))
+                        except Exception:
+                            msg = r.text or f"HTTP {r.status_code}"
+                        return [], msg or f"HTTP {r.status_code}"
+                    break
+                try:
+                    data = r.json()
+                except Exception as e:
+                    if page == 1:
+                        return [], f"Invalid response: {e}"
+                    break
+                raw = data.get("data", []) if isinstance(data, dict) else []
+                for item in raw:
+                    if not isinstance(item, dict):
+                        continue
+                    mid = item.get("id") or ""
+                    if mid and isinstance(mid, str):
+                        mid = mid.strip()
+                        display = (item.get("display_name") or "").strip() or None
+                        all_models.append({"id": mid, "display_name": display})
+                has_more = data.get("has_more") if isinstance(data, dict) else False
+                last_id = data.get("last_id") if isinstance(data, dict) else None
+                if has_more and last_id:
+                    after_id = last_id
+                else:
+                    break
+        return all_models, None
+    except Exception as e:
+        logger.warning("Anthropic fetch models failed: %s", e)
         return [], str(e)

@@ -9,7 +9,12 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 
 from api.db import CONNECTION_STATUS_SUCCESS, init_db
-from api.llm_providers import fetch_models_from_api, get_default_base_url, PROVIDERS_LIST
+from api.llm_providers import (
+    fetch_models_anthropic,
+    fetch_models_from_api,
+    get_default_base_url,
+    PROVIDERS_LIST,
+)
 from api.llm_test import test_llm_connection
 from api.bot_runner import restart_bot, start_bot, stop_bot
 from api.settings_repository import (
@@ -267,20 +272,25 @@ def get_llm_providers():
 @app.post("/api/settings/llm/fetch-models")
 def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
     """
-    Fetch model list from OpenAI-compatible GET /models.
+    Fetch model list from provider API (OpenAI-compatible GET /models or Anthropic GET /v1/models).
     Body: optional baseUrl, apiKey. If omitted, use saved LLM settings.
-    Returns { "models": [ {"id": "gpt-4o"}, ... ], "error": null } or error message in "error".
+    Returns { "models": [ {"id": "...", "display_name": "..."? }, ... ], "error": null } or error in "error".
     """
     base_url = (body.get("baseUrl") or "").strip() or None
     api_key = (body.get("apiKey") or "").strip() or None
-    if not base_url or not api_key:
-        creds = get_llm_credentials_for_test()
-        if creds:
-            base_url = base_url or (creds.get("base_url") or "").strip()
-            api_key = api_key or (creds.get("api_key") or "").strip()
-    if not base_url:
-        return {"models": [], "error": "Base URL is required"}
-    models, err = fetch_models_from_api(base_url, api_key or "")
+    creds = get_llm_credentials_for_test()
+    if creds and (not base_url or not api_key):
+        base_url = base_url or (creds.get("base_url") or "").strip()
+        api_key = api_key or (creds.get("api_key") or "").strip()
+    llm_type = (creds.get("llm_type") or "").strip().lower() if creds else ""
+    if llm_type == "anthropic":
+        if not api_key:
+            return {"models": [], "error": "API key is required"}
+        models, err = fetch_models_anthropic(api_key or "")
+    else:
+        if not base_url:
+            return {"models": [], "error": "Base URL is required"}
+        models, err = fetch_models_from_api(base_url, api_key or "")
     if err:
         return {"models": [], "error": err}
     return {"models": models, "error": None}
