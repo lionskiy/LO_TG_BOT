@@ -1,7 +1,10 @@
 """LLM client: one active provider from config, model from env."""
+import logging
 from typing import Dict, List, Optional
 
 from bot.config import get_active_llm
+
+logger = logging.getLogger(__name__)
 
 # Lazy clients per provider (openai-compatible and others)
 _openai_client: Optional[object] = None
@@ -117,7 +120,16 @@ _HANDLERS: Dict[str, object] = {
 async def get_reply(messages: List[dict]) -> str:
     """Use the active LLM provider and its model from config."""
     provider, model, kwargs = get_active_llm()
+    logger.info(
+        "LLM request provider=%s model=%s messages=%d",
+        provider,
+        model,
+        len(messages),
+    )
     handler = _HANDLERS.get(provider)
     if not handler:
         raise ValueError(f"Unknown LLM provider: {provider}")
-    return await handler(messages, model, kwargs)
+    reply = await handler(messages, model, kwargs)
+    logger.info("LLM response len=%d", len(reply))
+    logger.debug("LLM response preview=%s", (reply[:150] + "..." if len(reply) > 150 else reply))
+    return reply

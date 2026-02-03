@@ -1,4 +1,5 @@
 """Load configuration from environment."""
+import logging
 import os
 from pathlib import Path
 from typing import Any, Optional, Tuple
@@ -8,6 +9,8 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_FILE = os.getenv("LOG_FILE")
 
 # Provider keys and models (whichever block is set in .env is used)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -77,10 +80,16 @@ def get_active_llm() -> Tuple[str, str, dict]:
             # Ollama: consider active if base_url is set (no key required)
             if OLLAMA_BASE_URL and model:
                 _cached_llm = (name, model, kwargs)
+                logging.getLogger(__name__).info(
+                    "LLM: active provider=%s, model=%s", name, model
+                )
                 return _cached_llm
             continue
         if active and model and kwargs.get("api_key"):
             _cached_llm = (name, model, kwargs)
+            logging.getLogger(__name__).info(
+                "LLM: active provider=%s, model=%s", name, model
+            )
             return _cached_llm
     raise ValueError(
         "No LLM provider configured. Set one block in .env (e.g. OPENAI_API_KEY and OPENAI_MODEL)."

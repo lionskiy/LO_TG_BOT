@@ -41,6 +41,9 @@ def _append_to_history(chat_id: int, user_content: str, assistant_content: str) 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /start command."""
+    chat_id = update.effective_chat.id if update.effective_chat else None
+    user_id = update.effective_user.id if update.effective_user else None
+    logger.info("command /start chat_id=%s user_id=%s", chat_id, user_id)
     await update.message.reply_text(
         "Привет! Я бот с LLM. Напиши мне что угодно — я постараюсь ответить."
     )
@@ -55,6 +58,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not user_text:
         return
 
+    history_len = len(_chat_history[chat_id])
+    logger.info(
+        "message chat_id=%s len=%d history_messages=%d",
+        chat_id,
+        len(user_text),
+        history_len,
+    )
+    logger.debug("message chat_id=%s text=%s", chat_id, user_text[:200])
+
     await update.message.chat.send_action("typing")
     messages = _get_messages(chat_id, user_text)
     try:
@@ -68,13 +80,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if reply:
         _append_to_history(chat_id, user_text, reply)
+        logger.info("reply sent chat_id=%s reply_len=%d", chat_id, len(reply))
+        logger.debug("reply chat_id=%s text=%s", chat_id, reply[:200])
         await update.message.reply_text(reply)
     else:
+        logger.warning("empty reply chat_id=%s", chat_id)
         await update.message.reply_text("Не удалось получить ответ. Попробуй ещё раз.")
 
 
 def build_application() -> Application:
     """Create and configure the Telegram application."""
+    logger.info("Building application, validating config")
     validate_config()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
@@ -87,8 +103,9 @@ async def run_polling() -> None:
     app = build_application()
     await app.initialize()
     await app.start()
-    logger.info("Bot started (polling)")
+    logger.info("Bot started, polling (drop_pending_updates=True)")
     await app.updater.start_polling(drop_pending_updates=True)
     await app.updater.idle()
+    logger.info("Polling idle ended, shutting down")
     await app.stop()
     await app.shutdown()
