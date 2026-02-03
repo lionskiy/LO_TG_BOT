@@ -105,40 +105,63 @@ def get_default_base_url(llm_type: str) -> str:
 
 def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) -> tuple[list[dict[str, Any]], str | None]:
     """
-    Fetch model list from OpenAI-compatible GET /models.
+    Fetch full model list from OpenAI-compatible GET /models.
+    Follows pagination (has_more + after or last_id) when present so all models are returned.
     Returns (list of {"id": "model-id"}, error_message or None).
     """
     base = (base_url or "").strip().rstrip("/")
     if not base:
         return [], "Base URL is empty"
-    url = f"{base}/models"
-    headers = {}
+    headers: dict[str, str] = {}
     if (api_key or "").strip() and (api_key or "").strip() != "ollama":
         headers["Authorization"] = f"Bearer {(api_key or '').strip()}"
+    all_models: list[dict[str, Any]] = []
+    after: str | None = None
+    max_pages = 50
+    page = 0
     try:
         with httpx.Client(timeout=timeout) as client:
-            r = client.get(url, headers=headers or None)
+            while page < max_pages:
+                page += 1
+                url = f"{base}/models"
+                params: dict[str, str] = {}
+                if after:
+                    params["after"] = after
+                r = client.get(url, headers=headers or None, params=params or None)
+                if r.status_code != 200:
+                    if page == 1:
+                        try:
+                            data = r.json()
+                            msg = data.get("error", {}).get("message", data.get("message", r.text))
+                        except Exception:
+                            msg = r.text or f"HTTP {r.status_code}"
+                        return [], msg or f"HTTP {r.status_code}"
+                    break
+                try:
+                    data = r.json()
+                except Exception as e:
+                    if page == 1:
+                        return [], f"Invalid response: {e}"
+                    break
+                raw = data.get("data", []) if isinstance(data, dict) else []
+                for item in raw:
+                    if not isinstance(item, dict):
+                        continue
+                    mid = item.get("id") or item.get("model") or ""
+                    if mid and isinstance(mid, str):
+                        mid = mid.strip()
+                        all_models.append({"id": mid})
+                has_more = data.get("has_more") if isinstance(data, dict) else False
+                last_id = data.get("last_id") if isinstance(data, dict) else None
+                if has_more and raw:
+                    after = last_id or (raw[-1].get("id") or raw[-1].get("model") if isinstance(raw[-1], dict) else None)
+                    if isinstance(after, str):
+                        after = after.strip()
+                    else:
+                        after = None
+                if not has_more or not after:
+                    break
+        return all_models, None
     except Exception as e:
         logger.warning("Fetch models request failed: %s", e)
         return [], str(e)
-    if r.status_code != 200:
-        try:
-            data = r.json()
-            msg = data.get("error", {}).get("message", data.get("message", r.text))
-        except Exception:
-            msg = r.text or f"HTTP {r.status_code}"
-        return [], msg or f"HTTP {r.status_code}"
-    try:
-        data = r.json()
-        raw = data.get("data", []) if isinstance(data, dict) else []
-    except Exception as e:
-        return [], f"Invalid response: {e}"
-    # Prefer id; some APIs use "id" in list of models
-    models = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        mid = item.get("id") or item.get("model") or ""
-        if mid and isinstance(mid, str):
-            models.append({"id": mid.strip()})
-    return models, None

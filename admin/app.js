@@ -199,10 +199,19 @@ function isOpenAiCompatibleProvider(providerId) {
   return ['openai', 'groq', 'openrouter', 'ollama', 'xai', 'perplexity', 'deepseek', 'azure'].includes(id);
 }
 
-/** Heuristic: model id is reasoning-type (o1, o3, etc.). */
+/**
+ * Heuristic: model id is reasoning-type (OpenAI o-series, gpt-5, or name contains "reasoning").
+ * Aligns with OpenAI docs: "gpt-5 and o-series models" and common provider naming.
+ */
 function isReasoningModelId(id) {
   const s = (id || '').toLowerCase();
-  return /^o1(-|$)/.test(s) || /^o3/.test(s) || s.includes('reasoning');
+  return (
+    /^o1(-|$)/.test(s) ||
+    /^o3/.test(s) ||
+    /^o4/.test(s) ||
+    /^gpt-5(-|$)/.test(s) ||
+    s.includes('reasoning')
+  );
 }
 
 /** Placeholder model for "save credentials only" (no model selected yet). Used for all providers. */
