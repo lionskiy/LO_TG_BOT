@@ -1,7 +1,9 @@
 """FastAPI application for admin settings API."""
 import logging
+import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+
+from fastapi import Depends, FastAPI, Header, HTTPException
 
 from api.db import CONNECTION_STATUS_SUCCESS, init_db
 from api.llm_providers import get_default_base_url, PROVIDERS_LIST
@@ -20,6 +22,16 @@ from api.telegram_test import test_telegram_connection
 
 logger = logging.getLogger(__name__)
 
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "").strip()
+
+
+def _require_admin(x_admin_key: str = Header(None, alias="X-Admin-Key")) -> None:
+    """Raise 403 if ADMIN_API_KEY is set and request does not provide it."""
+    if not ADMIN_API_KEY:
+        return
+    if not x_admin_key or x_admin_key != ADMIN_API_KEY:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,7 +47,7 @@ app = FastAPI(title="LO_TG_BOT Admin API", lifespan=lifespan)
 
 
 @app.get("/api/settings")
-def get_settings():
+def get_settings(_: None = Depends(_require_admin)):
     """Return all settings (Telegram and LLM). Secrets are masked (last 5 chars)."""
     return {
         "telegram": get_telegram_settings(),
@@ -44,14 +56,14 @@ def get_settings():
 
 
 @app.post("/api/settings/telegram/test")
-def telegram_test():
+def telegram_test(_: None = Depends(_require_admin)):
     """Test Telegram Bot API connection (getMe). Uses saved settings from DB."""
     status, message = test_telegram_connection()
     return {"status": status, "message": message}
 
 
 @app.put("/api/settings/telegram")
-def put_telegram_settings(body: dict):
+def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
     """
     Save Telegram block. Validate (accessToken required), save, run test.
     If test success, mark active. Returns saved settings and applied flag.
@@ -88,18 +100,19 @@ def telegram_activate():
     set_telegram_active(activated)
     if activated:
         restart_bot()
+        logger.info("settings_activated block=telegram")
     return {"activated": activated, "message": message}
 
 
 @app.post("/api/settings/llm/test")
-def llm_test():
+def llm_test(_: None = Depends(_require_admin)):
     """Test LLM provider connection. Uses saved settings from DB."""
     status, message = test_llm_connection()
     return {"status": status, "message": message}
 
 
 @app.put("/api/settings/llm")
-def put_llm_settings(body: dict):
+def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
     """
     Save LLM block. Validate llmType, apiKey (optional for ollama), modelType.
     Base URL default from provider if empty. Save, run test, set active if success.
@@ -129,16 +142,19 @@ def put_llm_settings(body: dict):
     status, _message = test_llm_connection()
     applied = status == CONNECTION_STATUS_SUCCESS
     set_llm_active(applied)
+    logger.info("settings_changed block=llm action=put applied=%s", applied)
     settings = get_llm_settings()
     return {"llm": settings, "applied": applied}
 
 
 @app.post("/api/settings/llm/activate")
-def llm_activate():
+def llm_activate(_: None = Depends(_require_admin)):
     """Run connection test; if success, mark saved LLM settings as active."""
     status, message = test_llm_connection()
     activated = status == CONNECTION_STATUS_SUCCESS
     set_llm_active(activated)
+    if activated:
+        logger.info("settings_activated block=llm")
     return {"activated": activated, "message": message}
 
 
