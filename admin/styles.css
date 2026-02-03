@@ -237,6 +237,20 @@ body {
   color: #5f6368;
 }
 
+.field-hint--tooltip {
+  cursor: help;
+}
+
+.field-select {
+  appearance: auto;
+  min-height: 2.25rem;
+}
+
+.field-textarea {
+  resize: vertical;
+  min-height: 4rem;
+}
+
 /* Toast — PRD 5.6 */
 .toast-container {
   position: fixed;
