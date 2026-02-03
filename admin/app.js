@@ -200,19 +200,21 @@ function isOpenAiCompatibleProvider(providerId) {
 }
 
 /**
- * Heuristic: model is reasoning-type by id or display name (o-series, gpt-5, "reasoning", "thinking").
+ * Heuristic: model is reasoning-type by id or display name.
+ * Проверяем и id, и display_name (название может быть "O3 Mini", id — с датой).
  */
 function isReasoningModel(model) {
   const id = (model && model.id) ? String(model.id).toLowerCase() : '';
   const name = (model && model.display_name) ? String(model.display_name).toLowerCase() : '';
   const s = id + ' ' + name;
   return (
-    /^o1(-|$)/.test(id) ||
-    /^o3/.test(id) ||
-    /^o4/.test(id) ||
-    /^gpt-5(-|$)/.test(id) ||
+    /^o1[-.]|^o1$|\bo1[-.]|\bo1\b/.test(s) ||
+    /^o3|^o3$|\bo3[-.]|\bo3\b/.test(s) ||
+    /^o4|^o4$|\bo4[-.]|\bo4\b/.test(s) ||
+    /^gpt-5[-.]|^gpt-5$|\bgpt-5\b/.test(s) ||
     /\breasoning\b/.test(s) ||
-    /\bthinking\b/.test(s)
+    /\bthinking\b/.test(s) ||
+    /\bdeep.?think\b/.test(s)
   );
 }
 
@@ -235,17 +237,7 @@ function fillLlmModelSelectFromIds(modelList, selectedModel) {
   const standard = list.filter((m) => !isReasoningModel(m));
   const reasoning = list.filter(isReasoningModel);
   const label = (m) => (m.display_name && String(m.display_name).trim()) || m.id;
-  if (standard.length) {
-    const g = document.createElement('optgroup');
-    g.label = 'Стандартные модели';
-    standard.forEach((m) => {
-      const o = document.createElement('option');
-      o.value = m.id;
-      o.textContent = label(m);
-      g.appendChild(o);
-    });
-    sel.appendChild(g);
-  }
+  // Сначала думающие (🧠), потом стандартные — так группа «думающие» лучше видна
   if (reasoning.length) {
     const g = document.createElement('optgroup');
     g.label = 'Reasoning модели (🧠)';
@@ -257,7 +249,18 @@ function fillLlmModelSelectFromIds(modelList, selectedModel) {
     });
     sel.appendChild(g);
   }
-  const allIds = [...standard, ...reasoning].map((m) => m.id);
+  if (standard.length) {
+    const g = document.createElement('optgroup');
+    g.label = 'Стандартные модели';
+    standard.forEach((m) => {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = label(m);
+      g.appendChild(o);
+    });
+    sel.appendChild(g);
+  }
+  const allIds = [...reasoning, ...standard].map((m) => m.id);
   if (selectedModel && allIds.includes(selectedModel)) sel.value = selectedModel;
   else if (allIds.length) sel.value = allIds[0];
 }
