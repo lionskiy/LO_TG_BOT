@@ -3,6 +3,7 @@ import logging
 import sys
 
 from bot.config import LOG_FILE, LOG_LEVEL
+from bot.single_instance import ensure_single_instance, register_cleanup
 from bot.telegram_bot import run_polling
 
 _LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -31,5 +32,7 @@ def _setup_logging() -> None:
 if __name__ == "__main__":
     _setup_logging()
     logger = logging.getLogger(__name__)
+    ensure_single_instance()
+    register_cleanup()
     logger.info("Starting bot (LOG_LEVEL=%s)", LOG_LEVEL)
     run_polling()
