@@ -182,6 +182,9 @@ async function loadSettings() {
             ? 'Checking connection...'
             : 'Not configured';
     setLlmStatus(llmStatus, llmStatusText);
+    if (llm.apiKeyMasked && llmCheckTimer === null) {
+      startLlmAutoCheck();
+    }
   } catch (e) {
     showToast('Ошибка загрузки настроек: ' + e.message, 'error');
   }
@@ -269,6 +272,117 @@ async function telegramSave() {
   }
 }
 
+async function llmTest() {
+  setLlmChecking();
+  const retryBtn = document.getElementById('llmRetry');
+  if (retryBtn) retryBtn.disabled = true;
+  try {
+    const r = await api('/api/settings/llm/test', { method: 'POST' });
+    const data = await r.json();
+    const status = data.status || 'failed';
+    const text =
+      status === 'success'
+        ? 'Connection tested successfully'
+        : status === 'not_configured'
+          ? 'Not configured'
+          : data.message || 'Connection failed';
+    setLlmStatus(
+      status === 'success' ? 'success' : status === 'not_configured' ? 'not_configured' : 'failed',
+      text
+    );
+  } catch (e) {
+    setLlmStatus('failed', 'Connection failed');
+    showToast(e.message, 'error');
+  } finally {
+    if (retryBtn) retryBtn.disabled = false;
+  }
+}
+
+function startLlmAutoCheck() {
+  if (llmCheckTimer) return;
+  const defaultPlaceholder = 'Ключ API';
+  llmCheckTimer = setInterval(() => {
+    const apiKeyEl = document.getElementById('llmApiKey');
+    const placeholder = (apiKeyEl?.placeholder || '').trim();
+    if ((placeholder && placeholder !== defaultPlaceholder) || (apiKeyEl?.value || '').trim()) {
+      llmTest();
+    }
+  }, STATUS_CHECK_INTERVAL_MS);
+}
+
+async function llmSave() {
+  const llmType = (document.getElementById('llmType')?.value || '').trim();
+  const apiKey = (document.getElementById('llmApiKey')?.value || '').trim();
+  let baseUrl = (document.getElementById('llmBaseUrl')?.value || '').trim();
+  const modelType = (document.getElementById('llmModel')?.value || '').trim();
+  const systemPrompt = (document.getElementById('llmSystemPrompt')?.value || '').trim() || null;
+
+  if (!llmType) {
+    showToast('Заполните обязательные поля', 'warning');
+    document.getElementById('llmType')?.classList.add('field-input--error');
+    return;
+  }
+  if (!modelType) {
+    showToast('Заполните обязательные поля', 'warning');
+    document.getElementById('llmModel')?.classList.add('field-input--error');
+    return;
+  }
+  if (!apiKey && llmType.toLowerCase() !== 'ollama') {
+    showToast('Заполните обязательные поля', 'warning');
+    document.getElementById('llmApiKey')?.classList.add('field-input--error');
+    return;
+  }
+  document.getElementById('llmType')?.classList.remove('field-input--error');
+  document.getElementById('llmModel')?.classList.remove('field-input--error');
+  document.getElementById('llmApiKey')?.classList.remove('field-input--error');
+
+  if (!baseUrl) {
+    const prov = getProviderById(llmType);
+    baseUrl = prov?.defaultBaseUrl || '';
+  }
+
+  const btn = document.getElementById('llmSave');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api('/api/settings/llm', {
+      method: 'PUT',
+      body: JSON.stringify({
+        llmType,
+        apiKey: apiKey || null,
+        baseUrl,
+        modelType,
+        systemPrompt,
+      }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || r.statusText);
+    }
+    const data = await r.json();
+    const applied = data.applied === true;
+    if (applied) {
+      showToast('Настройки сохранены и применены', 'success');
+    } else {
+      showToast('Настройки сохранены, но не применены (ошибка подключения)', 'warning');
+    }
+    setLlmStatus(
+      data.llm?.connectionStatus === 'success' ? 'success' : 'failed',
+      data.llm?.connectionStatus === 'success'
+        ? 'Connection tested successfully'
+        : data.llm?.connectionStatus === 'not_configured'
+          ? 'Not configured'
+          : 'Connection failed'
+    );
+    document.getElementById('llmApiKey').value = '';
+    document.getElementById('llmApiKey').placeholder = data.llm?.apiKeyMasked || 'Ключ API';
+    if (!llmCheckTimer) startLlmAutoCheck();
+  } catch (e) {
+    showToast('Ошибка сохранения: ' + e.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function onLlmTypeChange() {
   const providerId = document.getElementById('llmType')?.value || '';
   const prov = getProviderById(providerId);
@@ -293,4 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('telegramSave').addEventListener('click', telegramSave);
 
   document.getElementById('llmType')?.addEventListener('change', onLlmTypeChange);
+  document.getElementById('llmRetry')?.addEventListener('click', () => llmTest());
+  document.getElementById('llmSave')?.addEventListener('click', llmSave);
 });
