@@ -1,0 +1,7 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    # Полный доступ к сети: исходящие запросы к Telegram и API LLM без ограничений
+    # Сеть по умолчанию (bridge) даёт доступ в интернет
+    restart: unless-stopped

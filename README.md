@@ -42,3 +42,19 @@ python main.py
 - `/start` — приветствие и краткое описание
 
 Остальные текстовые сообщения обрабатываются LLM и получают ответ в том же чате.
+
+## Запуск в Docker (локально)
+
+Нужен файл `.env` (скопируй из `.env.example` и заполни `BOT_TOKEN` и переменные выбранного LLM). У контейнера есть доступ в сеть (Telegram, API LLM).
+
+```bash
+docker compose up --build
+```
+
+Остановка: `Ctrl+C`, затем при необходимости `docker compose down`.
+
+Запуск тестов в контейнере:
+
+```bash
+docker compose run --rm bot pytest tests/ -v
+```
