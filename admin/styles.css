@@ -1,0 +1,462 @@
+/* Admin panel — PRD layout and status colors */
+:root {
+  --status-success-bg: #d4edda;
+  --status-failed-bg: #f8d7da;
+  --status-not-configured-bg: #e9ecef;
+  --status-checking-bg: #cce5ff;
+  --sidebar-bg: #f1f3f4;
+  --sidebar-accent: #1a73e8;
+  --sidebar-accent-text: #fff;
+  --min-content-width: 320px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #202124;
+  background: #fff;
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+  min-width: var(--min-content-width);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  padding: 1rem 0;
+  border-right: 1px solid #dadce0;
+}
+
+.sidebar-title {
+  margin: 0 1rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-item {
+  padding: 0.5rem 1rem;
+  color: #5f6368;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  background: #e8eaed;
+  color: #202124;
+}
+
+.nav-item--active {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-text);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid #dadce0;
+}
+
+.admin-key-label {
+  display: block;
+  font-size: 12px;
+  color: #5f6368;
+  margin-bottom: 0.25rem;
+}
+
+.admin-key-input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+/* Main */
+.main {
+  flex: 1;
+  padding: 1.5rem;
+  min-width: 0;
+}
+
+.page-title {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.blocks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1023px) {
+  .blocks {
+    grid-template-columns: 1fr;
+  }
+}
+
+.block {
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.block-title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.block-placeholder {
+  margin: 0;
+  color: #5f6368;
+  font-size: 13px;
+}
+
+/* Status bar — PRD 3.3 */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.status-bar[data-status="success"] {
+  background: var(--status-success-bg);
+}
+
+.status-bar[data-status="failed"] {
+  background: var(--status-failed-bg);
+}
+
+.status-bar[data-status="not_configured"] {
+  background: var(--status-not-configured-bg);
+}
+
+.status-bar[data-status="checking"] {
+  background: var(--status-checking-bg);
+}
+
+.status-text {
+  flex: 1;
+}
+
+.btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn--loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn--loading::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+.btn-primary.btn--loading::after {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-right-color: #fff;
+}
+
+.btn-secondary.btn--loading::after {
+  border-color: rgba(0, 0, 0, 0.2);
+  border-right-color: #202124;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-primary {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-text);
+  border-color: var(--sidebar-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1557b0;
+}
+
+.btn-secondary {
+  background: #fff;
+  border-color: #dadce0;
+  color: #202124;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f1f3f4;
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid #dadce0;
+  color: #5f6368;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.field-input {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--sidebar-accent);
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+.field-input.field-input--error {
+  border-color: #d93025;
+}
+
+.field-error {
+  font-size: 12px;
+  color: #d93025;
+}
+
+.field-error:empty {
+  display: none;
+}
+
+.field-hint {
+  font-size: 12px;
+  color: #5f6368;
+}
+
+.field-hint--tooltip {
+  cursor: help;
+}
+
+.field-model-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.field-model-row .field-select {
+  flex: 1;
+  min-width: 10rem;
+}
+
+.field-select {
+  appearance: auto;
+  min-height: 2.25rem;
+}
+
+.field-textarea {
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.llm-azure-fields[hidden] {
+  display: none !important;
+}
+
+/* Active token block — PRD: red border, masked token + Delete. Only visible when not [hidden]. */
+.active-token {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #d93025;
+  border-radius: 4px;
+  background: #fef7f7;
+}
+
+.active-token[hidden] {
+  display: none !important;
+}
+
+.active-token-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #5f6368;
+}
+
+.active-token-value {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  color: #202124;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  font-size: 13px;
+  color: var(--sidebar-accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: #1557b0;
+}
+
+.btn-link--danger {
+  color: #d93025;
+}
+
+.btn-link--danger:hover {
+  color: #b71c1c;
+}
+
+/* Confirmation modal — above toasts, backdrop closes on click */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-overlay[hidden] {
+  display: none !important;
+}
+
+.modal {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.25rem;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+}
+
+.modal-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.modal-text {
+  margin: 0 0 1.25rem;
+  font-size: 14px;
+  color: #5f6368;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Toast — PRD 5.6 */
+.toast-container {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 360px;
+}
+
+.toast {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.toast--success {
+  background: var(--status-success-bg);
+  border: 1px solid #c3e6cb;
+}
+
+.toast--warning {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+}
+
+.toast--error {
+  background: var(--status-failed-bg);
+  border: 1px solid #f5c6cb;
+}

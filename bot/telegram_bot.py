@@ -10,6 +10,10 @@ def _llm_error_message(exc: Exception) -> str:
     """Краткое сообщение об ошибке LLM для пользователя (без деталей)."""
     # Всегда логируем тип и текст — видно при любом LOG_LEVEL
     logger.error("LLM error type=%s message=%s", type(exc).__name__, str(exc))
+    settings_hint = "Проверьте настройки в админ-панели."
+    # 404 / модель не найдена (OpenAI SDK или Anthropic SDK)
+    if type(exc).__name__ == "NotFoundError":
+        return f"Модель или ресурс не найден. Проверьте имя модели. {settings_hint}"
     try:
         from openai import (
             APIConnectionError,
@@ -21,20 +25,23 @@ def _llm_error_message(exc: Exception) -> str:
             RateLimitError,
         )
         if isinstance(exc, AuthenticationError):
-            return "Ошибка доступа к API: проверьте API-ключ в .env (неверный или истёкший)."
+            return f"Ошибка доступа к API: неверный или истёкший API-ключ. {settings_hint}"
         if isinstance(exc, RateLimitError):
             return "Слишком много запросов. Подождите минуту и попробуйте снова."
         if isinstance(exc, (APIConnectionError, APITimeoutError)):
             return "Нет связи с API модели или таймаут. Проверьте интернет и попробуйте позже."
         if isinstance(exc, BadRequestError):
-            return "Неверный запрос к модели (например, неверное имя модели в .env). Проверьте OPENAI_MODEL и попробуйте снова."
-        if isinstance(exc, NotFoundError):
-            return "Модель или ресурс не найден. Проверьте имя модели в .env (OPENAI_MODEL)."
+            return f"Неверный запрос к модели (например, неверное имя модели). {settings_hint}"
+        if isinstance(exc, NotFoundError):  # openai.NotFoundError
+            return f"Модель или ресурс не найден. Проверьте имя модели. {settings_hint}"
         if isinstance(exc, PermissionDeniedError):
-            return "Нет доступа к модели или API. Проверьте ключ и права доступа в .env."
+            return (
+                "Нет доступа к выбранной модели (403). Возможно, ключ не даёт доступ к этой модели "
+                f"или нужен другой тариф. Выберите другую модель или проверьте ключ. {settings_hint}"
+            )
     except ImportError:
         pass
-    return f"Ошибка при обращении к модели ({type(exc).__name__}). Проверьте .env и логи. Попробуйте позже."
+    return f"Ошибка при обращении к модели ({type(exc).__name__}). {settings_hint} Попробуйте позже."
 
 from telegram import Update
 from telegram.error import Conflict
@@ -132,10 +139,19 @@ async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 def build_application() -> Application:
-    """Create and configure the Telegram application."""
+    """Create and configure the Telegram application (token from config)."""
     logger.info("Building application, validating config")
     validate_config()
     app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_error_handler(_error_handler)
+    return app
+
+
+def build_application_with_token(token: str) -> Application:
+    """Create application with given token (for hot-swap from settings DB)."""
+    app = Application.builder().token(token).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_error_handler(_error_handler)
@@ -146,4 +162,11 @@ def run_polling() -> None:
     """Run bot with long polling (blocking until shutdown)."""
     app = build_application()
     logger.info("Starting polling (drop_pending_updates=True)")
+    app.run_polling(drop_pending_updates=True)
+
+
+def run_polling_with_token(token: str) -> None:
+    """Run bot with given token (e.g. from settings DB). Blocking."""
+    app = build_application_with_token(token)
+    logger.info("Starting polling with token from settings (drop_pending_updates=True)")
     app.run_polling(drop_pending_updates=True)
