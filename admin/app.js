@@ -34,6 +34,52 @@ function showToast(message, type = 'success') {
   setTimeout(() => el.remove(), 4000);
 }
 
+function setButtonLoading(btn, loading) {
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.classList.toggle('btn--loading', loading);
+}
+
+function setFieldError(fieldId, errorElId, message) {
+  const field = document.getElementById(fieldId);
+  const errorEl = document.getElementById(errorElId);
+  if (field) field.classList.toggle('field-input--error', !!message);
+  if (errorEl) {
+    errorEl.textContent = message || '';
+  }
+}
+
+function isTelegramFormValid() {
+  const tokenEl = document.getElementById('telegramToken');
+  const v = (tokenEl?.value || '').trim();
+  const placeholder = (tokenEl?.placeholder || '').trim();
+  const defaultPh = 'Токен бота';
+  return !!(v || (placeholder && placeholder !== defaultPh));
+}
+
+function isLlmFormValid() {
+  const llmType = (document.getElementById('llmType')?.value || '').trim();
+  const modelType = (document.getElementById('llmModel')?.value || '').trim();
+  const apiKeyEl = document.getElementById('llmApiKey');
+  const apiKey = (apiKeyEl?.value || '').trim();
+  const placeholder = (apiKeyEl?.placeholder || '').trim();
+  const defaultPh = 'Ключ API';
+  const hasKey = !!(apiKey || (placeholder && placeholder !== defaultPh));
+  if (!llmType || !modelType) return false;
+  if (llmType.toLowerCase() === 'ollama') return true;
+  return hasKey;
+}
+
+function updateTelegramSaveDisabled() {
+  const btn = document.getElementById('telegramSave');
+  if (btn) btn.disabled = !isTelegramFormValid();
+}
+
+function updateLlmSaveDisabled() {
+  const btn = document.getElementById('llmSave');
+  if (btn) btn.disabled = !isLlmFormValid();
+}
+
 function setTelegramStatus(status, text) {
   const bar = document.getElementById('telegramStatusBar');
   const textEl = document.getElementById('telegramStatusText');
@@ -155,6 +201,7 @@ async function loadSettings() {
     if (tg.accessTokenMasked && telegramCheckTimer === null) {
       startTelegramAutoCheck();
     }
+    updateTelegramSaveDisabled();
 
     const llm = data.llm || {};
     if (llmProviders.length === 0) {
@@ -192,7 +239,8 @@ async function loadSettings() {
 
 async function telegramTest() {
   setTelegramChecking();
-  document.getElementById('telegramRetry').disabled = true;
+  const retryBtn = document.getElementById('telegramRetry');
+  setButtonLoading(retryBtn, true);
   try {
     const r = await api('/api/settings/telegram/test', { method: 'POST' });
     const data = await r.json();
@@ -225,19 +273,20 @@ function startTelegramAutoCheck() {
 }
 
 async function telegramSave() {
-  const token = document.getElementById('telegramToken').value.trim();
-  let baseUrl = document.getElementById('telegramBaseUrl').value.trim();
+  const tokenEl = document.getElementById('telegramToken');
+  const token = (tokenEl?.value || '').trim();
+  let baseUrl = (document.getElementById('telegramBaseUrl')?.value || '').trim();
   if (!baseUrl) baseUrl = TELEGRAM_DEFAULT_BASE_URL;
 
+  setFieldError('telegramToken', 'telegramFieldError', '');
   if (!token) {
     showToast('Заполните обязательные поля', 'warning');
-    document.getElementById('telegramToken').classList.add('field-input--error');
+    setFieldError('telegramToken', 'telegramFieldError', 'Заполните обязательные поля');
     return;
   }
-  document.getElementById('telegramToken').classList.remove('field-input--error');
 
   const btn = document.getElementById('telegramSave');
-  btn.disabled = true;
+  setButtonLoading(btn, true);
   try {
     const r = await api('/api/settings/telegram', {
       method: 'PUT',
@@ -294,7 +343,7 @@ async function llmTest() {
     setLlmStatus('failed', 'Connection failed');
     showToast(e.message, 'error');
   } finally {
-    if (retryBtn) retryBtn.disabled = false;
+    setButtonLoading(retryBtn, false);
   }
 }
 
@@ -317,24 +366,24 @@ async function llmSave() {
   const modelType = (document.getElementById('llmModel')?.value || '').trim();
   const systemPrompt = (document.getElementById('llmSystemPrompt')?.value || '').trim() || null;
 
-  if (!llmType) {
+  setFieldError('llmType', 'llmFieldError', '');
+  document.getElementById('llmType')?.classList.remove('field-input--error');
+  document.getElementById('llmModel')?.classList.remove('field-input--error');
+  document.getElementById('llmApiKey')?.classList.remove('field-input--error');
+
+  if (!llmType || !modelType) {
     showToast('Заполните обязательные поля', 'warning');
-    document.getElementById('llmType')?.classList.add('field-input--error');
-    return;
-  }
-  if (!modelType) {
-    showToast('Заполните обязательные поля', 'warning');
-    document.getElementById('llmModel')?.classList.add('field-input--error');
+    setFieldError(llmType ? 'llmModel' : 'llmType', 'llmFieldError', 'Заполните обязательные поля');
+    if (!llmType) document.getElementById('llmType')?.classList.add('field-input--error');
+    if (!modelType) document.getElementById('llmModel')?.classList.add('field-input--error');
     return;
   }
   if (!apiKey && llmType.toLowerCase() !== 'ollama') {
     showToast('Заполните обязательные поля', 'warning');
+    setFieldError('llmApiKey', 'llmFieldError', 'Заполните обязательные поля');
     document.getElementById('llmApiKey')?.classList.add('field-input--error');
     return;
   }
-  document.getElementById('llmType')?.classList.remove('field-input--error');
-  document.getElementById('llmModel')?.classList.remove('field-input--error');
-  document.getElementById('llmApiKey')?.classList.remove('field-input--error');
 
   if (!baseUrl) {
     const prov = getProviderById(llmType);
@@ -379,7 +428,8 @@ async function llmSave() {
   } catch (e) {
     showToast('Ошибка сохранения: ' + e.message, 'error');
   } finally {
-    if (btn) btn.disabled = false;
+    setButtonLoading(btn, false);
+    updateLlmSaveDisabled();
   }
 }
 
@@ -409,4 +459,28 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('llmType')?.addEventListener('change', onLlmTypeChange);
   document.getElementById('llmRetry')?.addEventListener('click', () => llmTest());
   document.getElementById('llmSave')?.addEventListener('click', llmSave);
+
+  document.getElementById('telegramToken')?.addEventListener('input', () => {
+    setFieldError('telegramToken', 'telegramFieldError', '');
+    updateTelegramSaveDisabled();
+  });
+  ['llmType', 'llmModel', 'llmApiKey'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', () => {
+        setFieldError('llmType', 'llmFieldError', '');
+        setFieldError('llmModel', 'llmFieldError', '');
+        setFieldError('llmApiKey', 'llmFieldError', '');
+        document.getElementById('llmType')?.classList.remove('field-input--error');
+        document.getElementById('llmModel')?.classList.remove('field-input--error');
+        document.getElementById('llmApiKey')?.classList.remove('field-input--error');
+        updateLlmSaveDisabled();
+      });
+    }
+  });
+  document.getElementById('llmApiKey')?.addEventListener('input', () => {
+    setFieldError('llmApiKey', 'llmFieldError', '');
+    document.getElementById('llmApiKey')?.classList.remove('field-input--error');
+    updateLlmSaveDisabled();
+  });
 });

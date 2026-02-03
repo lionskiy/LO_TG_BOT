@@ -33,6 +33,7 @@
             <label class="field">
               <span class="field-label">Access Token *</span>
               <input type="password" id="telegramToken" class="field-input" placeholder="Токен бота">
+              <span class="field-error" id="telegramFieldError" role="alert"></span>
             </label>
             <label class="field">
               <span class="field-label">Base URL</span>
@@ -54,6 +55,7 @@
               <select id="llmType" class="field-input field-select" aria-required="true">
                 <option value="">— выберите провайдера —</option>
               </select>
+              <span class="field-error" id="llmFieldError" role="alert"></span>
             </label>
             <label class="field">
               <span class="field-label">API key *</span>
