@@ -92,3 +92,19 @@ def test_llm_test_not_configured(client):
     r = client.post("/api/settings/llm/test")
     assert r.status_code == 200
     assert r.json().get("status") == "not_configured"
+
+
+def test_put_llm_validation(client):
+    """PUT /api/settings/llm returns 400 when llmType or modelType missing."""
+    from api.settings_repository import clear_llm_settings
+    clear_llm_settings()
+    r = client.put(
+        "/api/settings/llm",
+        json={"apiKey": "sk-x", "baseUrl": "https://api.openai.com/v1"},
+    )
+    assert r.status_code == 400
+    r2 = client.put(
+        "/api/settings/llm",
+        json={"llmType": "openai", "apiKey": "sk-x"},
+    )
+    assert r2.status_code == 400
