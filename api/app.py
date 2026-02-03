@@ -2,8 +2,10 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.staticfiles import StaticFiles
 
 from api.db import CONNECTION_STATUS_SUCCESS, init_db
 from api.llm_providers import get_default_base_url, PROVIDERS_LIST
@@ -44,6 +46,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="LO_TG_BOT Admin API", lifespan=lifespan)
+
+_admin_dir = Path(__file__).resolve().parent.parent / "admin"
+if _admin_dir.exists():
+    app.mount("/admin", StaticFiles(directory=str(_admin_dir), html=True), name="admin")
 
 
 @app.get("/api/settings")

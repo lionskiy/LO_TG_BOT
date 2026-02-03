@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin panel — Основные настройки приложения</title>
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">Admin panel</h1>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item nav-item--active">Настройки</a>
+      </nav>
+      <div class="sidebar-footer">
+        <label class="admin-key-label">
+          Admin key (если задан на сервере):
+          <input type="password" id="adminKey" class="admin-key-input" placeholder="X-Admin-Key" autocomplete="off">
+        </label>
+      </div>
+    </aside>
+    <main class="main">
+      <h2 class="page-title">Основные настройки приложения</h2>
+      <div class="blocks">
+        <section class="block block--telegram" id="blockTelegram">
+          <h3 class="block-title">Телеграм бот</h3>
+          <div class="status-bar" id="telegramStatusBar" data-status="not_configured">
+            <span class="status-text" id="telegramStatusText">Not configured</span>
+            <button type="button" class="btn btn-secondary" id="telegramRetry">Retry</button>
+          </div>
+          <div class="form">
+            <label class="field">
+              <span class="field-label">Access Token *</span>
+              <input type="password" id="telegramToken" class="field-input" placeholder="Токен бота">
+            </label>
+            <label class="field">
+              <span class="field-label">Base URL</span>
+              <input type="text" id="telegramBaseUrl" class="field-input" placeholder="https://api.telegram.org">
+              <span class="field-hint">По умолчанию: https://api.telegram.org</span>
+            </label>
+            <button type="button" class="btn btn-primary" id="telegramSave">Сохранить</button>
+          </div>
+        </section>
+        <section class="block block--llm" id="blockLlm">
+          <h3 class="block-title">LLM</h3>
+          <p class="block-placeholder">Блок будет реализован в Фазе 3.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <script src="/admin/app.js"></script>
+</body>
+</html>

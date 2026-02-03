@@ -45,7 +45,7 @@ python main.py
 uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
-При старте поднимается подпроцесс бота, если в БД есть активные настройки Telegram. Эндпоинты: `GET/PUT /api/settings`, `PUT/POST .../telegram`, `PUT/POST .../llm`, `GET /api/settings/llm/providers`. Если задан `ADMIN_API_KEY`, запросы к `/api/settings*` должны содержать заголовок `X-Admin-Key: <ADMIN_API_KEY>`.
+При старте поднимается подпроцесс бота, если в БД есть активные настройки Telegram. Админ-панель: открой в браузере `http://localhost:8000/admin/`. Эндпоинты API: `GET/PUT /api/settings`, `PUT/POST .../telegram`, `PUT/POST .../llm`, `GET /api/settings/llm/providers`. Если задан `ADMIN_API_KEY`, укажи его в поле «Admin key» на странице (или заголовок `X-Admin-Key`).
 
 Режим «только бот» (без API): `python main.py` — как раньше, настройки из `.env`.
 
