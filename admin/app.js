@@ -193,10 +193,10 @@ function isCustomModelProvider(providerId) {
   return (providerId || '').toLowerCase() === 'custom';
 }
 
-/** Providers that support GET /models (OpenAI-compatible). List requires API key. */
+/** Providers that support GET /models for listing. Perplexity has no /models, uses static list. */
 function isOpenAiCompatibleProvider(providerId) {
   const id = (providerId || '').toLowerCase();
-  return ['openai', 'groq', 'openrouter', 'ollama', 'xai', 'perplexity', 'deepseek', 'azure'].includes(id);
+  return ['openai', 'groq', 'openrouter', 'ollama', 'xai', 'deepseek', 'azure'].includes(id);
 }
 
 /**

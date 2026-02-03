@@ -33,6 +33,14 @@ def _get_llm_from_settings_db() -> Optional[tuple]:
         kwargs = {"api_key": api_key or "", "base_url": base_url}
     return (provider, model, kwargs)
 
+# Anthropic: short names from UI → full API model ids (404 if short name is sent)
+ANTHROPIC_MODEL_IDS = {
+    "claude-3-opus": "claude-3-opus-20240229",
+    "claude-3-sonnet": "claude-3-sonnet-20240229",
+    "claude-3-haiku": "claude-3-haiku-20240307",
+    "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
+}
+
 # Lazy clients per provider (anthropic, google — config-driven; openai-compatible built per-call for hot-swap)
 _anthropic_client: Optional[object] = None
 _google_model = None
@@ -103,6 +111,7 @@ async def _reply_azure(messages: List[dict], model: str, kwargs: dict) -> str:
 async def _reply_anthropic(messages: List[dict], model: str, kwargs: dict) -> str:
     import anthropic
 
+    api_model = ANTHROPIC_MODEL_IDS.get(model) or model
     client = anthropic.AsyncAnthropic(api_key=kwargs["api_key"])
     system = next((m["content"] for m in messages if m.get("role") == "system"), "") or ""
     msgs = [
@@ -111,7 +120,7 @@ async def _reply_anthropic(messages: List[dict], model: str, kwargs: dict) -> st
         if m.get("role") != "system"
     ]
     resp = await client.messages.create(
-        model=model,
+        model=api_model,
         max_tokens=1024,
         system=system,
         messages=msgs,
@@ -146,6 +155,10 @@ _HANDLERS: Dict[str, object] = {
     "azure": _reply_azure,
     "anthropic": _reply_anthropic,
     "google": _reply_google,
+    "perplexity": _reply_openai,
+    "xai": _reply_openai,
+    "deepseek": _reply_openai,
+    "custom": _reply_openai,
 }
 
 

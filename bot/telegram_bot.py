@@ -11,6 +11,9 @@ def _llm_error_message(exc: Exception) -> str:
     # Всегда логируем тип и текст — видно при любом LOG_LEVEL
     logger.error("LLM error type=%s message=%s", type(exc).__name__, str(exc))
     settings_hint = "Проверьте настройки в админ-панели."
+    # 404 / модель не найдена (OpenAI SDK или Anthropic SDK)
+    if type(exc).__name__ == "NotFoundError":
+        return f"Модель или ресурс не найден. Проверьте имя модели. {settings_hint}"
     try:
         from openai import (
             APIConnectionError,
@@ -29,7 +32,7 @@ def _llm_error_message(exc: Exception) -> str:
             return "Нет связи с API модели или таймаут. Проверьте интернет и попробуйте позже."
         if isinstance(exc, BadRequestError):
             return f"Неверный запрос к модели (например, неверное имя модели). {settings_hint}"
-        if isinstance(exc, NotFoundError):
+        if isinstance(exc, NotFoundError):  # openai.NotFoundError
             return f"Модель или ресурс не найден. Проверьте имя модели. {settings_hint}"
         if isinstance(exc, PermissionDeniedError):
             return (
