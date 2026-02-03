@@ -132,10 +132,19 @@ async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 def build_application() -> Application:
-    """Create and configure the Telegram application."""
+    """Create and configure the Telegram application (token from config)."""
     logger.info("Building application, validating config")
     validate_config()
     app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_error_handler(_error_handler)
+    return app
+
+
+def build_application_with_token(token: str) -> Application:
+    """Create application with given token (for hot-swap from settings DB)."""
+    app = Application.builder().token(token).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_error_handler(_error_handler)
@@ -146,4 +155,11 @@ def run_polling() -> None:
     """Run bot with long polling (blocking until shutdown)."""
     app = build_application()
     logger.info("Starting polling (drop_pending_updates=True)")
+    app.run_polling(drop_pending_updates=True)
+
+
+def run_polling_with_token(token: str) -> None:
+    """Run bot with given token (e.g. from settings DB). Blocking."""
+    app = build_application_with_token(token)
+    logger.info("Starting polling with token from settings (drop_pending_updates=True)")
     app.run_polling(drop_pending_updates=True)

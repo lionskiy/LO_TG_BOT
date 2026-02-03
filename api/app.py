@@ -6,9 +6,11 @@ from fastapi import FastAPI, HTTPException
 from api.db import CONNECTION_STATUS_SUCCESS, init_db
 from api.llm_providers import get_default_base_url, PROVIDERS_LIST
 from api.llm_test import test_llm_connection
+from api.bot_runner import restart_bot, start_bot, stop_bot
 from api.settings_repository import (
     get_llm_settings,
     get_telegram_settings,
+    get_telegram_settings_decrypted,
     save_llm_settings,
     save_telegram_settings,
     set_llm_active,
@@ -21,10 +23,12 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize DB on startup."""
+    """Initialize DB on startup; start bot subprocess if active Telegram settings exist."""
     init_db()
+    if get_telegram_settings_decrypted():
+        start_bot()
     yield
-    # Shutdown: nothing to close for SQLite in-process
+    stop_bot()
 
 
 app = FastAPI(title="LO_TG_BOT Admin API", lifespan=lifespan)
@@ -71,6 +75,8 @@ def put_telegram_settings(body: dict):
         set_telegram_active(False)
     # Re-fetch to get updated status and lastChecked
     settings = get_telegram_settings()
+    if applied:
+        restart_bot()
     return {"telegram": settings, "applied": applied}
 
 
@@ -80,6 +86,8 @@ def telegram_activate():
     status, message = test_telegram_connection()
     activated = status == CONNECTION_STATUS_SUCCESS
     set_telegram_active(activated)
+    if activated:
+        restart_bot()
     return {"activated": activated, "message": message}
 
 
