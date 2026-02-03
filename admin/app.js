@@ -1,6 +1,7 @@
 /**
  * Admin panel: load settings, Telegram block (Retry, Save), toasts, auto-check.
  * Phase 3: LLM block — providers, settings, retry, save.
+ * PRD 5.4: tokens/API keys only as masked (placeholder); never log full values on client.
  */
 
 const TELEGRAM_DEFAULT_BASE_URL = 'https://api.telegram.org';
