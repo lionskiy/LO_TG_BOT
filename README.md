@@ -39,15 +39,32 @@ python main.py
 
 ## Admin API (настройки из БД)
 
-Для управления настройками Telegram и LLM через API запусти сервер (в `.env` нужны `SETTINGS_ENCRYPTION_KEY` и при необходимости `DATABASE_URL`):
+Для управления настройками Telegram и LLM через веб-интерфейс запусти сервер. В `.env` задай:
+
+- **`SETTINGS_ENCRYPTION_KEY`** — обязателен для сохранения токенов/ключей в БД (сгенерировать: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`).
+- **`DATABASE_URL`** — опционально, по умолчанию `sqlite:///./data/settings.db`.
+- **`ADMIN_API_KEY`** — опционально; если задан, все запросы к `/api/settings*` требуют заголовок `X-Admin-Key: <значение>`. В админ-панели введи этот ключ в поле «Admin key».
 
 ```bash
 uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
-При старте поднимается подпроцесс бота, если в БД есть активные настройки Telegram. Админ-панель: открой в браузере `http://localhost:8000/admin/`. Эндпоинты API: `GET/PUT /api/settings`, `PUT/POST .../telegram`, `PUT/POST .../llm`, `GET /api/settings/llm/providers`. Если задан `ADMIN_API_KEY`, укажи его в поле «Admin key» на странице (или заголовок `X-Admin-Key`).
+При старте поднимается подпроцесс бота, если в БД есть активные настройки Telegram. Админ-панель: **http://localhost:8000/admin/**.
 
-Режим «только бот» (без API): `python main.py` — как раньше, настройки из `.env`.
+**Эндпоинты API:**
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/api/settings` | Все настройки (Telegram + LLM), секреты маскированы |
+| PUT | `/api/settings/telegram` | Сохранить настройки Telegram |
+| POST | `/api/settings/telegram/test` | Проверить соединение с Telegram |
+| POST | `/api/settings/telegram/activate` | Применить настройки Telegram (после успешной проверки) |
+| PUT | `/api/settings/llm` | Сохранить настройки LLM |
+| POST | `/api/settings/llm/test` | Проверить соединение с LLM |
+| POST | `/api/settings/llm/activate` | Применить настройки LLM |
+| GET | `/api/settings/llm/providers` | Список провайдеров и моделей (без авторизации) |
+
+Режим «только бот» (без API): `python main.py` — настройки из `.env`, как раньше.
 
 ## Команды
 
