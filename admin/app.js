@@ -1,11 +1,15 @@
 /**
  * Admin panel: load settings, Telegram block (Retry, Save), toasts, auto-check.
+ * Phase 3: LLM block — providers, settings, retry, save.
  */
 
 const TELEGRAM_DEFAULT_BASE_URL = 'https://api.telegram.org';
 const STATUS_CHECK_INTERVAL_MS = 10000;
 
 let telegramCheckTimer = null;
+let llmCheckTimer = null;
+/** @type {Array<{id: string, name: string, defaultBaseUrl: string, models: {standard: string[], reasoning: string[]}}>} */
+let llmProviders = [];
 
 function getHeaders() {
   const key = document.getElementById('adminKey').value.trim();
@@ -41,6 +45,85 @@ function setTelegramChecking() {
   setTelegramStatus('checking', 'Checking connection...');
 }
 
+function setLlmStatus(status, text) {
+  const bar = document.getElementById('llmStatusBar');
+  const textEl = document.getElementById('llmStatusText');
+  if (!bar || !textEl) return;
+  bar.dataset.status = status;
+  textEl.textContent = text;
+}
+
+function setLlmChecking() {
+  setLlmStatus('checking', 'Checking connection...');
+}
+
+async function loadLlmProviders() {
+  const r = await api('/api/settings/llm/providers');
+  if (!r.ok) return [];
+  const d = await r.json();
+  llmProviders = d.providers || [];
+  return llmProviders;
+}
+
+function getProviderById(id) {
+  return llmProviders.find((p) => p.id === id) || null;
+}
+
+function fillLlmTypeSelect(selectedId) {
+  const sel = document.getElementById('llmType');
+  if (!sel) return;
+  sel.innerHTML =
+    '<option value="">— выберите провайдера —</option>' +
+    llmProviders.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
+  if (selectedId) sel.value = selectedId;
+}
+
+function fillLlmModelSelect(providerId, selectedModel) {
+  const sel = document.getElementById('llmModel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— выберите модель —</option>';
+  const prov = getProviderById(providerId);
+  if (!prov || !prov.models) return;
+  const std = prov.models.standard || [];
+  const reas = prov.models.reasoning || [];
+  if (std.length) {
+    const g = document.createElement('optgroup');
+    g.label = 'Стандартные модели';
+    std.forEach((m) => {
+      const o = document.createElement('option');
+      o.value = m;
+      o.textContent = m;
+      g.appendChild(o);
+    });
+    sel.appendChild(g);
+  }
+  if (reas.length) {
+    const g = document.createElement('optgroup');
+    g.label = 'Reasoning модели (🧠)';
+    reas.forEach((m) => {
+      const o = document.createElement('option');
+      o.value = m;
+      o.textContent = m;
+      g.appendChild(o);
+    });
+    sel.appendChild(g);
+  }
+  if (selectedModel && (std.includes(selectedModel) || reas.includes(selectedModel))) {
+    sel.value = selectedModel;
+  } else if (std.length) {
+    sel.value = std[0];
+  } else if (reas.length) {
+    sel.value = reas[0];
+  }
+}
+
+function updateLlmBaseUrlHint(providerId) {
+  const hint = document.getElementById('llmBaseUrlHint');
+  if (!hint) return;
+  const prov = getProviderById(providerId);
+  hint.textContent = prov?.defaultBaseUrl ? `По умолчанию: ${prov.defaultBaseUrl}` : '';
+}
+
 async function loadSettings() {
   try {
     const r = await api('/api/settings');
@@ -72,6 +155,33 @@ async function loadSettings() {
     if (tg.accessTokenMasked && telegramCheckTimer === null) {
       startTelegramAutoCheck();
     }
+
+    const llm = data.llm || {};
+    if (llmProviders.length === 0) {
+      await loadLlmProviders();
+    }
+    fillLlmTypeSelect(llm.llmType || '');
+    fillLlmModelSelect(llm.llmType || '', llm.modelType || '');
+    const baseUrlEl = document.getElementById('llmBaseUrl');
+    const apiKeyEl = document.getElementById('llmApiKey');
+    const systemPromptEl = document.getElementById('llmSystemPrompt');
+    if (baseUrlEl) baseUrlEl.value = llm.baseUrl || '';
+    if (apiKeyEl) {
+      apiKeyEl.value = '';
+      apiKeyEl.placeholder = llm.apiKeyMasked || 'Ключ API';
+    }
+    if (systemPromptEl) systemPromptEl.value = llm.systemPrompt || '';
+    updateLlmBaseUrlHint(llm.llmType || '');
+    const llmStatus = llm.connectionStatus || 'not_configured';
+    const llmStatusText =
+      llmStatus === 'success'
+        ? 'Connection tested successfully'
+        : llmStatus === 'failed'
+          ? 'Connection failed'
+          : llmStatus === 'checking'
+            ? 'Checking connection...'
+            : 'Not configured';
+    setLlmStatus(llmStatus, llmStatusText);
   } catch (e) {
     showToast('Ошибка загрузки настроек: ' + e.message, 'error');
   }
@@ -159,6 +269,15 @@ async function telegramSave() {
   }
 }
 
+function onLlmTypeChange() {
+  const providerId = document.getElementById('llmType')?.value || '';
+  const prov = getProviderById(providerId);
+  const baseUrlEl = document.getElementById('llmBaseUrl');
+  if (baseUrlEl && prov?.defaultBaseUrl) baseUrlEl.value = prov.defaultBaseUrl;
+  updateLlmBaseUrlHint(providerId);
+  fillLlmModelSelect(providerId, null);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const savedKey = sessionStorage.getItem('adminApiKey');
   if (savedKey) document.getElementById('adminKey').value = savedKey;
@@ -172,4 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
     telegramTest();
   });
   document.getElementById('telegramSave').addEventListener('click', telegramSave);
+
+  document.getElementById('llmType')?.addEventListener('change', onLlmTypeChange);
 });
