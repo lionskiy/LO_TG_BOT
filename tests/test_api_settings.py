@@ -22,6 +22,9 @@ def client():
 
 def test_get_settings_empty(client):
     """GET /api/settings returns telegram and llm blocks with defaults when empty."""
+    from api.settings_repository import clear_llm_settings, clear_telegram_settings
+    clear_telegram_settings()
+    clear_llm_settings()
     r = client.get("/api/settings")
     assert r.status_code == 200
     data = r.json()
@@ -43,6 +46,8 @@ def test_get_settings_empty(client):
 
 def test_telegram_test_not_configured(client):
     """POST /api/settings/telegram/test returns not_configured when no token saved."""
+    from api.settings_repository import clear_telegram_settings
+    clear_telegram_settings()
     r = client.post("/api/settings/telegram/test")
     assert r.status_code == 200
     data = r.json()
@@ -69,3 +74,12 @@ def test_put_telegram_save_and_test(client):
     assert data["applied"] is False
     assert data["telegram"]["accessTokenMasked"] == "...12345"
     assert data["telegram"]["connectionStatus"] == "failed"
+
+
+def test_telegram_activate_not_configured(client):
+    """POST /api/settings/telegram/activate returns activated false when no token."""
+    from api.settings_repository import clear_telegram_settings
+    clear_telegram_settings()
+    r = client.post("/api/settings/telegram/activate")
+    assert r.status_code == 200
+    assert r.json().get("activated") is False

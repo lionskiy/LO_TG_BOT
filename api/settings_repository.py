@@ -265,6 +265,20 @@ def update_llm_connection_status(status: str, last_checked: Optional[datetime] =
             session.commit()
 
 
+def clear_telegram_settings() -> None:
+    """Remove telegram settings row (for tests)."""
+    with SessionLocal() as session:
+        session.query(TelegramSettingsModel).delete()
+        session.commit()
+
+
+def clear_llm_settings() -> None:
+    """Remove LLM settings row (for tests)."""
+    with SessionLocal() as session:
+        session.query(LLMSettingsModel).delete()
+        session.commit()
+
+
 def set_telegram_active(active: bool) -> None:
     """Set is_active and last_activated_at for Telegram."""
     with SessionLocal() as session:

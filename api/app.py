@@ -68,3 +68,12 @@ def put_telegram_settings(body: dict):
     # Re-fetch to get updated status and lastChecked
     settings = get_telegram_settings()
     return {"telegram": settings, "applied": applied}
+
+
+@app.post("/api/settings/telegram/activate")
+def telegram_activate():
+    """Run connection test; if success, mark saved Telegram settings as active."""
+    status, message = test_telegram_connection()
+    activated = status == CONNECTION_STATUS_SUCCESS
+    set_telegram_active(activated)
+    return {"activated": activated, "message": message}
