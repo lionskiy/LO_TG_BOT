@@ -305,6 +305,18 @@ body {
   cursor: help;
 }
 
+.field-model-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.field-model-row .field-select {
+  flex: 1;
+  min-width: 10rem;
+}
+
 .field-select {
   appearance: auto;
   min-height: 2.25rem;

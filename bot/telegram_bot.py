@@ -10,6 +10,7 @@ def _llm_error_message(exc: Exception) -> str:
     """Краткое сообщение об ошибке LLM для пользователя (без деталей)."""
     # Всегда логируем тип и текст — видно при любом LOG_LEVEL
     logger.error("LLM error type=%s message=%s", type(exc).__name__, str(exc))
+    settings_hint = "Проверьте настройки в админ-панели."
     try:
         from openai import (
             APIConnectionError,
@@ -21,20 +22,23 @@ def _llm_error_message(exc: Exception) -> str:
             RateLimitError,
         )
         if isinstance(exc, AuthenticationError):
-            return "Ошибка доступа к API: проверьте API-ключ в .env (неверный или истёкший)."
+            return f"Ошибка доступа к API: неверный или истёкший API-ключ. {settings_hint}"
         if isinstance(exc, RateLimitError):
             return "Слишком много запросов. Подождите минуту и попробуйте снова."
         if isinstance(exc, (APIConnectionError, APITimeoutError)):
             return "Нет связи с API модели или таймаут. Проверьте интернет и попробуйте позже."
         if isinstance(exc, BadRequestError):
-            return "Неверный запрос к модели (например, неверное имя модели в .env). Проверьте OPENAI_MODEL и попробуйте снова."
+            return f"Неверный запрос к модели (например, неверное имя модели). {settings_hint}"
         if isinstance(exc, NotFoundError):
-            return "Модель или ресурс не найден. Проверьте имя модели в .env (OPENAI_MODEL)."
+            return f"Модель или ресурс не найден. Проверьте имя модели. {settings_hint}"
         if isinstance(exc, PermissionDeniedError):
-            return "Нет доступа к модели или API. Проверьте ключ и права доступа в .env."
+            return (
+                "Нет доступа к выбранной модели (403). Возможно, ключ не даёт доступ к этой модели "
+                f"или нужен другой тариф. Выберите другую модель или проверьте ключ. {settings_hint}"
+            )
     except ImportError:
         pass
-    return f"Ошибка при обращении к модели ({type(exc).__name__}). Проверьте .env и логи. Попробуйте позже."
+    return f"Ошибка при обращении к модели ({type(exc).__name__}). {settings_hint} Попробуйте позже."
 
 from telegram import Update
 from telegram.error import Conflict

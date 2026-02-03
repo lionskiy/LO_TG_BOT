@@ -50,16 +50,16 @@ def get_telegram_settings() -> dict[str, Any]:
     with SessionLocal() as session:
         row = _telegram_row(session)
         if not row:
-        return {
-            "accessToken": None,
-            "accessTokenMasked": "",
-            "activeTokenMasked": None,
-            "baseUrl": TELEGRAM_DEFAULT_BASE_URL,
-            "connectionStatus": CONNECTION_STATUS_NOT_CONFIGURED,
-            "isActive": False,
-            "lastActivatedAt": None,
-            "lastChecked": None,
-        }
+            return {
+                "accessToken": None,
+                "accessTokenMasked": "",
+                "activeTokenMasked": None,
+                "baseUrl": TELEGRAM_DEFAULT_BASE_URL,
+                "connectionStatus": CONNECTION_STATUS_NOT_CONFIGURED,
+                "isActive": False,
+                "lastActivatedAt": None,
+                "lastChecked": None,
+            }
         token_plain = decrypt_secret(row.access_token_encrypted) if row.access_token_encrypted else None
         return {
             "accessToken": None,

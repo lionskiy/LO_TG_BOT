@@ -122,13 +122,16 @@ function isLlmFormValid() {
   const modelType = getEffectiveModelType();
   const apiKeyEl = document.getElementById('llmApiKey');
   const apiKey = (apiKeyEl?.value || '').trim();
-  if (!llmType || !modelType) return false;
+  if (!llmType) return false;
+  const hasKey = !!(apiKey || (lastLlm?.isActive && lastLlm?.activeTokenMasked));
+  const placeholder = (apiKeyEl?.placeholder || '').trim();
+  const hasSavedKeyPlaceholder = !!(placeholder && placeholder !== 'Ключ API');
+  const noModelOk = (hasKey || hasSavedKeyPlaceholder);
+  if (!modelType && !noModelOk) return false;
   if (llmType.toLowerCase() === 'ollama') return true;
   if (apiKey) return true;
-  if (lastLlm.isActive && lastLlm.activeTokenMasked) return true;
-  const placeholder = (apiKeyEl?.placeholder || '').trim();
-  const defaultPh = 'Ключ API';
-  return !!(placeholder && placeholder !== defaultPh);
+  if (lastLlm?.isActive && lastLlm?.activeTokenMasked) return true;
+  return !!hasSavedKeyPlaceholder;
 }
 
 function updateTelegramSaveDisabled() {
@@ -190,7 +193,100 @@ function isCustomModelProvider(providerId) {
   return (providerId || '').toLowerCase() === 'custom';
 }
 
-function fillLlmModelSelect(providerId, selectedModel) {
+/** Providers that support GET /models (OpenAI-compatible). List requires API key. */
+function isOpenAiCompatibleProvider(providerId) {
+  const id = (providerId || '').toLowerCase();
+  return ['openai', 'groq', 'openrouter', 'ollama', 'xai', 'perplexity', 'deepseek', 'azure'].includes(id);
+}
+
+/** Heuristic: model id is reasoning-type (o1, o3, etc.). */
+function isReasoningModelId(id) {
+  const s = (id || '').toLowerCase();
+  return /^o1(-|$)/.test(s) || /^o3/.test(s) || s.includes('reasoning');
+}
+
+/** Placeholder model for "save credentials only" (no model selected yet). Used for all providers. */
+function getPlaceholderModel(providerId) {
+  const prov = getProviderById(providerId);
+  if (!prov?.models) return 'gpt-4o';
+  const std = prov.models.standard || [];
+  const reas = prov.models.reasoning || [];
+  return std[0] || reas[0] || 'gpt-4o';
+}
+
+/** Fill model select from fetched API list ([{id: "gpt-4o"}, ...]). Splits into standard / reasoning. Keeps selectedModel if in list. */
+function fillLlmModelSelectFromIds(modelList, selectedModel) {
+  const sel = document.getElementById('llmModel');
+  if (!sel) return;
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">— выберите модель —</option>';
+  const ids = (modelList || []).map((m) => (m && m.id) ? String(m.id).trim() : '').filter(Boolean);
+  const standard = ids.filter((id) => !isReasoningModelId(id));
+  const reasoning = ids.filter(isReasoningModelId);
+  if (standard.length) {
+    const g = document.createElement('optgroup');
+    g.label = 'Стандартные модели';
+    standard.forEach((id) => {
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = id;
+      g.appendChild(o);
+    });
+    sel.appendChild(g);
+  }
+  if (reasoning.length) {
+    const g = document.createElement('optgroup');
+    g.label = 'Reasoning модели (🧠)';
+    reasoning.forEach((id) => {
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = id;
+      g.appendChild(o);
+    });
+    sel.appendChild(g);
+  }
+  const all = [...standard, ...reasoning];
+  if (selectedModel && all.includes(selectedModel)) sel.value = selectedModel;
+  else if (all.length) sel.value = all[0];
+}
+
+/** Set model select to "no API key" state: disabled, single option with message. */
+function setLlmModelSelectNoKey() {
+  const sel = document.getElementById('llmModel');
+  if (!sel) return;
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">— Введите API key и сохраните, чтобы загрузить список моделей —</option>';
+  sel.value = '';
+}
+
+/** Fetch models from API (uses saved creds) and fill model select. Used after save or on load when key present. */
+async function fetchLlmModelsAndFill(selectedModel) {
+  const sel = document.getElementById('llmModel');
+  if (!sel) return;
+  try {
+    const r = await api('/api/settings/llm/fetch-models', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (data.error) {
+      setLlmModelSelectNoKey();
+      return;
+    }
+    fillLlmModelSelectFromIds(data.models || [], selectedModel || getEffectiveModelType());
+  } catch (_) {
+    setLlmModelSelectNoKey();
+  }
+}
+
+/**
+ * Fill model select. For all non-custom providers: no API key → disabled + message; with key → list (fetched or static).
+ * @param {string} providerId
+ * @param {string} selectedModel
+ * @param {boolean} [hasApiKey] — has saved/entered API key for this provider (if false, dropdown disabled for any provider)
+ */
+function fillLlmModelSelect(providerId, selectedModel, hasApiKey = true) {
   const sel = document.getElementById('llmModel');
   const customInput = document.getElementById('llmModelCustom');
   if (!sel) return;
@@ -207,6 +303,15 @@ function fillLlmModelSelect(providerId, selectedModel) {
   }
   if (customInput) customInput.style.display = 'none';
   sel.style.display = '';
+  sel.disabled = false;
+  if (!hasApiKey) {
+    setLlmModelSelectNoKey();
+    return;
+  }
+  if (isOpenAiCompatibleProvider(providerId)) {
+    setLlmModelSelectNoKey();
+    return;
+  }
   sel.innerHTML = '<option value="">— выберите модель —</option>';
   const prov = getProviderById(providerId);
   if (!prov || !prov.models) return;
@@ -322,7 +427,11 @@ async function loadSettings() {
       await loadLlmProviders();
     }
     fillLlmTypeSelect(llm.llmType || '');
-    fillLlmModelSelect(llm.llmType || '', llm.modelType || '');
+    const llmHasKey = !!(llm.apiKeyMasked || llm.isActive);
+    fillLlmModelSelect(llm.llmType || '', llm.modelType || '', llmHasKey);
+    if (llmHasKey && isOpenAiCompatibleProvider(llm.llmType || '')) {
+      fetchLlmModelsAndFill(llm.modelType || '');
+    }
     const baseUrlEl = document.getElementById('llmBaseUrl');
     const apiKeyEl = document.getElementById('llmApiKey');
     const systemPromptEl = document.getElementById('llmSystemPrompt');
@@ -596,18 +705,23 @@ function getLlmChangedFields() {
 }
 
 async function llmSave() {
-  const { changed, llmType, apiKey, baseUrl, modelType, systemPrompt, azureEndpoint, apiVersion } = getLlmChangedFields();
+  let { changed, llmType, apiKey, baseUrl, modelType, systemPrompt, azureEndpoint, apiVersion } = getLlmChangedFields();
+  const hasKey = !!(apiKey || (lastLlm?.isActive && lastLlm?.activeTokenMasked));
+  const noModelButHasKey = !modelType && hasKey;
+  if (noModelButHasKey) {
+    modelType = getPlaceholderModel(llmType);
+  }
 
   setFieldError('llmType', 'llmFieldError', '');
   document.getElementById('llmType')?.classList.remove('field-input--error');
   document.getElementById('llmModel')?.classList.remove('field-input--error');
   document.getElementById('llmApiKey')?.classList.remove('field-input--error');
 
-  if (!llmType || !modelType) {
+  if (!llmType || (!modelType && !noModelButHasKey)) {
     showToast('Заполните обязательные поля', 'warning');
     setFieldError(llmType ? 'llmModel' : 'llmType', 'llmFieldError', 'Заполните обязательные поля');
     if (!llmType) document.getElementById('llmType')?.classList.add('field-input--error');
-    if (!modelType) document.getElementById('llmModel')?.classList.add('field-input--error');
+    if (!modelType && !noModelButHasKey) document.getElementById('llmModel')?.classList.add('field-input--error');
     return;
   }
   if (!apiKey && llmType.toLowerCase() !== 'ollama' && !(lastLlm.isActive && lastLlm.activeTokenMasked)) {
@@ -722,6 +836,11 @@ async function llmSave() {
           if (llmActiveValueEl) llmActiveValueEl.textContent = '';
         }
       }
+      if (isOpenAiCompatibleProvider(llmType)) {
+        fetchLlmModelsAndFill(modelType);
+      } else {
+        fillLlmModelSelect(llmType, modelType, true);
+      }
       if (!llmCheckTimer) startLlmAutoCheck();
     }
   } catch (e) {
@@ -779,8 +898,14 @@ function onLlmTypeChange() {
   const baseUrlEl = document.getElementById('llmBaseUrl');
   if (baseUrlEl && prov?.defaultBaseUrl) baseUrlEl.value = prov.defaultBaseUrl;
   updateLlmBaseUrlHint(providerId);
-  fillLlmModelSelect(providerId, null);
+  const hasApiKey = lastLlm?.llmType === providerId && (lastLlm?.apiKeyMasked || lastLlm?.isActive);
+  fillLlmModelSelect(providerId, null, hasApiKey);
+  if (hasApiKey && isOpenAiCompatibleProvider(providerId)) {
+    fetchLlmModelsAndFill(lastLlm?.modelType || '');
+  }
   toggleLlmAzureFields(providerId);
+  const errEl = document.getElementById('llmFetchModelsError');
+  if (errEl) errEl.textContent = '';
   if ((providerId || '').toLowerCase() === 'azure') {
     const azureVerEl = document.getElementById('llmAzureApiVersion');
     if (azureVerEl && !azureVerEl.value) azureVerEl.value = '2024-02-15-preview';
