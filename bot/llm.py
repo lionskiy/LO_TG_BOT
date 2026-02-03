@@ -1,10 +1,29 @@
-"""LLM client: one active provider from config, model from env."""
+"""LLM client: active provider from settings DB (if active) or from config (.env)."""
 import logging
 from typing import Dict, List, Optional
 
 from bot.config import get_active_llm
 
 logger = logging.getLogger(__name__)
+
+
+def _get_llm_from_settings_db() -> Optional[tuple]:
+    """Return (provider, model, kwargs) from active LLM settings in DB, or None."""
+    try:
+        from api.settings_repository import get_llm_settings_decrypted
+        settings = get_llm_settings_decrypted()
+    except Exception:
+        return None
+    if not settings:
+        return None
+    provider = (settings.get("llm_type") or "").strip().lower()
+    model = (settings.get("model_type") or "").strip()
+    api_key = settings.get("api_key")
+    base_url = (settings.get("base_url") or "").strip()
+    if not model:
+        return None
+    kwargs = {"api_key": api_key or "", "base_url": base_url}
+    return (provider, model, kwargs)
 
 # Lazy clients per provider (openai-compatible and others)
 _openai_client: Optional[object] = None
@@ -15,10 +34,15 @@ _google_model = None
 async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
     from openai import AsyncOpenAI
 
-    global _openai_client
-    if _openai_client is None:
-        _openai_client = AsyncOpenAI(api_key=kwargs["api_key"])
-    resp = await _openai_client.chat.completions.create(
+    base_url = kwargs.get("base_url")
+    if base_url:
+        client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=base_url)
+    else:
+        global _openai_client
+        if _openai_client is None:
+            _openai_client = AsyncOpenAI(api_key=kwargs["api_key"])
+        client = _openai_client
+    resp = await client.chat.completions.create(
         model=model, messages=messages, max_tokens=1024
     )
     return (resp.choices[0].message.content or "").strip()
@@ -118,8 +142,28 @@ _HANDLERS: Dict[str, object] = {
 
 
 async def get_reply(messages: List[dict]) -> str:
-    """Use the active LLM provider and its model from config."""
-    provider, model, kwargs = get_active_llm()
+    """Use active LLM from settings DB if present, else from config (.env)."""
+    from_db = _get_llm_from_settings_db()
+    if from_db:
+        provider, model, kwargs = from_db
+        # Inject system prompt from settings if set
+        system_prompt = None
+        try:
+            from api.settings_repository import get_llm_settings_decrypted
+            s = get_llm_settings_decrypted()
+            if s:
+                system_prompt = (s.get("system_prompt") or "").strip() or None
+        except Exception:
+            pass
+        if system_prompt:
+            # Prepend or replace system message
+            new_messages = [{"role": "system", "content": system_prompt}]
+            for m in messages:
+                if m.get("role") != "system":
+                    new_messages.append(m)
+            messages = new_messages
+    else:
+        provider, model, kwargs = get_active_llm()
     logger.info(
         "LLM request provider=%s model=%s messages=%d",
         provider,
