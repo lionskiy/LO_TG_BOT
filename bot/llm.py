@@ -25,23 +25,21 @@ def _get_llm_from_settings_db() -> Optional[tuple]:
     kwargs = {"api_key": api_key or "", "base_url": base_url}
     return (provider, model, kwargs)
 
-# Lazy clients per provider (openai-compatible and others)
-_openai_client: Optional[object] = None
+# Lazy clients per provider (anthropic, google — config-driven; openai-compatible built per-call for hot-swap)
 _anthropic_client: Optional[object] = None
 _google_model = None
 
 
 async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
+    """OpenAI-compatible: always create client from kwargs so DB/config hot-swap uses current api_key and base_url."""
     from openai import AsyncOpenAI
 
     base_url = kwargs.get("base_url")
+    api_key = kwargs.get("api_key") or ""
     if base_url:
-        client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=base_url)
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
     else:
-        global _openai_client
-        if _openai_client is None:
-            _openai_client = AsyncOpenAI(api_key=kwargs["api_key"])
-        client = _openai_client
+        client = AsyncOpenAI(api_key=api_key)
     resp = await client.chat.completions.create(
         model=model, messages=messages, max_tokens=1024
     )

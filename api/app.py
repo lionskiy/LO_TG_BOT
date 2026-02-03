@@ -1,4 +1,5 @@
 """FastAPI application for admin settings API."""
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -106,7 +107,7 @@ def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
 
 
 @app.post("/api/settings/telegram/activate")
-def telegram_activate():
+def telegram_activate(_: None = Depends(_require_admin)):
     """Run connection test; if success, mark saved Telegram settings as active."""
     status, message = test_telegram_connection()
     activated = status == CONNECTION_STATUS_SUCCESS
@@ -118,9 +119,9 @@ def telegram_activate():
 
 
 @app.post("/api/settings/llm/test")
-def llm_test(_: None = Depends(_require_admin)):
-    """Test LLM provider connection. Uses saved settings from DB."""
-    status, message = test_llm_connection()
+async def llm_test(_: None = Depends(_require_admin)):
+    """Test LLM provider connection. Uses saved settings from DB. Runs in thread to avoid blocking."""
+    status, message = await asyncio.to_thread(test_llm_connection)
     return {"status": status, "message": message}
 
 

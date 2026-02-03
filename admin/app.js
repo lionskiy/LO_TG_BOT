@@ -245,7 +245,12 @@ async function telegramTest() {
   setButtonLoading(retryBtn, true);
   try {
     const r = await api('/api/settings/telegram/test', { method: 'POST' });
-    const data = await r.json();
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      setTelegramStatus('failed', data.detail || r.statusText || 'Connection failed');
+      showToast(data.detail || r.statusText || 'Ошибка проверки', 'error');
+      return;
+    }
     const status = data.status || 'failed';
     const text =
       status === 'success'
@@ -258,7 +263,7 @@ async function telegramTest() {
     setTelegramStatus('failed', 'Connection failed');
     showToast(e.message, 'error');
   } finally {
-    document.getElementById('telegramRetry').disabled = false;
+    setButtonLoading(document.getElementById('telegramRetry'), false);
   }
 }
 
@@ -326,10 +331,15 @@ async function telegramSave() {
 async function llmTest() {
   setLlmChecking();
   const retryBtn = document.getElementById('llmRetry');
-  if (retryBtn) retryBtn.disabled = true;
+  setButtonLoading(retryBtn, true);
   try {
     const r = await api('/api/settings/llm/test', { method: 'POST' });
-    const data = await r.json();
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      setLlmStatus('failed', data.detail || r.statusText || 'Connection failed');
+      showToast(data.detail || r.statusText || 'Ошибка проверки', 'error');
+      return;
+    }
     const status = data.status || 'failed';
     const text =
       status === 'success'
