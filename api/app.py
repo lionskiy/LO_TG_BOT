@@ -10,7 +10,6 @@ from fastapi.staticfiles import StaticFiles
 
 from api.db import CONNECTION_STATUS_SUCCESS, init_db
 from api.llm_providers import (
-    OPENAI_KNOWN_MODEL_IDS,
     fetch_models_anthropic,
     fetch_models_from_api,
     fetch_models_google,
@@ -299,11 +298,6 @@ def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
         models, err = fetch_models_from_api(base_url, api_key or "")
     if err:
         return {"models": [], "error": err}
-    # OpenAI API часто возвращает только модели по доступу ключа. Всегда дополняем известными id (o1, o3, gpt-5 и др.).
-    if (llm_type or "").strip().lower() == "openai":
-        existing = {m["id"] for m in models}
-        for mid in OPENAI_KNOWN_MODEL_IDS:
-            if mid not in existing:
-                models.append({"id": mid, "display_name": None})
-                existing.add(mid)
+    # Возвращаем только то, что вернул провайдер — без маппинга и без дополнения списка.
+    # В UI сохраняем и отправляем в API ровно id модели из ответа провайдера.
     return {"models": models, "error": None}

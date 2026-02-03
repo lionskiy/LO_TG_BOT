@@ -131,14 +131,6 @@ def get_default_base_url(llm_type: str) -> str:
     return DEFAULT_BASE_URLS.get(key, "")
 
 
-# OpenAI: API часто возвращает только модели, доступные ключу. Добавляем известные id, чтобы в списке были и o1/o3/gpt-5.
-OPENAI_KNOWN_MODEL_IDS = [
-    "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-3.5-turbo",
-    "o1", "o1-mini", "o3", "o3-mini", "o3-pro", "o4-mini",
-    "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5.2",
-]
-
-
 def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) -> tuple[list[dict[str, Any]], str | None]:
     """
     Fetch full model list from OpenAI-compatible GET /models.
