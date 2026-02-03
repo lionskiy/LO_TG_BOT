@@ -37,6 +37,18 @@ python main.py
 
 После запуска бот отвечает на сообщения в Telegram, используя историю диалога (последние 20 реплик) для контекста.
 
+## Admin API (настройки из БД)
+
+Для управления настройками Telegram и LLM через API запусти сервер (в `.env` нужны `SETTINGS_ENCRYPTION_KEY` и при необходимости `DATABASE_URL`):
+
+```bash
+uvicorn api.app:app --host 0.0.0.0 --port 8000
+```
+
+При старте поднимается подпроцесс бота, если в БД есть активные настройки Telegram. Эндпоинты: `GET/PUT /api/settings`, `PUT/POST .../telegram`, `PUT/POST .../llm`, `GET /api/settings/llm/providers`. Если задан `ADMIN_API_KEY`, запросы к `/api/settings*` должны содержать заголовок `X-Admin-Key: <ADMIN_API_KEY>`.
+
+Режим «только бот» (без API): `python main.py` — как раньше, настройки из `.env`.
+
 ## Команды
 
 - `/start` — приветствие и краткое описание
