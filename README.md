@@ -41,7 +41,7 @@ python main.py
 
 Для управления настройками Telegram и LLM через веб-интерфейс запусти сервер. В `.env` задай:
 
-- **`SETTINGS_ENCRYPTION_KEY`** — обязателен для сохранения токенов/ключей в БД (сгенерировать: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`).
+- **`SETTINGS_ENCRYPTION_KEY`** — ключ для шифрования токенов/ключей в БД. Либо задай в `.env`, либо **в Docker не задавай** — при первом запуске ключ создаётся автоматически в volume (`data/.encryption_key`) и сохраняется между перезапусками. Локально без Docker: сгенерировать ключ (с активированным venv) и добавить в `.env`, см. [Инструкция по запуску](docs/LAUNCH_INSTRUCTIONS.md).
 - **`DATABASE_URL`** — опционально, по умолчанию `sqlite:///./data/settings.db`.
 - **`ADMIN_API_KEY`** — опционально; если задан, все запросы к `/api/settings*` требуют заголовок `X-Admin-Key: <значение>`. В админ-панели введи этот ключ в поле «Admin key».
 
@@ -76,7 +76,7 @@ uvicorn api.app:app --host 0.0.0.0 --port 8000
 
 В контейнере запускается **API + админ-панель** (uvicorn), порт 8000. Бот поднимается подпроцессом, если в БД есть активные настройки Telegram. **Один экземпляр на один токен** — не запускай одновременно `python main.py` и Docker.
 
-Нужен файл `.env` (скопируй из `.env.example`). Для сохранения настроек из админки задай `SETTINGS_ENCRYPTION_KEY` (см. раздел Admin API). Данные БД хранятся в volume `bot_data`.
+Нужен файл `.env` (скопируй из `.env.example`). Ключ шифрования **не обязательно** задавать вручную: при первом запуске контейнера он создаётся автоматически в volume `bot_data` (файл `data/.encryption_key`) и сохраняется между перезапусками. Данные БД тоже в volume `bot_data`.
 
 ```bash
 docker compose up --build

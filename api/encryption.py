@@ -7,12 +7,41 @@ from typing import Optional
 from cryptography.fernet import Fernet, InvalidToken
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(_PROJECT_ROOT / ".env")
 
 _ENCRYPTION_KEY_ENV = "SETTINGS_ENCRYPTION_KEY"
+_ENCRYPTION_KEY_FILE_ENV = "SETTINGS_ENCRYPTION_KEY_FILE"
+_DEFAULT_KEY_FILE = _PROJECT_ROOT / "data" / ".encryption_key"
 logger = logging.getLogger(__name__)
 
 _fernet: Optional[Fernet] = None
+
+
+def _key_file_path() -> Path:
+    """Path to auto-generated key file (in data volume in Docker)."""
+    p = os.getenv(_ENCRYPTION_KEY_FILE_ENV)
+    if p and p.strip():
+        return Path(p.strip())
+    return _DEFAULT_KEY_FILE
+
+
+def _get_or_create_key_from_file() -> bytes:
+    """Read key from file; if file missing, generate key, write to file, return it."""
+    path = _key_file_path()
+    if path.exists():
+        raw = path.read_bytes().strip()
+        if raw:
+            return raw
+    path.parent.mkdir(parents=True, exist_ok=True)
+    key = Fernet.generate_key()
+    path.write_bytes(key)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+    logger.info("Generated and saved encryption key to %s", path)
+    return key
 
 
 def _get_fernet() -> Fernet:
@@ -20,16 +49,14 @@ def _get_fernet() -> Fernet:
     if _fernet is not None:
         return _fernet
     raw = os.getenv(_ENCRYPTION_KEY_ENV)
-    if not raw or len(raw.strip()) == 0:
-        raise ValueError(
-            f"{_ENCRYPTION_KEY_ENV} is not set. "
-            "Generate a key: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
-        )
-    key = raw.strip().encode() if isinstance(raw, str) else raw
+    if raw and raw.strip():
+        key = raw.strip().encode() if isinstance(raw, str) else raw
+    else:
+        key = _get_or_create_key_from_file()
     try:
         _fernet = Fernet(key)
     except Exception as e:
-        raise ValueError(f"Invalid {_ENCRYPTION_KEY_ENV}: {e}") from e
+        raise ValueError(f"Invalid encryption key: {e}") from e
     return _fernet
 
 
