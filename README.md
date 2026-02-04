@@ -68,6 +68,11 @@ uvicorn api.app:app --host 0.0.0.0 --port 8000
 | POST | `/api/settings/llm/test` | Проверить соединение с LLM |
 | POST | `/api/settings/llm/activate` | Применить настройки LLM |
 | GET | `/api/settings/llm/providers` | Список провайдеров и моделей (без авторизации) |
+| GET | `/api/service-admins` | Получить список администраторов сервиса |
+| POST | `/api/service-admins` | Добавить администратора по Telegram ID |
+| GET | `/api/service-admins/{telegram_id}` | Получить информацию об администраторе |
+| DELETE | `/api/service-admins/{telegram_id}` | Удалить администратора |
+| POST | `/api/service-admins/{telegram_id}/refresh` | Обновить данные профиля из Telegram |
 
 Режим «только бот» (без API): `python main.py` — настройки из `.env`, как раньше.
 

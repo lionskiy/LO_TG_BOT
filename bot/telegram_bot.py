@@ -170,3 +170,17 @@ def run_polling_with_token(token: str) -> None:
     app = build_application_with_token(token)
     logger.info("Starting polling with token from settings (drop_pending_updates=True)")
     app.run_polling(drop_pending_updates=True)
+
+
+def is_service_admin(telegram_id: int) -> bool:
+    """
+    Check if telegram_id is a service admin.
+    Ready for future use in bot handlers (admin commands, etc.).
+    Not used in current handlers (future functionality).
+    """
+    try:
+        from api.service_admins_repository import is_service_admin as check_admin
+        return check_admin(telegram_id)
+    except Exception as e:
+        logger.debug("is_service_admin check failed: %s", e)
+        return False
