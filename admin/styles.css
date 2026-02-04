@@ -337,8 +337,8 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem;
-  border: 1px solid #d93025;
+  padding: 0.3rem 0.5rem;
+  border: 0;
   border-radius: 4px;
   background: #fef7f7;
 }
