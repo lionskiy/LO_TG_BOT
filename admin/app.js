@@ -59,10 +59,12 @@ function confirmUnbindToken(serviceName) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('confirmModalOverlay');
     const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmModalTitle');
     const textEl = document.getElementById('confirmModalText');
     const cancelBtn = document.getElementById('confirmModalCancel');
     const confirmBtn = document.getElementById('confirmModalConfirm');
     if (!overlay || !cancelBtn || !confirmBtn) return resolve(false);
+    if (titleEl) titleEl.textContent = 'Отвязать токен?';
     textEl.textContent = `Текущий токен будет удалён. Сервис ${serviceName} перестанет работать до привязки нового токена.`;
     overlay.removeAttribute('hidden');
 
@@ -489,6 +491,9 @@ async function loadSettings() {
       if (azureVerEl) azureVerEl.value = llm.apiVersion || '';
     }
     updateLlmSaveDisabled();
+
+    // Load service admins
+    await loadServiceAdmins();
   } catch (e) {
     showToast('Ошибка загрузки настроек: ' + e.message, 'error');
   }
@@ -928,6 +933,215 @@ function onLlmTypeChange() {
   updateLlmSaveDisabled();
 }
 
+// --- Service admins ---
+
+let serviceAdminsList = [];
+
+async function loadServiceAdmins() {
+  try {
+    const r = await api('/api/service-admins');
+    if (!r.ok) {
+      if (r.status === 403) {
+        showToast('Требуется Admin key (заголовок X-Admin-Key)', 'warning');
+        return;
+      }
+      throw new Error(r.statusText);
+    }
+    const data = await r.json();
+    serviceAdminsList = data.admins || [];
+    renderServiceAdminsList();
+  } catch (e) {
+    showToast('Ошибка загрузки списка админов: ' + e.message, 'error');
+  }
+}
+
+function renderServiceAdminsList() {
+  const container = document.getElementById('serviceAdminsList');
+  const placeholder = document.getElementById('serviceAdminsPlaceholder');
+  if (!container) return;
+
+  container.innerHTML = '';
+  if (serviceAdminsList.length === 0) {
+    if (placeholder) placeholder.removeAttribute('hidden');
+    return;
+  }
+  if (placeholder) placeholder.setAttribute('hidden', '');
+
+  serviceAdminsList.forEach((admin) => {
+    const row = renderServiceAdminRow(admin);
+    container.appendChild(row);
+  });
+}
+
+function renderServiceAdminRow(admin) {
+  const row = document.createElement('div');
+  row.className = 'service-admin-row';
+  row.dataset.telegramId = admin.telegram_id;
+
+  const info = document.createElement('div');
+  info.className = 'service-admin-info';
+
+  const idEl = document.createElement('span');
+  idEl.className = 'service-admin-id';
+  idEl.textContent = String(admin.telegram_id);
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'service-admin-name';
+  nameEl.textContent = admin.display_name || String(admin.telegram_id);
+
+  info.appendChild(idEl);
+  info.appendChild(nameEl);
+  row.appendChild(info);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'btn btn-link btn-link--danger';
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.addEventListener('click', () => serviceAdminDelete(admin.telegram_id, admin.display_name || String(admin.telegram_id)));
+  row.appendChild(deleteBtn);
+
+  return row;
+}
+
+async function serviceAdminAdd() {
+  const inputEl = document.getElementById('serviceAdminTelegramId');
+  const errorEl = document.getElementById('serviceAdminFieldError');
+  if (!inputEl) return;
+
+  const value = (inputEl.value || '').trim();
+  setFieldError('serviceAdminTelegramId', 'serviceAdminFieldError', '');
+
+  // Validation
+  if (!value) {
+    setFieldError('serviceAdminTelegramId', 'serviceAdminFieldError', 'Введите Telegram ID');
+    showToast('Введите Telegram ID', 'warning');
+    return;
+  }
+
+  const telegramId = parseInt(value, 10);
+  if (isNaN(telegramId) || telegramId <= 0) {
+    setFieldError('serviceAdminTelegramId', 'serviceAdminFieldError', 'Telegram ID должен быть положительным числом');
+    showToast('Telegram ID должен быть положительным числом', 'warning');
+    return;
+  }
+
+  // Check duplicate
+  if (serviceAdminsList.some((a) => a.telegram_id === telegramId)) {
+    setFieldError('serviceAdminTelegramId', 'serviceAdminFieldError', 'Этот пользователь уже добавлен');
+    showToast('Этот пользователь уже добавлен', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('serviceAdminAdd');
+  setButtonLoading(btn, true);
+
+  try {
+    const r = await api('/api/service-admins', {
+      method: 'POST',
+      body: JSON.stringify({ telegram_id: telegramId }),
+    });
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      const msg = err.detail || r.statusText || 'Ошибка добавления';
+      if (r.status === 409) {
+        setFieldError('serviceAdminTelegramId', 'serviceAdminFieldError', 'Этот пользователь уже добавлен');
+        showToast('Этот пользователь уже добавлен', 'warning');
+      } else {
+        setFieldError('serviceAdminTelegramId', 'serviceAdminFieldError', msg);
+        showToast('Ошибка: ' + msg, 'error');
+      }
+      return;
+    }
+
+    const admin = await r.json();
+    serviceAdminsList.push(admin);
+    renderServiceAdminsList();
+    inputEl.value = '';
+    showToast('Администратор добавлен', 'success');
+  } catch (e) {
+    showToast('Ошибка добавления: ' + e.message, 'error');
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
+function confirmDeleteAdmin(displayName) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('confirmModalOverlay');
+    const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmModalTitle');
+    const textEl = document.getElementById('confirmModalText');
+    const cancelBtn = document.getElementById('confirmModalCancel');
+    const confirmBtn = document.getElementById('confirmModalConfirm');
+    if (!overlay || !cancelBtn || !confirmBtn) return resolve(false);
+    if (titleEl) titleEl.textContent = 'Удалить администратора?';
+    textEl.textContent = `Удалить пользователя ${displayName} из администраторов?`;
+    overlay.removeAttribute('hidden');
+
+    const cleanup = () => {
+      overlay.setAttribute('hidden', '');
+      cancelBtn.removeEventListener('click', onCancel);
+      confirmBtn.removeEventListener('click', onConfirm);
+      overlay.removeEventListener('click', onBackdropClick);
+      if (modal) modal.removeEventListener('click', stopProp);
+    };
+
+    const stopProp = (e) => e.stopPropagation();
+    const onBackdropClick = (e) => {
+      if (e.target === overlay) {
+        cleanup();
+        resolve(false);
+      }
+    };
+
+    const onCancel = (e) => {
+      e.preventDefault();
+      cleanup();
+      resolve(false);
+    };
+    const onConfirm = (e) => {
+      e.preventDefault();
+      cleanup();
+      resolve(true);
+    };
+
+    if (modal) modal.addEventListener('click', stopProp);
+    overlay.addEventListener('click', onBackdropClick);
+    cancelBtn.addEventListener('click', onCancel);
+    confirmBtn.addEventListener('click', onConfirm);
+  });
+}
+
+async function serviceAdminDelete(telegramId, displayName) {
+  const ok = await confirmDeleteAdmin(displayName);
+  if (!ok) return;
+
+  const btn = document.querySelector(`.service-admin-row[data-telegram-id="${telegramId}"] .btn-link--danger`);
+  if (btn) setButtonLoading(btn, true);
+
+  try {
+    const r = await api(`/api/service-admins/${telegramId}`, {
+      method: 'DELETE',
+    });
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      const msg = err.detail || r.statusText || 'Ошибка удаления';
+      showToast('Ошибка: ' + msg, 'error');
+      return;
+    }
+
+    serviceAdminsList = serviceAdminsList.filter((a) => a.telegram_id !== telegramId);
+    renderServiceAdminsList();
+    showToast('Администратор удалён', 'success');
+  } catch (e) {
+    showToast('Ошибка удаления: ' + e.message, 'error');
+  } finally {
+    if (btn) setButtonLoading(btn, false);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const savedKey = sessionStorage.getItem('adminApiKey');
   if (savedKey) document.getElementById('adminKey').value = savedKey;
@@ -976,5 +1190,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setFieldError('llmApiKey', 'llmFieldError', '');
     document.getElementById('llmApiKey')?.classList.remove('field-input--error');
     updateLlmSaveDisabled();
+  });
+
+  // Service admins
+  document.getElementById('serviceAdminAdd')?.addEventListener('click', serviceAdminAdd);
+  document.getElementById('serviceAdminTelegramId')?.addEventListener('input', () => {
+    setFieldError('serviceAdminTelegramId', 'serviceAdminFieldError', '');
+    document.getElementById('serviceAdminTelegramId')?.classList.remove('field-input--error');
+  });
+  document.getElementById('serviceAdminTelegramId')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      serviceAdminAdd();
+    }
   });
 });

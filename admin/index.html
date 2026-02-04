@@ -51,6 +51,22 @@
             </div>
           </div>
         </section>
+        <section class="block block--service-admins" id="blockServiceAdmins">
+          <h3 class="block-title">Админы сервиса</h3>
+          <div id="serviceAdminsList" class="service-admins-list">
+            <p class="block-placeholder" id="serviceAdminsPlaceholder">Нет добавленных администраторов</p>
+          </div>
+          <div class="form">
+            <label class="field">
+              <span class="field-label">Введите Telegram ID</span>
+              <input type="number" id="serviceAdminTelegramId" class="field-input" placeholder="365491351" min="1" step="1">
+              <span class="field-error" id="serviceAdminFieldError" role="alert"></span>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" id="serviceAdminAdd">Добавить</button>
+            </div>
+          </div>
+        </section>
         <section class="block block--llm" id="blockLlm">
           <h3 class="block-title">LLM</h3>
           <div class="status-bar" id="llmStatusBar" data-status="not_configured">
