@@ -128,11 +128,14 @@ def get_all_service_admins() -> list[ServiceAdminResponse]:
 
 
 def get_service_admin_by_telegram_id(telegram_id: int) -> Optional[ServiceAdminResponse]:
-    """Return one service admin by telegram_id or None."""
+    """Return one active service admin by telegram_id or None."""
     with SessionLocal() as session:
         row = (
             session.query(ServiceAdminModel)
-            .filter(ServiceAdminModel.telegram_id == telegram_id)
+            .filter(
+                ServiceAdminModel.telegram_id == telegram_id,
+                ServiceAdminModel.is_active.is_(True),
+            )
             .first()
         )
         return _row_to_response(row) if row else None
