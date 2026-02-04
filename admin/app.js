@@ -1142,14 +1142,14 @@ async function serviceAdminDelete(telegramId, displayName) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const savedKey = sessionStorage.getItem('adminApiKey');
   if (savedKey) document.getElementById('adminKey').value = savedKey;
   document.getElementById('adminKey').addEventListener('change', (e) => {
     sessionStorage.setItem('adminApiKey', e.target.value);
   });
 
-  loadSettings();
+  await loadSettings();
 
   document.getElementById('telegramRetry').addEventListener('click', () => {
     telegramTest();
