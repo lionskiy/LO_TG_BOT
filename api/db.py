@@ -63,7 +63,7 @@ class ServiceAdminModel(Base):
     role: Mapped[str] = mapped_column(String(64), nullable=False, default="service_admin")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow, nullable=True, onupdate=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     profile_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
