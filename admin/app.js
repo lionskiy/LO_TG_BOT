@@ -63,7 +63,7 @@ function confirmUnbindToken(serviceName) {
     const textEl = document.getElementById('confirmModalText');
     const cancelBtn = document.getElementById('confirmModalCancel');
     const confirmBtn = document.getElementById('confirmModalConfirm');
-    if (!overlay || !cancelBtn || !confirmBtn) return resolve(false);
+    if (!overlay || !cancelBtn || !confirmBtn || !textEl) return resolve(false);
     if (titleEl) titleEl.textContent = 'Отвязать токен?';
     textEl.textContent = `Текущий токен будет удалён. Сервис ${serviceName} перестанет работать до привязки нового токена.`;
     overlay.removeAttribute('hidden');
@@ -1074,7 +1074,7 @@ function confirmDeleteAdmin(displayName) {
     const textEl = document.getElementById('confirmModalText');
     const cancelBtn = document.getElementById('confirmModalCancel');
     const confirmBtn = document.getElementById('confirmModalConfirm');
-    if (!overlay || !cancelBtn || !confirmBtn) return resolve(false);
+    if (!overlay || !cancelBtn || !confirmBtn || !textEl) return resolve(false);
     if (titleEl) titleEl.textContent = 'Удалить администратора?';
     textEl.textContent = `Удалить пользователя ${displayName} из администраторов?`;
     overlay.removeAttribute('hidden');
