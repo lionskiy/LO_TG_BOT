@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from sqlalchemy import Boolean, DateTime, String, Text, create_engine, text
+from sqlalchemy import BigInteger, Boolean, DateTime, String, Text, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -49,6 +49,22 @@ class TelegramSettingsModel(Base):
     last_checked: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ServiceAdminModel(Base):
+    __tablename__ = "service_admins"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
+    first_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    last_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    display_name: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    role: Mapped[str] = mapped_column(String(64), nullable=False, default="service_admin")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=datetime.utcnow)
+    profile_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
 class LLMSettingsModel(Base):
