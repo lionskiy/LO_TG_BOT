@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 import httpx
 from pydantic import BaseModel, ConfigDict, field_validator
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api.db import SessionLocal, ServiceAdminModel
@@ -167,8 +168,12 @@ def create_service_admin(telegram_id: int) -> tuple[ServiceAdminResponse, Option
             profile_updated_at=now if profile else None,
         )
         session.add(row)
-        session.commit()
-        session.refresh(row)
+        try:
+            session.commit()
+            session.refresh(row)
+        except IntegrityError:
+            session.rollback()
+            raise ValueError(f"User with telegram_id {telegram_id} is already a service admin") from None
 
         warning = None
         if not profile:

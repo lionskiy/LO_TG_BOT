@@ -960,7 +960,7 @@ function renderServiceAdminsList() {
   const placeholder = document.getElementById('serviceAdminsPlaceholder');
   if (!container) return;
 
-  container.innerHTML = '';
+  container.querySelectorAll('.service-admin-row').forEach((el) => el.remove());
   if (serviceAdminsList.length === 0) {
     if (placeholder) placeholder.removeAttribute('hidden');
     return;

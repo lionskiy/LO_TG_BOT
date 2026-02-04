@@ -467,10 +467,6 @@ body {
   min-height: 2rem;
 }
 
-.service-admins-list:empty {
-  display: none;
-}
-
 .service-admin-row {
   display: flex;
   align-items: center;
