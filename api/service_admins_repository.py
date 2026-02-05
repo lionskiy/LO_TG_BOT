@@ -190,7 +190,10 @@ def delete_service_admin(telegram_id: int) -> bool:
     with SessionLocal() as session:
         row = (
             session.query(ServiceAdminModel)
-            .filter(ServiceAdminModel.telegram_id == telegram_id)
+            .filter(
+                ServiceAdminModel.telegram_id == telegram_id,
+                ServiceAdminModel.is_active.is_(True),
+            )
             .first()
         )
         if not row:
@@ -205,7 +208,10 @@ def refresh_service_admin_profile(telegram_id: int) -> Optional[ServiceAdminResp
     with SessionLocal() as session:
         row = (
             session.query(ServiceAdminModel)
-            .filter(ServiceAdminModel.telegram_id == telegram_id)
+            .filter(
+                ServiceAdminModel.telegram_id == telegram_id,
+                ServiceAdminModel.is_active.is_(True),
+            )
             .first()
         )
         if not row:
