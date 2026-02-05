@@ -177,7 +177,8 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0, pr
                 # Note: project_id is not added to params for OpenAI-compatible APIs
                 # Google-specific project filtering is handled in fetch_models_google
                 
-                logger.debug("Fetching models page %d from %s (after=%s)", page, url, after or "none")
+                project_info = f", project_id={project_id}" if (is_openai and project_id) else ""
+                logger.debug("Fetching models page %d from %s (after=%s%s)", page, url, after or "none", project_info)
                 r = client.get(url, headers=headers if headers else None, params=params if params else None)
                 
                 if r.status_code != 200:
