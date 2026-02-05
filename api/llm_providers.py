@@ -135,7 +135,8 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0, pr
     """
     Fetch full model list from OpenAI-compatible GET /models.
     Follows pagination (has_more + after or last_id) when present so all models are returned.
-    If project_id is provided, it may be used in query params or headers depending on provider.
+    Note: project_id parameter is accepted for API compatibility but is not used for OpenAI-compatible providers.
+    OpenAI-compatible APIs (OpenAI, Groq, OpenRouter, Ollama, etc.) do not support project_id filtering.
     Returns (list of {"id": "model-id", "display_name": ...?}, error_message or None).
     """
     base = (base_url or "").strip().rstrip("/")
@@ -150,9 +151,8 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0, pr
     if (api_key or "").strip() and (api_key or "").strip() != "ollama":
         headers["Authorization"] = f"Bearer {(api_key or '').strip()}"
     
-    # Add project_id to headers if provided (some providers use it in headers)
-    if project_id:
-        headers["x-goog-project-id"] = project_id
+    # Note: project_id is not supported by OpenAI-compatible APIs
+    # Google-specific headers/params should only be used in fetch_models_google
     
     url = f"{base}/models"
     all_models: list[dict[str, Any]] = []
@@ -173,11 +173,10 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0, pr
                 if page_size is not None:
                     params["limit"] = str(page_size)
                 
-                # Add project_id to query params if provided (some providers use it in query)
-                if project_id:
-                    params["project"] = project_id
+                # Note: project_id is not added to params for OpenAI-compatible APIs
+                # Google-specific project filtering is handled in fetch_models_google
                 
-                logger.debug("Fetching models page %d from %s (after=%s, project_id=%s)", page, url, after or "none", project_id or "none")
+                logger.debug("Fetching models page %d from %s (after=%s)", page, url, after or "none")
                 r = client.get(url, headers=headers if headers else None, params=params if params else None)
                 
                 if r.status_code != 200:

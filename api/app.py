@@ -346,9 +346,10 @@ def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
         models, err = fetch_models_google(api_key or "", project_id=project_id)
     else:
         # OpenAI-compatible providers (openai, groq, openrouter, ollama, etc.)
+        # Note: project_id is not supported by OpenAI-compatible APIs, so we don't pass it
         if not base_url:
             return {"models": [], "error": "Base URL is required"}
-        models, err = fetch_models_from_api(base_url, api_key or "", project_id=project_id)
+        models, err = fetch_models_from_api(base_url, api_key or "", project_id=None)
     
     if err:
         return {"models": [], "error": err}
