@@ -1,10 +1,11 @@
 """Service admins: CRUD and Telegram profile fetch. Sync API to match settings_repository."""
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import httpx
 from pydantic import BaseModel, ConfigDict, field_validator
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -118,26 +119,23 @@ def _row_to_response(row: ServiceAdminModel) -> ServiceAdminResponse:
 def get_all_service_admins() -> list[ServiceAdminResponse]:
     """Return all active service admins, newest first."""
     with SessionLocal() as session:
-        rows = (
-            session.query(ServiceAdminModel)
-            .filter(ServiceAdminModel.is_active.is_(True))
+        stmt = (
+            select(ServiceAdminModel)
+            .where(ServiceAdminModel.is_active.is_(True))
             .order_by(ServiceAdminModel.created_at.desc())
-            .all()
         )
+        rows = session.execute(stmt).scalars().all()
         return [_row_to_response(r) for r in rows]
 
 
 def get_service_admin_by_telegram_id(telegram_id: int) -> Optional[ServiceAdminResponse]:
     """Return one active service admin by telegram_id or None."""
     with SessionLocal() as session:
-        row = (
-            session.query(ServiceAdminModel)
-            .filter(
-                ServiceAdminModel.telegram_id == telegram_id,
-                ServiceAdminModel.is_active.is_(True),
-            )
-            .first()
+        stmt = select(ServiceAdminModel).where(
+            ServiceAdminModel.telegram_id == telegram_id,
+            ServiceAdminModel.is_active.is_(True),
         )
+        row = session.execute(stmt).scalar_one_or_none()
         return _row_to_response(row) if row else None
 
 
@@ -148,17 +146,14 @@ def create_service_admin(telegram_id: int) -> tuple[ServiceAdminResponse, Option
     Raises ValueError if telegram_id already exists (duplicate).
     """
     with SessionLocal() as session:
-        existing = (
-            session.query(ServiceAdminModel)
-            .filter(ServiceAdminModel.telegram_id == telegram_id)
-            .first()
-        )
+        stmt = select(ServiceAdminModel).where(ServiceAdminModel.telegram_id == telegram_id)
+        existing = session.execute(stmt).scalar_one_or_none()
         if existing:
             raise ValueError(f"User with telegram_id {telegram_id} is already a service admin")
 
         profile = _fetch_telegram_profile(telegram_id)
         display_name = _build_display_name(profile, telegram_id)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         row = ServiceAdminModel(
             telegram_id=telegram_id,
@@ -188,14 +183,11 @@ def create_service_admin(telegram_id: int) -> tuple[ServiceAdminResponse, Option
 def delete_service_admin(telegram_id: int) -> bool:
     """Remove service admin by telegram_id. Returns True if deleted, False if not found."""
     with SessionLocal() as session:
-        row = (
-            session.query(ServiceAdminModel)
-            .filter(
-                ServiceAdminModel.telegram_id == telegram_id,
-                ServiceAdminModel.is_active.is_(True),
-            )
-            .first()
+        stmt = select(ServiceAdminModel).where(
+            ServiceAdminModel.telegram_id == telegram_id,
+            ServiceAdminModel.is_active.is_(True),
         )
+        row = session.execute(stmt).scalar_one_or_none()
         if not row:
             return False
         session.delete(row)
@@ -206,14 +198,11 @@ def delete_service_admin(telegram_id: int) -> bool:
 def refresh_service_admin_profile(telegram_id: int) -> Optional[ServiceAdminResponse]:
     """Update profile from Telegram getChat. Returns updated admin or None if not found."""
     with SessionLocal() as session:
-        row = (
-            session.query(ServiceAdminModel)
-            .filter(
-                ServiceAdminModel.telegram_id == telegram_id,
-                ServiceAdminModel.is_active.is_(True),
-            )
-            .first()
+        stmt = select(ServiceAdminModel).where(
+            ServiceAdminModel.telegram_id == telegram_id,
+            ServiceAdminModel.is_active.is_(True),
         )
+        row = session.execute(stmt).scalar_one_or_none()
         if not row:
             return None
 
@@ -223,8 +212,8 @@ def refresh_service_admin_profile(telegram_id: int) -> Optional[ServiceAdminResp
             row.last_name = profile.get("last_name")
             row.username = profile.get("username")
             row.display_name = _build_display_name(profile, telegram_id)
-            row.profile_updated_at = datetime.utcnow()
-            row.updated_at = datetime.utcnow()
+            row.profile_updated_at = datetime.now(timezone.utc)
+            row.updated_at = datetime.now(timezone.utc)
             session.commit()
             session.refresh(row)
 
@@ -234,12 +223,9 @@ def refresh_service_admin_profile(telegram_id: int) -> Optional[ServiceAdminResp
 def is_service_admin(telegram_id: int) -> bool:
     """Return True if telegram_id is an active service admin."""
     with SessionLocal() as session:
-        row = (
-            session.query(ServiceAdminModel)
-            .filter(
-                ServiceAdminModel.telegram_id == telegram_id,
-                ServiceAdminModel.is_active.is_(True),
-            )
-            .first()
+        stmt = select(ServiceAdminModel).where(
+            ServiceAdminModel.telegram_id == telegram_id,
+            ServiceAdminModel.is_active.is_(True),
         )
+        row = session.execute(stmt).scalar_one_or_none()
         return row is not None

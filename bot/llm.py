@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 def _get_llm_from_settings_db() -> Optional[tuple]:
-    """Return (provider, model, kwargs) from active LLM settings in DB, or None."""
+    """
+    Return (provider, model, kwargs, system_prompt) from active LLM settings in DB, or None.
+    system_prompt may be None. Single DB read to avoid duplicate get_llm_settings_decrypted.
+    """
     try:
         from api.settings_repository import get_llm_settings_decrypted
         settings = get_llm_settings_decrypted()
@@ -32,10 +35,10 @@ def _get_llm_from_settings_db() -> Optional[tuple]:
         }
     else:
         kwargs = {"api_key": api_key or "", "base_url": base_url}
-        # OpenRouter и DeepSeek могут отвечать долго
         if provider in ("openrouter", "deepseek"):
             kwargs["timeout"] = 120.0
-    return (provider, model, kwargs)
+    system_prompt = (settings.get("system_prompt") or "").strip() or None
+    return (provider, model, kwargs, system_prompt)
 
 # Lazy clients per provider (anthropic, google — config-driven; openai-compatible built per-call for hot-swap)
 _anthropic_client: Optional[object] = None
@@ -223,18 +226,8 @@ async def get_reply(messages: List[dict]) -> str:
     """Use active LLM from settings DB if present, else from config (.env)."""
     from_db = _get_llm_from_settings_db()
     if from_db:
-        provider, model, kwargs = from_db
-        # Inject system prompt from settings if set
-        system_prompt = None
-        try:
-            from api.settings_repository import get_llm_settings_decrypted
-            s = get_llm_settings_decrypted()
-            if s:
-                system_prompt = (s.get("system_prompt") or "").strip() or None
-        except Exception:
-            pass
+        provider, model, kwargs, system_prompt = from_db
         if system_prompt:
-            # Prepend or replace system message
             new_messages = [{"role": "system", "content": system_prompt}]
             for m in messages:
                 if m.get("role") != "system":

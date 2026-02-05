@@ -93,11 +93,11 @@ async def telegram_test(_: None = Depends(_require_admin)):
 
 
 @app.put("/api/settings/telegram")
-def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
+async def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
     """
     Save Telegram block. Validate (accessToken required unless existing token).
     Task 5: if accessToken empty but we have saved token, keep it and only update base_url.
-    Save, run test. If test fails, deactivate and stop bot (Task 3).
+    Save, run test in thread to avoid blocking event loop. If test fails, deactivate and stop bot (Task 3).
     """
     access_token = (body.get("accessToken") or "").strip() or None
     base_url = (body.get("baseUrl") or "").strip() or None
@@ -121,7 +121,7 @@ def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
                 detail="SETTINGS_ENCRYPTION_KEY is not set. Add it to .env and restart the app.",
             ) from e
         raise
-    status, _message = test_telegram_connection()
+    status, _message = await asyncio.to_thread(test_telegram_connection)
     applied = status == CONNECTION_STATUS_SUCCESS
     if applied:
         set_telegram_active(True)
@@ -151,9 +151,9 @@ def delete_telegram_token(_: None = Depends(_require_admin)):
 
 
 @app.post("/api/settings/telegram/activate")
-def telegram_activate(_: None = Depends(_require_admin)):
-    """Run connection test; if success, mark saved Telegram settings as active."""
-    status, message = test_telegram_connection()
+async def telegram_activate(_: None = Depends(_require_admin)):
+    """Run connection test in thread; if success, mark saved Telegram settings as active."""
+    status, message = await asyncio.to_thread(test_telegram_connection)
     activated = status == CONNECTION_STATUS_SUCCESS
     set_telegram_active(activated)
     if activated:
@@ -170,7 +170,7 @@ async def llm_test(_: None = Depends(_require_admin)):
 
 
 @app.patch("/api/settings/llm")
-def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
+async def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
     """
     Update only model_type, system_prompt, azure fields, project_id. No connection test; keeps is_active.
     Use when only model or system prompt changed (Task 4, 6).
@@ -200,11 +200,11 @@ def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
 
 
 @app.put("/api/settings/llm")
-def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
+async def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
     """
     Save LLM block. Validate llmType, apiKey (optional for ollama), modelType.
     If apiKey empty but active LLM exists, keep existing key. Base URL default from provider if empty.
-    Save, run test, set active if success.
+    Save, run test in thread to avoid blocking, set active if success.
     """
     llm_type = (body.get("llmType") or "").strip()
     api_key = (body.get("apiKey") or "").strip() or None
@@ -247,7 +247,7 @@ def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
                 detail="SETTINGS_ENCRYPTION_KEY is not set. Add it to .env and restart the app.",
             ) from e
         raise
-    status, _message = test_llm_connection()
+    status, _message = await asyncio.to_thread(test_llm_connection)
     applied = status == CONNECTION_STATUS_SUCCESS
     set_llm_active(applied)
     logger.info("settings_changed block=llm action=put applied=%s", applied)
@@ -272,9 +272,9 @@ def delete_llm_token(_: None = Depends(_require_admin)):
 
 
 @app.post("/api/settings/llm/activate")
-def llm_activate(_: None = Depends(_require_admin)):
-    """Run connection test; if success, mark saved LLM settings as active."""
-    status, message = test_llm_connection()
+async def llm_activate(_: None = Depends(_require_admin)):
+    """Run connection test in thread; if success, mark saved LLM settings as active."""
+    status, message = await asyncio.to_thread(test_llm_connection)
     activated = status == CONNECTION_STATUS_SUCCESS
     set_llm_active(activated)
     if activated:
@@ -367,9 +367,9 @@ def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
 
 
 @app.get("/api/service-admins", response_model=ServiceAdminList)
-def list_service_admins(_: None = Depends(_require_admin)):
+async def list_service_admins(_: None = Depends(_require_admin)):
     """Return all service admins."""
-    admins = get_all_service_admins()
+    admins = await asyncio.to_thread(get_all_service_admins)
     return ServiceAdminList(admins=admins, total=len(admins))
 
 
@@ -378,10 +378,10 @@ def list_service_admins(_: None = Depends(_require_admin)):
     response_model=ServiceAdminResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def add_service_admin(body: ServiceAdminCreate, _: None = Depends(_require_admin)):
-    """Add a service admin by Telegram ID. Fetches profile from Telegram if possible."""
+async def add_service_admin(body: ServiceAdminCreate, _: None = Depends(_require_admin)):
+    """Add a service admin by Telegram ID. Fetches profile from Telegram in thread to avoid blocking."""
     try:
-        admin, warning = create_service_admin(body.telegram_id)
+        admin, warning = await asyncio.to_thread(create_service_admin, body.telegram_id)
     except ValueError as e:
         msg = str(e)
         if "already a service admin" in msg:
@@ -393,26 +393,26 @@ def add_service_admin(body: ServiceAdminCreate, _: None = Depends(_require_admin
 
 
 @app.get("/api/service-admins/{telegram_id}", response_model=ServiceAdminResponse)
-def get_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+async def get_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
     """Return one service admin by Telegram ID."""
-    admin = get_service_admin_by_telegram_id(telegram_id)
+    admin = await asyncio.to_thread(get_service_admin_by_telegram_id, telegram_id)
     if not admin:
         raise HTTPException(status_code=404, detail="Service admin not found")
     return admin
 
 
 @app.delete("/api/service-admins/{telegram_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+async def remove_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
     """Remove a service admin."""
-    deleted = delete_service_admin(telegram_id)
+    deleted = await asyncio.to_thread(delete_service_admin, telegram_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Service admin not found")
 
 
 @app.post("/api/service-admins/{telegram_id}/refresh", response_model=ServiceAdminResponse)
-def refresh_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
-    """Refresh service admin profile from Telegram."""
-    admin = refresh_service_admin_profile(telegram_id)
+async def refresh_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+    """Refresh service admin profile from Telegram (runs in thread to avoid blocking)."""
+    admin = await asyncio.to_thread(refresh_service_admin_profile, telegram_id)
     if not admin:
         raise HTTPException(status_code=404, detail="Service admin not found")
     return admin

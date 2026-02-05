@@ -13,6 +13,9 @@ from api.settings_repository import (
 logger = logging.getLogger(__name__)
 
 
+_LLM_TEST_TIMEOUT = 15.0
+
+
 def _test_openai_compatible(creds: dict) -> Tuple[bool, str]:
     """GET /models for OpenAI-compatible (openai, groq, openrouter, ollama, etc.)."""
     base = (creds.get("base_url") or "").strip().rstrip("/")
@@ -24,7 +27,7 @@ def _test_openai_compatible(creds: dict) -> Tuple[bool, str]:
     if key and key != "ollama":
         headers["Authorization"] = f"Bearer {key}"
     try:
-        with httpx.Client(timeout=15.0) as client:
+        with httpx.Client(timeout=_LLM_TEST_TIMEOUT) as client:
             r = client.get(url, headers=headers or None)
     except Exception as e:
         logger.warning("LLM models request failed: %s", e)

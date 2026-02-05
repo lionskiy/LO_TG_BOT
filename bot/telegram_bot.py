@@ -58,6 +58,8 @@ from bot.llm import get_reply
 
 # Per-chat conversation history for LLM context (last N messages)
 MAX_HISTORY_MESSAGES = 20
+# Cap total chats to avoid unbounded memory growth
+MAX_CHATS_IN_MEMORY = 500
 _chat_history: Dict[int, List[dict]] = defaultdict(list)
 
 SYSTEM_PROMPT = (
@@ -76,7 +78,12 @@ def _get_messages(chat_id: int, user_text: str) -> List[dict]:
 
 
 def _append_to_history(chat_id: int, user_content: str, assistant_content: str) -> None:
-    """Keep last MAX_HISTORY_MESSAGES in history."""
+    """Keep last MAX_HISTORY_MESSAGES in history. Evict oldest chat if over MAX_CHATS_IN_MEMORY."""
+    if len(_chat_history) >= MAX_CHATS_IN_MEMORY and chat_id not in _chat_history:
+        # Remove one of the oldest (smallest history) chats to make room
+        oldest_key = min(_chat_history.keys(), key=lambda k: len(_chat_history[k]))
+        del _chat_history[oldest_key]
+        logger.debug("evicted chat_id=%s from history (max %d chats)", oldest_key, MAX_CHATS_IN_MEMORY)
     history = _chat_history[chat_id]
     history.append({"role": "user", "content": user_content})
     history.append({"role": "assistant", "content": assistant_content})

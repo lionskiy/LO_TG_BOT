@@ -1,9 +1,14 @@
 """Database models and session for settings storage."""
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+
+def _utc_now() -> datetime:
+    """Current UTC time (prefer over deprecated datetime.utcnow())."""
+    return datetime.now(timezone.utc)
 
 from dotenv import load_dotenv
 from sqlalchemy import BigInteger, Boolean, DateTime, String, Text, create_engine, text
@@ -47,8 +52,8 @@ class TelegramSettingsModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_checked: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now, onupdate=_utc_now)
 
 
 class ServiceAdminModel(Base):
@@ -62,8 +67,8 @@ class ServiceAdminModel(Base):
     display_name: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     role: Mapped[str] = mapped_column(String(64), nullable=False, default="service_admin")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now, onupdate=_utc_now)
     profile_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
@@ -83,8 +88,8 @@ class LLMSettingsModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_checked: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now, onupdate=_utc_now)
 
 
 def _sqlite_migrate_llm_azure_columns() -> None:

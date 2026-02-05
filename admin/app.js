@@ -7,6 +7,15 @@
 const TELEGRAM_DEFAULT_BASE_URL = 'https://api.telegram.org';
 const STATUS_CHECK_INTERVAL_MS = 10000;
 
+function getConnectionStatusText(status) {
+  switch (status) {
+    case 'success': return 'Connection tested successfully';
+    case 'failed': return 'Connection failed';
+    case 'checking': return 'Checking connection...';
+    default: return 'Not configured';
+  }
+}
+
 let telegramCheckTimer = null;
 let llmCheckTimer = null;
 /** @type {Array<{id: string, name: string, defaultBaseUrl: string, models: {standard: string[], reasoning: string[]}}>} */
@@ -313,6 +322,15 @@ function setLlmModelSelectNoKey() {
   sel.value = '';
 }
 
+/** Set model select to loading state (fetching models from API). */
+function setLlmModelSelectLoading() {
+  const sel = document.getElementById('llmModel');
+  if (!sel) return;
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">— Загрузка списка моделей... —</option>';
+  sel.value = '';
+}
+
 /** Fetch models from API (uses saved creds) and fill model select. Used after save or on load when key present. */
 async function fetchLlmModelsAndFill(selectedModel) {
   const sel = document.getElementById('llmModel');
@@ -377,7 +395,7 @@ function fillLlmModelSelect(providerId, selectedModel, hasApiKey = true) {
     return;
   }
   if (isOpenAiCompatibleProvider(providerId)) {
-    setLlmModelSelectNoKey();
+    setLlmModelSelectLoading();
     return;
   }
   sel.innerHTML = '<option value="">— выберите модель —</option>';
@@ -486,16 +504,7 @@ async function loadSettings() {
       }
     }
 
-    const status = tg.connectionStatus || 'not_configured';
-    const statusText =
-      status === 'success'
-        ? 'Connection tested successfully'
-        : status === 'failed'
-          ? 'Connection failed'
-          : status === 'checking'
-            ? 'Checking connection...'
-            : 'Not configured';
-    setTelegramStatus(status, statusText);
+    setTelegramStatus(tg.connectionStatus || 'not_configured', getConnectionStatusText(tg.connectionStatus));
 
     if (tg.accessTokenMasked && telegramCheckTimer === null) {
       startTelegramAutoCheck();
@@ -536,16 +545,7 @@ async function loadSettings() {
       }
     }
     updateLlmBaseUrlHint(llm.llmType || '');
-    const llmStatus = llm.connectionStatus || 'not_configured';
-    const llmStatusText =
-      llmStatus === 'success'
-        ? 'Connection tested successfully'
-        : llmStatus === 'failed'
-          ? 'Connection failed'
-          : llmStatus === 'checking'
-            ? 'Checking connection...'
-            : 'Not configured';
-    setLlmStatus(llmStatus, llmStatusText);
+    setLlmStatus(llm.connectionStatus || 'not_configured', getConnectionStatusText(llm.connectionStatus));
     if (llm.apiKeyMasked && llmCheckTimer === null) {
       startLlmAutoCheck();
     }
@@ -579,12 +579,7 @@ async function telegramTest() {
       return;
     }
     const status = data.status || 'failed';
-    const text =
-      status === 'success'
-        ? 'Connection tested successfully'
-        : status === 'not_configured'
-          ? 'Not configured'
-          : data.message || 'Connection failed';
+    const text = status === 'not_configured' ? 'Not configured' : (data.message || getConnectionStatusText(status));
     setTelegramStatus(status === 'success' ? 'success' : status === 'not_configured' ? 'not_configured' : 'failed', text);
   } catch (e) {
     setTelegramStatus('failed', 'Connection failed');
@@ -654,11 +649,7 @@ async function telegramSave() {
     }
     setTelegramStatus(
       tg.connectionStatus === 'success' ? 'success' : tg.connectionStatus === 'not_configured' ? 'not_configured' : 'failed',
-      tg.connectionStatus === 'success'
-        ? 'Connection tested successfully'
-        : tg.connectionStatus === 'not_configured'
-          ? 'Not configured'
-          : 'Connection failed'
+      getConnectionStatusText(tg.connectionStatus)
     );
     document.getElementById('telegramToken').value = '';
     document.getElementById('telegramToken').placeholder = tg.accessTokenMasked || 'Токен бота';
@@ -736,16 +727,8 @@ async function llmTest() {
       return;
     }
     const status = data.status || 'failed';
-    const text =
-      status === 'success'
-        ? 'Connection tested successfully'
-        : status === 'not_configured'
-          ? 'Not configured'
-          : data.message || 'Connection failed';
-    setLlmStatus(
-      status === 'success' ? 'success' : status === 'not_configured' ? 'not_configured' : 'failed',
-      text
-    );
+    const text = status === 'not_configured' ? 'Not configured' : (data.message || getConnectionStatusText(status));
+    setLlmStatus(status === 'success' ? 'success' : status === 'not_configured' ? 'not_configured' : 'failed', text);
   } catch (e) {
     setLlmStatus('failed', 'Connection failed');
     showToast(e.message, 'error');
@@ -877,11 +860,7 @@ async function llmSave() {
       showToast(toastMsg, 'success');
       setLlmStatus(
         data.llm?.connectionStatus === 'success' ? 'success' : data.llm?.connectionStatus === 'not_configured' ? 'not_configured' : 'failed',
-        data.llm?.connectionStatus === 'success'
-          ? 'Connection tested successfully'
-          : data.llm?.connectionStatus === 'not_configured'
-            ? 'Not configured'
-            : 'Connection failed'
+        getConnectionStatusText(data.llm?.connectionStatus)
       );
       const llmActiveEl = document.getElementById('llmActiveToken');
       const llmActiveValueEl = document.getElementById('llmActiveTokenValue');
@@ -925,11 +904,7 @@ async function llmSave() {
       }
       setLlmStatus(
         data.llm?.connectionStatus === 'success' ? 'success' : data.llm?.connectionStatus === 'not_configured' ? 'not_configured' : 'failed',
-        data.llm?.connectionStatus === 'success'
-          ? 'Connection tested successfully'
-          : data.llm?.connectionStatus === 'not_configured'
-            ? 'Not configured'
-            : 'Connection failed'
+        getConnectionStatusText(data.llm?.connectionStatus)
       );
       document.getElementById('llmApiKey').value = '';
       document.getElementById('llmApiKey').placeholder = data.llm?.apiKeyMasked || 'Ключ API';

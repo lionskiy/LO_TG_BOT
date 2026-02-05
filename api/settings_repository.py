@@ -1,7 +1,8 @@
 """Load and save Telegram and LLM settings; mask secrets for API responses."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from api.db import (
@@ -38,11 +39,11 @@ def mask_secret_active(value: Optional[str]) -> str:
 
 
 def _telegram_row(session: Session) -> Optional[TelegramSettingsModel]:
-    return session.query(TelegramSettingsModel).first()
+    return session.execute(select(TelegramSettingsModel).limit(1)).scalar_one_or_none()
 
 
 def _llm_row(session: Session) -> Optional[LLMSettingsModel]:
-    return session.query(LLMSettingsModel).first()
+    return session.execute(select(LLMSettingsModel).limit(1)).scalar_one_or_none()
 
 
 def get_telegram_settings() -> dict[str, Any]:
@@ -115,7 +116,7 @@ def save_telegram_settings(
 
     with SessionLocal() as session:
         row = _telegram_row(session)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if row:
             row.access_token_encrypted = encrypted
             row.base_url = base_url
@@ -251,7 +252,7 @@ def save_llm_settings(
 
     with SessionLocal() as session:
         row = _llm_row(session)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if row:
             row.llm_type = llm_type
             row.api_key_encrypted = encrypted
@@ -310,7 +311,7 @@ def update_telegram_connection_status(status: str, last_checked: Optional[dateti
         row = _telegram_row(session)
         if row:
             row.connection_status = status
-            row.last_checked = last_checked or datetime.utcnow()
+            row.last_checked = last_checked or datetime.now(timezone.utc)
             session.commit()
 
 
@@ -320,7 +321,7 @@ def update_llm_connection_status(status: str, last_checked: Optional[datetime] =
         row = _llm_row(session)
         if row:
             row.connection_status = status
-            row.last_checked = last_checked or datetime.utcnow()
+            row.last_checked = last_checked or datetime.now(timezone.utc)
             session.commit()
 
 
@@ -350,7 +351,7 @@ def update_llm_model_and_prompt(
         if project_id_provided:
             # Update project_id if it was provided in request (even if None to clear it)
             row.project_id = (project_id or "").strip() or None
-        row.updated_at = datetime.utcnow()
+        row.updated_at = datetime.now(timezone.utc)
         session.commit()
         return True
 
@@ -358,7 +359,7 @@ def update_llm_model_and_prompt(
 def clear_telegram_settings() -> None:
     """Remove telegram settings row (for tests)."""
     with SessionLocal() as session:
-        session.query(TelegramSettingsModel).delete()
+        session.execute(delete(TelegramSettingsModel))
         session.commit()
 
 
@@ -371,15 +372,15 @@ def clear_telegram_token() -> None:
             row.is_active = False
             row.connection_status = CONNECTION_STATUS_NOT_CONFIGURED
             row.last_activated_at = None
-            row.last_checked = datetime.utcnow()
-            row.updated_at = datetime.utcnow()
+            row.last_checked = datetime.now(timezone.utc)
+            row.updated_at = datetime.now(timezone.utc)
             session.commit()
 
 
 def clear_llm_settings() -> None:
     """Remove LLM settings row (for tests)."""
     with SessionLocal() as session:
-        session.query(LLMSettingsModel).delete()
+        session.execute(delete(LLMSettingsModel))
         session.commit()
 
 
@@ -392,8 +393,8 @@ def clear_llm_token() -> None:
             row.is_active = False
             row.connection_status = CONNECTION_STATUS_NOT_CONFIGURED
             row.last_activated_at = None
-            row.last_checked = datetime.utcnow()
-            row.updated_at = datetime.utcnow()
+            row.last_checked = datetime.now(timezone.utc)
+            row.updated_at = datetime.now(timezone.utc)
             session.commit()
 
 
@@ -403,7 +404,7 @@ def set_telegram_active(active: bool) -> None:
         row = _telegram_row(session)
         if row:
             row.is_active = active
-            row.last_activated_at = datetime.utcnow() if active else None
+            row.last_activated_at = datetime.now(timezone.utc) if active else None
             session.commit()
 
 
@@ -413,5 +414,5 @@ def set_llm_active(active: bool) -> None:
         row = _llm_row(session)
         if row:
             row.is_active = active
-            row.last_activated_at = datetime.utcnow() if active else None
+            row.last_activated_at = datetime.now(timezone.utc) if active else None
             session.commit()
