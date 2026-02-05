@@ -38,9 +38,15 @@ def test_list_service_admins_empty(client, admin_headers):
 
 def test_list_service_admins_requires_auth(client):
     """GET /api/service-admins returns 403 without admin key when ADMIN_API_KEY is set."""
-    os.environ["ADMIN_API_KEY"] = "test_key"
-    r = client.get("/api/service-admins")
-    assert r.status_code == 403
+    import api.app
+    # Set ADMIN_API_KEY directly on the module since it's read at import time
+    original_key = api.app.ADMIN_API_KEY
+    try:
+        api.app.ADMIN_API_KEY = "test_key"
+        r = client.get("/api/service-admins")
+        assert r.status_code == 403
+    finally:
+        api.app.ADMIN_API_KEY = original_key
 
 
 def test_add_service_admin(client, admin_headers):
