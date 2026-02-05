@@ -284,32 +284,69 @@ def get_llm_providers():
 def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
     """
     Fetch model list from provider API (OpenAI-compatible GET /models or Anthropic GET /v1/models).
-    Body: optional baseUrl, apiKey. If omitted, use saved LLM settings.
+    Body: optional baseUrl, apiKey, llmType. If omitted, use saved LLM settings.
     Returns { "models": [ {"id": "...", "display_name": "..."? }, ... ], "error": null } or error in "error".
     """
     base_url = (body.get("baseUrl") or "").strip() or None
     api_key = (body.get("apiKey") or "").strip() or None
+    llm_type_from_body = (body.get("llmType") or "").strip().lower() or None
+    
+    # Get saved credentials if not provided in body
     creds = get_llm_credentials_for_test()
     if creds and (not base_url or not api_key):
         base_url = base_url or (creds.get("base_url") or "").strip()
         api_key = api_key or (creds.get("api_key") or "").strip()
-    llm_type = (creds.get("llm_type") or "").strip().lower() if creds else ""
+    
+    # Determine provider type: from body, from saved creds, or detect from base_url
+    llm_type = llm_type_from_body
+    if not llm_type and creds:
+        llm_type = (creds.get("llm_type") or "").strip().lower()
+    
+    # Auto-detect provider from base_url if type not known
+    if not llm_type and base_url:
+        base_lower = base_url.lower()
+        if "anthropic.com" in base_lower:
+            llm_type = "anthropic"
+        elif "generativelanguage.googleapis.com" in base_lower or "googleapis.com" in base_lower:
+            llm_type = "google"
+        elif "api.openai.com" in base_lower:
+            llm_type = "openai"
+        elif "groq.com" in base_lower:
+            llm_type = "groq"
+        elif "openrouter.ai" in base_lower:
+            llm_type = "openrouter"
+        elif "deepseek.com" in base_lower:
+            llm_type = "deepseek"
+        elif "x.ai" in base_lower:
+            llm_type = "xai"
+        elif "perplexity.ai" in base_lower:
+            llm_type = "perplexity"
+        elif "azure.com" in base_lower or "azureopenai" in base_lower:
+            llm_type = "azure"
+        elif "yandex" in base_lower:
+            llm_type = "yandex"
+        elif "localhost:11434" in base_lower or "ollama" in base_lower:
+            llm_type = "ollama"
+    
+    # Route to appropriate fetch function
     if llm_type == "anthropic":
         if not api_key:
-            return {"models": [], "error": "API key is required"}
+            return {"models": [], "error": "API key is required for Anthropic"}
         models, err = fetch_models_anthropic(api_key or "")
     elif llm_type == "google":
         if not api_key:
-            return {"models": [], "error": "API key is required"}
+            return {"models": [], "error": "API key is required for Google"}
         models, err = fetch_models_google(api_key or "")
     else:
+        # OpenAI-compatible providers (openai, groq, openrouter, ollama, etc.)
         if not base_url:
             return {"models": [], "error": "Base URL is required"}
         models, err = fetch_models_from_api(base_url, api_key or "")
+    
     if err:
         return {"models": [], "error": err}
-    # Возвращаем только то, что вернул провайдер — без маппинга и без дополнения списка.
-    # В UI сохраняем и отправляем в API ровно id модели из ответа провайдера.
+    
+    # Return all models from provider
     return {"models": models, "error": None}
 
 
