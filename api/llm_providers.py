@@ -142,13 +142,14 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
     if not base:
         return [], "Base URL is empty"
     is_openai = "api.openai.com" in base
-    page_size = 100 if is_openai else None
+    # Use larger page size for OpenAI and other providers that support it
+    page_size = 100 if is_openai else 50
     headers: dict[str, str] = {}
     if (api_key or "").strip() and (api_key or "").strip() != "ollama":
         headers["Authorization"] = f"Bearer {(api_key or '').strip()}"
     all_models: list[dict[str, Any]] = []
     after: str | None = None
-    max_pages = 50
+    max_pages = 100  # Increased limit to ensure we get all models
     page = 0
     try:
         with httpx.Client(timeout=timeout) as client:
@@ -160,6 +161,7 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
                     params["after"] = after
                 if page_size is not None:
                     params["limit"] = str(page_size)
+                logger.debug("Fetching models page %d from %s (after=%s)", page, url, after or "none")
                 r = client.get(url, headers=headers or None, params=params or None)
                 if r.status_code != 200:
                     if page == 1:
@@ -169,22 +171,33 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
                         except Exception:
                             msg = r.text or f"HTTP {r.status_code}"
                         return [], msg or f"HTTP {r.status_code}"
+                    # On later pages, non-200 might mean end of pagination
+                    logger.debug("Page %d returned status %d, stopping pagination", page, r.status_code)
                     break
                 try:
                     data = r.json()
                 except Exception as e:
                     if page == 1:
                         return [], f"Invalid response: {e}"
+                    logger.debug("Page %d JSON parse failed, stopping pagination: %s", page, e)
                     break
                 raw = data.get("data", []) if isinstance(data, dict) else []
+                if not raw and page > 1:
+                    # Empty page means we're done
+                    logger.debug("Page %d returned empty data, stopping pagination", page)
+                    break
                 for item in raw:
                     if not isinstance(item, dict):
                         continue
                     mid = item.get("id") or item.get("model") or ""
                     if mid and isinstance(mid, str):
                         mid = mid.strip()
-                        display = (item.get("display_name") or item.get("name") or "").strip() or None
-                        all_models.append({"id": mid, "display_name": display})
+                        if mid:  # Only add non-empty model IDs
+                            display = (item.get("display_name") or item.get("name") or "").strip() or None
+                            all_models.append({"id": mid, "display_name": display})
+                logger.debug("Page %d: got %d models (total so far: %d)", page, len(raw), len(all_models))
+                
+                # Check pagination indicators
                 has_more = data.get("has_more") if isinstance(data, dict) else False
                 last_id = data.get("last_id") if isinstance(data, dict) else None
                 last_item_id: str | None = None
@@ -192,17 +205,32 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
                     last_item_id = (raw[-1].get("id") or raw[-1].get("model")) or None
                     if isinstance(last_item_id, str):
                         last_item_id = last_item_id.strip() or None
+                
+                # Determine next page token
                 after = last_id if isinstance(last_id, str) and last_id.strip() else last_item_id
                 if not isinstance(after, str) or not after:
                     after = None
-                # Continue if API says has_more, or we requested a page size and got a full page (more may exist)
-                if not after:
-                    break
+                
+                # Continue pagination if:
+                # 1. API explicitly says has_more=True
+                # 2. We got a full page (might be more)
+                # 3. We have an 'after' token
+                should_continue = False
                 if has_more is True:
-                    continue
-                if page_size is not None and len(raw) >= page_size:
-                    continue
-                break
+                    should_continue = True
+                elif page_size is not None and len(raw) >= page_size:
+                    # Got full page, might be more
+                    should_continue = True
+                elif after:
+                    # Have pagination token, try next page
+                    should_continue = True
+                
+                if not should_continue:
+                    logger.debug("No more pages (has_more=%s, after=%s, page_size=%d, got=%d)", 
+                               has_more, after, page_size or 0, len(raw))
+                    break
+                    
+        logger.info("Fetched %d total models from %s", len(all_models), base)
         return all_models, None
     except Exception as e:
         logger.warning("Fetch models request failed: %s", e)
@@ -282,7 +310,7 @@ def fetch_models_anthropic(api_key: str, timeout: float = 15.0) -> tuple[list[di
     }
     all_models: list[dict[str, Any]] = []
     after_id: str | None = None
-    max_pages = 50
+    max_pages = 100  # Increased limit
     page = 0
     try:
         with httpx.Client(timeout=timeout) as client:
@@ -291,6 +319,7 @@ def fetch_models_anthropic(api_key: str, timeout: float = 15.0) -> tuple[list[di
                 params: dict[str, str] = {}
                 if after_id:
                     params["after_id"] = after_id
+                logger.debug("Fetching Anthropic models page %d (after_id=%s)", page, after_id or "none")
                 r = client.get(url, headers=headers, params=params or None)
                 if r.status_code != 200:
                     if page == 1:
@@ -300,28 +329,37 @@ def fetch_models_anthropic(api_key: str, timeout: float = 15.0) -> tuple[list[di
                         except Exception:
                             msg = r.text or f"HTTP {r.status_code}"
                         return [], msg or f"HTTP {r.status_code}"
+                    logger.debug("Page %d returned status %d, stopping pagination", page, r.status_code)
                     break
                 try:
                     data = r.json()
                 except Exception as e:
                     if page == 1:
                         return [], f"Invalid response: {e}"
+                    logger.debug("Page %d JSON parse failed, stopping pagination: %s", page, e)
                     break
                 raw = data.get("data", []) if isinstance(data, dict) else []
+                if not raw and page > 1:
+                    logger.debug("Page %d returned empty data, stopping pagination", page)
+                    break
                 for item in raw:
                     if not isinstance(item, dict):
                         continue
                     mid = item.get("id") or ""
                     if mid and isinstance(mid, str):
                         mid = mid.strip()
-                        display = (item.get("display_name") or "").strip() or None
-                        all_models.append({"id": mid, "display_name": display})
+                        if mid:  # Only add non-empty model IDs
+                            display = (item.get("display_name") or "").strip() or None
+                            all_models.append({"id": mid, "display_name": display})
+                logger.debug("Page %d: got %d models (total so far: %d)", page, len(raw), len(all_models))
                 has_more = data.get("has_more") if isinstance(data, dict) else False
                 last_id = data.get("last_id") if isinstance(data, dict) else None
                 if has_more and last_id:
                     after_id = last_id
                 else:
+                    logger.debug("No more pages (has_more=%s, last_id=%s)", has_more, last_id)
                     break
+        logger.info("Fetched %d total models from Anthropic", len(all_models))
         return all_models, None
     except Exception as e:
         logger.warning("Anthropic fetch models failed: %s", e)
