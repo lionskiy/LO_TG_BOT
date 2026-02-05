@@ -444,8 +444,10 @@ function toggleLlmAzureFields(providerId) {
 function toggleLlmProjectIdField(providerId) {
   const field = document.getElementById('llmProjectIdField');
   if (!field) return;
-  const isOpenAI = (providerId || '').toLowerCase() === 'openai';
-  if (isOpenAI) {
+  // Show field for providers that support project_id: Google, Anthropic
+  const providerLower = (providerId || '').toLowerCase();
+  const supportsProjectId = ['google', 'anthropic'].includes(providerLower);
+  if (supportsProjectId) {
     field.removeAttribute('hidden');
   } else {
     field.setAttribute('hidden', '');
@@ -1269,9 +1271,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('llmProjectId')?.addEventListener('blur', () => {
     // Reload models when projectId changes and we have API key
+    // Supported providers: Google, Anthropic
     const providerId = document.getElementById('llmType')?.value || '';
+    const providerLower = (providerId || '').toLowerCase();
+    const supportsProjectId = ['google', 'anthropic'].includes(providerLower);
     const hasApiKey = lastLlm?.llmType === providerId && (lastLlm?.apiKeyMasked || lastLlm?.isActive);
-    if (hasApiKey && providerId.toLowerCase() === 'openai' && isOpenAiCompatibleProvider(providerId)) {
+    if (hasApiKey && supportsProjectId && isOpenAiCompatibleProvider(providerId)) {
       fetchLlmModelsAndFill(getEffectiveModelType());
     }
   });
