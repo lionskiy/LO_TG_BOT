@@ -172,13 +172,14 @@ async def llm_test(_: None = Depends(_require_admin)):
 @app.patch("/api/settings/llm")
 def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
     """
-    Update only model_type, system_prompt, azure fields. No connection test; keeps is_active.
+    Update only model_type, system_prompt, azure fields, project_id. No connection test; keeps is_active.
     Use when only model or system prompt changed (Task 4, 6).
     """
     model_type = (body.get("modelType") or "").strip()
     system_prompt = (body.get("systemPrompt") or "").strip() or None
     azure_endpoint = (body.get("azureEndpoint") or "").strip() or None
     api_version = (body.get("apiVersion") or "").strip() or None
+    project_id = (body.get("projectId") or "").strip() or None
     if not model_type:
         raise HTTPException(status_code=400, detail="Model type is required")
     updated = update_llm_model_and_prompt(
@@ -186,6 +187,7 @@ def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
         system_prompt=system_prompt,
         azure_endpoint=azure_endpoint,
         api_version=api_version,
+        project_id=project_id,
     )
     if not updated:
         raise HTTPException(status_code=400, detail="No LLM settings to update (save provider and API key first)")
@@ -207,6 +209,7 @@ def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
     system_prompt = (body.get("systemPrompt") or "").strip() or None
     azure_endpoint = (body.get("azureEndpoint") or "").strip() or None
     api_version = (body.get("apiVersion") or "").strip() or None
+    project_id = (body.get("projectId") or "").strip() or None
     if not llm_type:
         raise HTTPException(status_code=400, detail="LLM type is required")
     if not model_type:
@@ -231,6 +234,7 @@ def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
             is_active=False,
             azure_endpoint=azure_endpoint,
             api_version=api_version,
+            project_id=project_id,
         )
     except ValueError as e:
         if "SETTINGS_ENCRYPTION_KEY" in str(e):
@@ -284,18 +288,21 @@ def get_llm_providers():
 def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
     """
     Fetch model list from provider API (OpenAI-compatible GET /models or Anthropic GET /v1/models).
-    Body: optional baseUrl, apiKey, llmType. If omitted, use saved LLM settings.
+    Body: optional baseUrl, apiKey, llmType, projectId. If omitted, use saved LLM settings.
     Returns { "models": [ {"id": "...", "display_name": "..."? }, ... ], "error": null } or error in "error".
     """
     base_url = (body.get("baseUrl") or "").strip() or None
     api_key = (body.get("apiKey") or "").strip() or None
     llm_type_from_body = (body.get("llmType") or "").strip().lower() or None
+    project_id = (body.get("projectId") or "").strip() or None
     
     # Get saved credentials if not provided in body
     creds = get_llm_credentials_for_test()
     if creds and (not base_url or not api_key):
         base_url = base_url or (creds.get("base_url") or "").strip()
         api_key = api_key or (creds.get("api_key") or "").strip()
+    if not project_id and creds:
+        project_id = project_id or (creds.get("project_id") or "").strip() or None
     
     # Determine provider type: from body, from saved creds, or detect from base_url
     llm_type = llm_type_from_body
@@ -332,16 +339,16 @@ def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
     if llm_type == "anthropic":
         if not api_key:
             return {"models": [], "error": "API key is required for Anthropic"}
-        models, err = fetch_models_anthropic(api_key or "")
+        models, err = fetch_models_anthropic(api_key or "", project_id=project_id)
     elif llm_type == "google":
         if not api_key:
             return {"models": [], "error": "API key is required for Google"}
-        models, err = fetch_models_google(api_key or "")
+        models, err = fetch_models_google(api_key or "", project_id=project_id)
     else:
         # OpenAI-compatible providers (openai, groq, openrouter, ollama, etc.)
         if not base_url:
             return {"models": [], "error": "Base URL is required"}
-        models, err = fetch_models_from_api(base_url, api_key or "")
+        models, err = fetch_models_from_api(base_url, api_key or "", project_id=project_id)
     
     if err:
         return {"models": [], "error": err}

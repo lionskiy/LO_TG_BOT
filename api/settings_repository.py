@@ -165,6 +165,7 @@ def get_llm_settings() -> dict[str, Any]:
                 "systemPrompt": None,
                 "azureEndpoint": None,
                 "apiVersion": None,
+                "projectId": None,
                 "connectionStatus": CONNECTION_STATUS_NOT_CONFIGURED,
                 "isActive": False,
                 "lastActivatedAt": None,
@@ -181,6 +182,7 @@ def get_llm_settings() -> dict[str, Any]:
             "systemPrompt": row.system_prompt or None,
             "azureEndpoint": getattr(row, "azure_endpoint", None) or None,
             "apiVersion": getattr(row, "api_version", None) or None,
+            "projectId": getattr(row, "project_id", None) or None,
             "connectionStatus": row.connection_status,
             "isActive": row.is_active,
             "lastActivatedAt": row.last_activated_at.isoformat() if row.last_activated_at else None,
@@ -205,6 +207,7 @@ def get_llm_settings_decrypted() -> Optional[dict]:
             "system_prompt": row.system_prompt or None,
             "azure_endpoint": getattr(row, "azure_endpoint", None) or None,
             "api_version": getattr(row, "api_version", None) or None,
+            "project_id": getattr(row, "project_id", None) or None,
         }
 
 
@@ -224,6 +227,7 @@ def get_llm_credentials_for_test() -> Optional[dict]:
             "model_type": row.model_type,
             "azure_endpoint": getattr(row, "azure_endpoint", None) or None,
             "api_version": getattr(row, "api_version", None) or None,
+            "project_id": getattr(row, "project_id", None) or None,
         }
 
 
@@ -237,11 +241,13 @@ def save_llm_settings(
     is_active: bool = False,
     azure_endpoint: Optional[str] = None,
     api_version: Optional[str] = None,
+    project_id: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Save LLM block. Returns API-shaped dict. azure_endpoint/api_version for Azure provider."""
+    """Save LLM block. Returns API-shaped dict. azure_endpoint/api_version for Azure provider, project_id for project-scoped providers."""
     encrypted = encrypt_secret(api_key) if api_key else None
     azure_endpoint = (azure_endpoint or "").strip() or None
     api_version = (api_version or "").strip() or None
+    project_id = (project_id or "").strip() or None
 
     with SessionLocal() as session:
         row = _llm_row(session)
@@ -254,6 +260,7 @@ def save_llm_settings(
             row.system_prompt = (system_prompt or "").strip() or None
             row.azure_endpoint = azure_endpoint
             row.api_version = api_version
+            row.project_id = project_id
             row.connection_status = connection_status
             row.is_active = is_active
             if is_active:
@@ -269,6 +276,7 @@ def save_llm_settings(
                 system_prompt=(system_prompt or "").strip() or None,
                 azure_endpoint=azure_endpoint,
                 api_version=api_version,
+                project_id=project_id,
                 connection_status=connection_status,
                 is_active=is_active,
                 last_activated_at=now if is_active else None,
@@ -288,6 +296,7 @@ def save_llm_settings(
         "systemPrompt": row.system_prompt,
         "azureEndpoint": row.azure_endpoint,
         "apiVersion": row.api_version,
+        "projectId": getattr(row, "project_id", None) or None,
         "connectionStatus": row.connection_status,
         "isActive": row.is_active,
         "lastActivatedAt": row.last_activated_at.isoformat() if row.last_activated_at else None,
@@ -320,9 +329,10 @@ def update_llm_model_and_prompt(
     system_prompt: Optional[str] = None,
     azure_endpoint: Optional[str] = None,
     api_version: Optional[str] = None,
+    project_id: Optional[str] = None,
 ) -> bool:
     """
-    Update only model_type, system_prompt; optionally azure_endpoint, api_version.
+    Update only model_type, system_prompt; optionally azure_endpoint, api_version, project_id.
     Does not touch api_key or is_active. Returns True if row was updated, False if no row.
     """
     with SessionLocal() as session:
@@ -335,6 +345,8 @@ def update_llm_model_and_prompt(
             row.azure_endpoint = (azure_endpoint or "").strip() or None
         if api_version is not None:
             row.api_version = (api_version or "").strip() or None
+        if project_id is not None:
+            row.project_id = (project_id or "").strip() or None
         row.updated_at = datetime.utcnow()
         session.commit()
         return True

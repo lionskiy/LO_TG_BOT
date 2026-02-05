@@ -316,10 +316,15 @@ async function fetchLlmModelsAndFill(selectedModel) {
   const sel = document.getElementById('llmModel');
   if (!sel) return;
   try {
+    const projectId = (document.getElementById('llmProjectId')?.value || '').trim() || null;
+    const requestBody = {};
+    if (projectId) {
+      requestBody.projectId = projectId;
+    }
     const r = await api('/api/settings/llm/fetch-models', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
+      body: JSON.stringify(requestBody),
     });
     const data = await r.json().catch(() => ({}));
     if (data.error) {
@@ -487,12 +492,14 @@ async function loadSettings() {
     const baseUrlEl = document.getElementById('llmBaseUrl');
     const apiKeyEl = document.getElementById('llmApiKey');
     const systemPromptEl = document.getElementById('llmSystemPrompt');
+    const projectIdEl = document.getElementById('llmProjectId');
     if (baseUrlEl) baseUrlEl.value = llm.baseUrl || '';
     if (apiKeyEl) {
       apiKeyEl.value = '';
       apiKeyEl.placeholder = llm.apiKeyMasked || 'Ключ API';
     }
     if (systemPromptEl) systemPromptEl.value = llm.systemPrompt || '';
+    if (projectIdEl) projectIdEl.value = llm.projectId || '';
     const llmActiveEl = document.getElementById('llmActiveToken');
     const llmActiveValueEl = document.getElementById('llmActiveTokenValue');
     if (llmActiveEl) {
@@ -743,6 +750,7 @@ function getLlmChangedFields() {
   const systemPrompt = (document.getElementById('llmSystemPrompt')?.value || '').trim() || null;
   const azureEndpoint = (document.getElementById('llmAzureEndpoint')?.value || '').trim() || null;
   const apiVersion = (document.getElementById('llmAzureApiVersion')?.value || '').trim() || null;
+  const projectId = (document.getElementById('llmProjectId')?.value || '').trim() || null;
   const prov = getProviderById(llmType);
   if (!baseUrl && prov?.defaultBaseUrl) baseUrl = prov.defaultBaseUrl;
   const prev = lastLlm || {};
@@ -752,15 +760,16 @@ function getLlmChangedFields() {
   if (baseUrl !== (prev.baseUrl || '')) changed.push('baseUrl');
   if (modelType !== (prev.modelType || '')) changed.push('modelType');
   if ((systemPrompt || '') !== (prev.systemPrompt || '')) changed.push('systemPrompt');
+  if ((projectId || '') !== (prev.projectId || '')) changed.push('projectId');
   if (llmType === 'azure') {
     if ((azureEndpoint || '') !== (prev.azureEndpoint || '')) changed.push('azureEndpoint');
     if ((apiVersion || '') !== (prev.apiVersion || '')) changed.push('apiVersion');
   }
-  return { changed, llmType, apiKey, baseUrl, modelType, systemPrompt, azureEndpoint, apiVersion };
+  return { changed, llmType, apiKey, baseUrl, modelType, systemPrompt, azureEndpoint, apiVersion, projectId };
 }
 
 async function llmSave() {
-  let { changed, llmType, apiKey, baseUrl, modelType, systemPrompt, azureEndpoint, apiVersion } = getLlmChangedFields();
+  let { changed, llmType, apiKey, baseUrl, modelType, systemPrompt, azureEndpoint, apiVersion, projectId } = getLlmChangedFields();
   const hasKey = !!(apiKey || (lastLlm?.isActive && lastLlm?.activeTokenMasked));
   const noModelButHasKey = !modelType && hasKey;
   if (noModelButHasKey) {
@@ -804,6 +813,9 @@ async function llmSave() {
       if (llmType === 'azure') {
         patchBody.azureEndpoint = azureEndpoint || undefined;
         patchBody.apiVersion = apiVersion || undefined;
+      }
+      if (projectId !== null) {
+        patchBody.projectId = projectId || undefined;
       }
       const r = await api('/api/settings/llm', {
         method: 'PATCH',

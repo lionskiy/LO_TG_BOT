@@ -131,10 +131,11 @@ def get_default_base_url(llm_type: str) -> str:
     return DEFAULT_BASE_URLS.get(key, "")
 
 
-def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) -> tuple[list[dict[str, Any]], str | None]:
+def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0, project_id: str | None = None) -> tuple[list[dict[str, Any]], str | None]:
     """
     Fetch full model list from OpenAI-compatible GET /models.
     Handles different response formats.
+    If project_id is provided, it may be used in query params or headers depending on provider.
     Returns (list of {"id": "model-id", "display_name": ...?}, error_message or None).
     """
     base = (base_url or "").strip().rstrip("/")
@@ -145,12 +146,21 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
     if (api_key or "").strip() and (api_key or "").strip() != "ollama":
         headers["Authorization"] = f"Bearer {(api_key or '').strip()}"
     
+    # Add project_id to headers if provided (some providers use it in headers)
+    if project_id:
+        headers["x-goog-project-id"] = project_id
+    
     url = f"{base}/models"
+    params: dict[str, str] = {}
+    
+    # Add project_id to query params if provided (some providers use it in query)
+    if project_id:
+        params["project"] = project_id
     
     try:
         with httpx.Client(timeout=timeout) as client:
-            logger.debug("Fetching models from %s", url)
-            r = client.get(url, headers=headers if headers else None)
+            logger.debug("Fetching models from %s (project_id=%s)", url, project_id or "none")
+            r = client.get(url, headers=headers if headers else None, params=params if params else None)
             
             if r.status_code != 200:
                 try:
@@ -229,9 +239,10 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
         return [], f"Unexpected error: {e}"
 
 
-def fetch_models_google(api_key: str, timeout: float = 15.0) -> tuple[list[dict[str, Any]], str | None]:
+def fetch_models_google(api_key: str, timeout: float = 15.0, project_id: str | None = None) -> tuple[list[dict[str, Any]], str | None]:
     """
     Fetch model list from Google Gemini GET /v1beta/models (key in query).
+    If project_id is provided, it's added to query params to filter models for that project.
     Returns (list of {"id": "baseModelId", "display_name": "..."}, error_message or None).
     """
     key = (api_key or "").strip()
@@ -242,9 +253,13 @@ def fetch_models_google(api_key: str, timeout: float = 15.0) -> tuple[list[dict[
     url = f"{base}/v1beta/models"
     params: dict[str, str] = {"key": key}
     
+    # Add project_id to query params if provided
+    if project_id:
+        params["project"] = project_id
+    
     try:
         with httpx.Client(timeout=timeout) as client:
-            logger.debug("Fetching Google models from %s", url)
+            logger.debug("Fetching Google models from %s (project_id=%s)", url, project_id or "none")
             r = client.get(url, params=params)
             
             if r.status_code != 200:
@@ -307,9 +322,10 @@ def fetch_models_google(api_key: str, timeout: float = 15.0) -> tuple[list[dict[
         return [], f"Unexpected error: {e}"
 
 
-def fetch_models_anthropic(api_key: str, timeout: float = 15.0) -> tuple[list[dict[str, Any]], str | None]:
+def fetch_models_anthropic(api_key: str, timeout: float = 15.0, project_id: str | None = None) -> tuple[list[dict[str, Any]], str | None]:
     """
     Fetch model list from Anthropic GET /v1/models.
+    If project_id is provided, it may be used in query params or headers depending on provider requirements.
     Returns (list of {"id": "...", "display_name": "..."}, error_message or None).
     """
     key = (api_key or "").strip()
@@ -323,10 +339,19 @@ def fetch_models_anthropic(api_key: str, timeout: float = 15.0) -> tuple[list[di
         "anthropic-version": "2023-06-01",
     }
     
+    # Add project_id to headers if provided (some providers use it in headers)
+    if project_id:
+        headers["x-anthropic-project-id"] = project_id
+    
+    params: dict[str, str] = {}
+    # Add project_id to query params if provided
+    if project_id:
+        params["project_id"] = project_id
+    
     try:
         with httpx.Client(timeout=timeout) as client:
-            logger.debug("Fetching Anthropic models from %s", url)
-            r = client.get(url, headers=headers)
+            logger.debug("Fetching Anthropic models from %s (project_id=%s)", url, project_id or "none")
+            r = client.get(url, headers=headers, params=params if params else None)
             
             if r.status_code != 200:
                 try:

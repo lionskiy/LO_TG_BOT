@@ -78,6 +78,7 @@ class LLMSettingsModel(Base):
     system_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     azure_endpoint: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     api_version: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    project_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     connection_status: Mapped[str] = mapped_column(String(32), nullable=False, default=CONNECTION_STATUS_NOT_CONFIGURED)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -87,20 +88,24 @@ class LLMSettingsModel(Base):
 
 
 def _sqlite_migrate_llm_azure_columns() -> None:
-    """Add azure_endpoint and api_version to llm_settings if missing (SQLite)."""
+    """Add azure_endpoint, api_version, and project_id to llm_settings if missing (SQLite)."""
     if not DATABASE_URL.startswith("sqlite"):
         return
     with _engine.connect() as conn:
         try:
             r = conn.execute(
                 text(
-                    "SELECT name FROM pragma_table_info('llm_settings') WHERE name IN ('azure_endpoint', 'api_version')"
+                    "SELECT name FROM pragma_table_info('llm_settings') WHERE name IN ('azure_endpoint', 'api_version', 'project_id')"
                 )
             )
             existing = {row[0] for row in r}
         except Exception:
             return
-        for col, typ in [("azure_endpoint", "VARCHAR(512)"), ("api_version", "VARCHAR(64)")]:
+        for col, typ in [
+            ("azure_endpoint", "VARCHAR(512)"),
+            ("api_version", "VARCHAR(64)"),
+            ("project_id", "VARCHAR(128)"),
+        ]:
             if col not in existing:
                 try:
                     conn.execute(text(f"ALTER TABLE llm_settings ADD COLUMN {col} {typ}"))
@@ -117,5 +122,5 @@ def init_db() -> None:
         if path.startswith("./"):
             Path(path).parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=_engine)
-    _sqlite_migrate_llm_azure_columns()
+    _sqlite_migrate_llm_azure_columns()  # Also migrates project_id
     logger.debug("Database tables created or already exist")
