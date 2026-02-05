@@ -331,6 +331,10 @@ body {
   display: none !important;
 }
 
+#llmProjectIdField[hidden] {
+  display: none !important;
+}
+
 /* Active token block — PRD: red border, masked token + Delete. Only visible when not [hidden]. */
 .active-token {
   display: flex;

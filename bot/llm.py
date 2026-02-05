@@ -21,6 +21,7 @@ def _get_llm_from_settings_db() -> Optional[tuple]:
     model = (settings.get("model_type") or "").strip()
     api_key = settings.get("api_key")
     base_url = (settings.get("base_url") or "").strip()
+    project_id = (settings.get("project_id") or "").strip() or None
     if not model:
         return None
     if provider == "azure":
@@ -32,6 +33,11 @@ def _get_llm_from_settings_db() -> Optional[tuple]:
         }
     else:
         kwargs = {"api_key": api_key or "", "base_url": base_url}
+        if project_id:
+            kwargs["project_id"] = project_id
+        # OpenRouter и DeepSeek могут отвечать долго
+        if provider in ("openrouter", "deepseek"):
+            kwargs["timeout"] = 120.0
     return (provider, model, kwargs)
 
 # Lazy clients per provider (anthropic, google — config-driven; openai-compatible built per-call for hot-swap)
@@ -45,13 +51,19 @@ async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
 
     base_url = kwargs.get("base_url")
     api_key = kwargs.get("api_key") or ""
+    project_id = (kwargs.get("project_id") or "").strip() or None
+    timeout = kwargs.get("timeout")
+    client_kw: dict = {}
+    if timeout is not None:
+        client_kw["timeout"] = float(timeout)
     if base_url:
-        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url, **client_kw)
     else:
-        client = AsyncOpenAI(api_key=api_key)
-    resp = await client.chat.completions.create(
-        model=model, messages=messages, max_tokens=1024
-    )
+        client = AsyncOpenAI(api_key=api_key, **client_kw)
+    create_kw: dict = {"model": model, "messages": messages, "max_tokens": 1024}
+    if project_id and "api.openai.com" in (base_url or ""):
+        create_kw["extra_headers"] = {"OpenAI-Project": project_id}
+    resp = await client.chat.completions.create(**create_kw)
     return (resp.choices[0].message.content or "").strip()
 
 
@@ -68,7 +80,13 @@ async def _reply_groq(messages: List[dict], model: str, kwargs: dict) -> str:
 async def _reply_openrouter(messages: List[dict], model: str, kwargs: dict) -> str:
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=kwargs["base_url"])
+    # OpenRouter/DeepSeek могут отвечать долго — увеличиваем таймаут
+    timeout = kwargs.get("timeout", 120.0)
+    client = AsyncOpenAI(
+        api_key=kwargs["api_key"],
+        base_url=kwargs["base_url"],
+        timeout=timeout,
+    )
     resp = await client.chat.completions.create(
         model=model, messages=messages, max_tokens=1024
     )

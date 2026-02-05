@@ -1,4 +1,5 @@
 """Telegram bot with LLM conversation."""
+import asyncio
 import logging
 from collections import defaultdict
 from typing import Dict, List
@@ -8,8 +9,9 @@ logger = logging.getLogger(__name__)
 
 def _llm_error_message(exc: Exception) -> str:
     """Краткое сообщение об ошибке LLM для пользователя (без деталей)."""
-    # Всегда логируем тип и текст — видно при любом LOG_LEVEL
-    logger.error("LLM error type=%s message=%s", type(exc).__name__, str(exc))
+    exc_msg = str(exc).strip()
+    # Всегда логируем тип и текст — в логах видна причина (ключ, модель, таймаут и т.д.)
+    logger.error("LLM error type=%s message=%s", type(exc).__name__, exc_msg)
     settings_hint = "Проверьте настройки в админ-панели."
     # 404 / модель не найдена (OpenAI SDK или Anthropic SDK)
     if type(exc).__name__ == "NotFoundError":
@@ -31,6 +33,10 @@ def _llm_error_message(exc: Exception) -> str:
         if isinstance(exc, (APIConnectionError, APITimeoutError)):
             return "Нет связи с API модели или таймаут. Проверьте интернет и попробуйте позже."
         if isinstance(exc, BadRequestError):
+            # OpenAI и др. иногда возвращают 400 с текстом про API key — показываем как ошибку ключа
+            lower_msg = exc_msg.lower()
+            if "api key" in lower_msg or "incorrect api key" in lower_msg or "invalid api key" in lower_msg:
+                return f"Ошибка доступа к API: неверный или истёкший API-ключ. Убедитесь, что выбран правильный провайдер (OpenAI/Anthropic/и т.д.) и ключ от него. {settings_hint}"
             return f"Неверный запрос к модели (например, неверное имя модели). {settings_hint}"
         if isinstance(exc, NotFoundError):  # openai.NotFoundError
             return f"Модель или ресурс не найден. Проверьте имя модели. {settings_hint}"
@@ -106,15 +112,37 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
     logger.debug("message chat_id=%s text=%s", chat_id, user_text[:200])
 
-    await update.message.chat.send_action("typing")
     messages = _get_messages(chat_id, user_text)
+    typing_task = None
+    typing_stop = asyncio.Event()
+
+    async def _typing_loop() -> None:
+        while not typing_stop.is_set():
+            try:
+                await update.message.chat.send_action("typing")
+            except Exception:
+                break
+            try:
+                await asyncio.wait_for(typing_stop.wait(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+
     try:
+        typing_task = asyncio.create_task(_typing_loop())
         reply = await get_reply(messages)
     except Exception as e:
         logger.exception("LLM request failed: %s", e)
         user_msg = _llm_error_message(e)
         await update.message.reply_text(user_msg)
         return
+    finally:
+        typing_stop.set()
+        if typing_task and not typing_task.done():
+            typing_task.cancel()
+            try:
+                await typing_task
+            except asyncio.CancelledError:
+                pass
 
     if reply:
         _append_to_history(chat_id, user_text, reply)
