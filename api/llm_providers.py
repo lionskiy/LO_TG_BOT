@@ -174,7 +174,9 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) ->
                     # Try 'after' first, fallback handled below
                     pass
                 
-                if page_size is not None and page == 1:
+                # Always include limit if page_size is set to ensure consistent page sizes
+                # This prevents pagination issues where later pages return different sizes
+                if page_size is not None:
                     params["limit"] = str(page_size)
                 
                 logger.debug("Fetching models page %d from %s (after=%s, limit=%s)", 
