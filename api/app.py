@@ -179,7 +179,10 @@ def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
     system_prompt = (body.get("systemPrompt") or "").strip() or None
     azure_endpoint = (body.get("azureEndpoint") or "").strip() or None
     api_version = (body.get("apiVersion") or "").strip() or None
-    project_id = (body.get("projectId") or "").strip() or None
+    # Check if projectId key exists in body to distinguish between "not provided" and "set to null"
+    project_id = None
+    if "projectId" in body:
+        project_id = (body.get("projectId") or "").strip() or None
     if not model_type:
         raise HTTPException(status_code=400, detail="Model type is required")
     updated = update_llm_model_and_prompt(
@@ -188,6 +191,7 @@ def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
         azure_endpoint=azure_endpoint,
         api_version=api_version,
         project_id=project_id,
+        project_id_provided="projectId" in body,
     )
     if not updated:
         raise HTTPException(status_code=400, detail="No LLM settings to update (save provider and API key first)")

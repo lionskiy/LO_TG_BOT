@@ -330,10 +330,12 @@ def update_llm_model_and_prompt(
     azure_endpoint: Optional[str] = None,
     api_version: Optional[str] = None,
     project_id: Optional[str] = None,
+    project_id_provided: bool = False,
 ) -> bool:
     """
     Update only model_type, system_prompt; optionally azure_endpoint, api_version, project_id.
     Does not touch api_key or is_active. Returns True if row was updated, False if no row.
+    project_id_provided: True if projectId key was present in request body (allows clearing by setting to None).
     """
     with SessionLocal() as session:
         row = _llm_row(session)
@@ -345,7 +347,8 @@ def update_llm_model_and_prompt(
             row.azure_endpoint = (azure_endpoint or "").strip() or None
         if api_version is not None:
             row.api_version = (api_version or "").strip() or None
-        if project_id is not None:
+        if project_id_provided:
+            # Update project_id if it was provided in request (even if None to clear it)
             row.project_id = (project_id or "").strip() or None
         row.updated_at = datetime.utcnow()
         session.commit()

@@ -853,11 +853,25 @@ async function llmSave() {
       lastLlm = { ...data.llm };
       const modelChanged = changed.includes('modelType');
       const promptChanged = changed.includes('systemPrompt');
-      const toastMsg = modelChanged && promptChanged
-        ? 'Модель и системный промпт обновлены'
-        : modelChanged
-          ? `Модель изменена на ${modelType}`
-          : 'Системный промпт обновлён';
+      const projectIdChanged = changed.includes('projectId');
+      let toastMsg = '';
+      if (modelChanged && promptChanged && projectIdChanged) {
+        toastMsg = 'Модель, системный промпт и Project ID обновлены';
+      } else if (modelChanged && promptChanged) {
+        toastMsg = 'Модель и системный промпт обновлены';
+      } else if (modelChanged && projectIdChanged) {
+        toastMsg = `Модель изменена на ${modelType} и Project ID обновлён`;
+      } else if (promptChanged && projectIdChanged) {
+        toastMsg = 'Системный промпт и Project ID обновлены';
+      } else if (modelChanged) {
+        toastMsg = `Модель изменена на ${modelType}`;
+      } else if (promptChanged) {
+        toastMsg = 'Системный промпт обновлён';
+      } else if (projectIdChanged) {
+        toastMsg = 'Project ID обновлён';
+      } else {
+        toastMsg = 'Настройки обновлены';
+      }
       showToast(toastMsg, 'success');
       setLlmStatus(
         data.llm?.connectionStatus === 'success' ? 'success' : data.llm?.connectionStatus === 'not_configured' ? 'not_configured' : 'failed',
