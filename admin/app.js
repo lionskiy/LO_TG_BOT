@@ -204,20 +204,55 @@ function isOpenAiCompatibleProvider(providerId) {
 /**
  * Heuristic: model is reasoning-type by id or display name.
  * Проверяем и id, и display_name (название может быть "O3 Mini", id — с датой).
+ * Поддерживает все провайдеры: OpenAI (o1/o3/o4/gpt-5), Anthropic (claude с reasoning),
+ * Google (gemini с deep-think/pro), DeepSeek (reasoner), Groq (reasoning), Perplexity (reasoning),
+ * xAI (grok-4 reasoning), Ollama (deepseek-r1), и другие.
  */
 function isReasoningModel(model) {
   const id = (model && model.id) ? String(model.id).toLowerCase() : '';
   const name = (model && model.display_name) ? String(model.display_name).toLowerCase() : '';
   const s = id + ' ' + name;
-  return (
-    /^o1[-.]|^o1$|\bo1[-.]|\bo1\b/.test(s) ||
-    /^o3|^o3$|\bo3[-.]|\bo3\b/.test(s) ||
-    /^o4|^o4$|\bo4[-.]|\bo4\b/.test(s) ||
-    /^gpt-5[-.]|^gpt-5$|\bgpt-5\b/.test(s) ||
-    /\breasoning\b/.test(s) ||
-    /\bthinking\b/.test(s) ||
-    /\bdeep.?think\b/.test(s)
-  );
+  
+  // OpenAI reasoning models: o1, o3, o4, gpt-5 series
+  if (/^o1[-.]|^o1$|\bo1[-.]|\bo1\b/.test(s)) return true;
+  if (/^o3|^o3$|\bo3[-.]|\bo3\b/.test(s)) return true;
+  if (/^o4|^o4$|\bo4[-.]|\bo4\b/.test(s)) return true;
+  if (/^gpt-5[-.]|^gpt-5$|\bgpt-5\b/.test(s)) return true;
+  
+  // Generic reasoning/thinking keywords (works for all providers)
+  if (/\breasoning\b/.test(s)) return true;
+  if (/\bthinking\b/.test(s)) return true;
+  if (/\bdeep.?think\b/.test(s)) return true;
+  if (/\breasoner\b/.test(s)) return true;
+  
+  // Google Gemini reasoning models
+  if (/gemini.*pro/.test(s) && !/flash/.test(s)) return true; // gemini-X-pro (but not flash-pro)
+  if (/gemini.*deep.?think/.test(s)) return true;
+  
+  // Anthropic Claude reasoning models (extended thinking)
+  if (/claude.*sonnet.*202[4-9]/.test(s)) return true; // Newer Claude Sonnet versions
+  if (/claude.*opus.*202[4-9]/.test(s)) return true;
+  
+  // DeepSeek reasoning models
+  if (/deepseek.*reasoner/.test(s)) return true;
+  if (/deepseek-r1/.test(s)) return true;
+  
+  // Groq reasoning models
+  if (/llama.*reasoning/.test(s)) return true;
+  if (/llama.*405b/.test(s)) return true; // Large reasoning models
+  
+  // Perplexity reasoning models
+  if (/sonar.*reasoning/.test(s)) return true;
+  if (/sonar.*deep.?research/.test(s)) return true;
+  
+  // xAI (Grok) reasoning models
+  if (/grok.*reasoning/.test(s)) return true;
+  if (/grok-4/.test(s)) return true; // Grok 4 is reasoning-capable
+  
+  // Ollama reasoning models
+  if (/deepseek-r1/.test(s)) return true;
+  
+  return false;
 }
 
 /** Placeholder model for "save credentials only" (no model selected yet). Used for all providers. */
