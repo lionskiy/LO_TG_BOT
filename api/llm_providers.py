@@ -135,8 +135,8 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0, pr
     """
     Fetch full model list from OpenAI-compatible GET /models.
     Follows pagination (has_more + after or last_id) when present so all models are returned.
-    Note: project_id parameter is accepted for API compatibility but is not used for OpenAI-compatible providers.
-    OpenAI-compatible APIs (OpenAI, Groq, OpenRouter, Ollama, etc.) do not support project_id filtering.
+    For OpenAI API (api.openai.com), if project_id is provided, it's sent as OpenAI-Project header.
+    Other OpenAI-compatible providers (Groq, OpenRouter, Ollama, etc.) do not support project_id filtering.
     Returns (list of {"id": "model-id", "display_name": ...?}, error_message or None).
     """
     base = (base_url or "").strip().rstrip("/")
@@ -151,8 +151,9 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0, pr
     if (api_key or "").strip() and (api_key or "").strip() != "ollama":
         headers["Authorization"] = f"Bearer {(api_key or '').strip()}"
     
-    # Note: project_id is not supported by OpenAI-compatible APIs
-    # Google-specific headers/params should only be used in fetch_models_google
+    # Add OpenAI-Project header for OpenAI API if project_id is provided
+    if is_openai and project_id:
+        headers["OpenAI-Project"] = project_id.strip()
     
     url = f"{base}/models"
     all_models: list[dict[str, Any]] = []
