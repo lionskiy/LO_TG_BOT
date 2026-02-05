@@ -315,6 +315,8 @@ function setLlmModelSelectNoKey() {
 async function fetchLlmModelsAndFill(selectedModel) {
   const sel = document.getElementById('llmModel');
   if (!sel) return;
+  const errEl = document.getElementById('llmFetchModelsError');
+  if (errEl) errEl.textContent = '';
   try {
     const projectId = (document.getElementById('llmProjectId')?.value || '').trim() || null;
     const requestBody = {};
@@ -329,11 +331,18 @@ async function fetchLlmModelsAndFill(selectedModel) {
     const data = await r.json().catch(() => ({}));
     if (data.error) {
       setLlmModelSelectNoKey();
+      if (errEl) {
+        errEl.textContent = data.error || 'Ошибка при получении списка моделей';
+      }
       return;
     }
     fillLlmModelSelectFromIds(data.models || [], selectedModel || getEffectiveModelType());
-  } catch (_) {
+    if (errEl) errEl.textContent = '';
+  } catch (e) {
     setLlmModelSelectNoKey();
+    if (errEl) {
+      errEl.textContent = e.message || 'Ошибка при получении списка моделей';
+    }
   }
 }
 
@@ -432,6 +441,17 @@ function toggleLlmAzureFields(providerId) {
   }
 }
 
+function toggleLlmProjectIdField(providerId) {
+  const field = document.getElementById('llmProjectIdField');
+  if (!field) return;
+  const isOpenAI = (providerId || '').toLowerCase() === 'openai';
+  if (isOpenAI) {
+    field.removeAttribute('hidden');
+  } else {
+    field.setAttribute('hidden', '');
+  }
+}
+
 async function loadSettings() {
   try {
     const r = await api('/api/settings');
@@ -526,6 +546,7 @@ async function loadSettings() {
       startLlmAutoCheck();
     }
     toggleLlmAzureFields(llm.llmType || '');
+    toggleLlmProjectIdField(llm.llmType || '');
     if (llm.llmType === 'azure') {
       const azureEndEl = document.getElementById('llmAzureEndpoint');
       const azureVerEl = document.getElementById('llmAzureApiVersion');
@@ -796,7 +817,7 @@ async function llmSave() {
   }
 
   const requiresConnectionCheck = changed.some((f) =>
-    ['llmType', 'apiKey', 'baseUrl', 'azureEndpoint', 'apiVersion'].includes(f)
+    ['llmType', 'apiKey', 'baseUrl', 'azureEndpoint', 'apiVersion', 'projectId'].includes(f)
   );
   const onlyModelOrPrompt = changed.length > 0 && !requiresConnectionCheck && (changed.includes('modelType') || changed.includes('systemPrompt'));
 
@@ -814,8 +835,9 @@ async function llmSave() {
         patchBody.azureEndpoint = azureEndpoint || undefined;
         patchBody.apiVersion = apiVersion || undefined;
       }
-      if (projectId !== null) {
-        patchBody.projectId = projectId || undefined;
+      // Only include projectId if it's not empty (for OpenAI provider)
+      if (projectId && projectId.trim()) {
+        patchBody.projectId = projectId.trim();
       }
       const r = await api('/api/settings/llm', {
         method: 'PATCH',
@@ -861,6 +883,7 @@ async function llmSave() {
         baseUrl,
         modelType,
         systemPrompt,
+        projectId: (projectId && projectId.trim()) || null,
       };
       if (llmType === 'azure') {
         putBody.azureEndpoint = azureEndpoint || null;
@@ -971,6 +994,7 @@ function onLlmTypeChange() {
     fetchLlmModelsAndFill(lastLlm?.modelType || '');
   }
   toggleLlmAzureFields(providerId);
+  toggleLlmProjectIdField(providerId);
   const errEl = document.getElementById('llmFetchModelsError');
   if (errEl) errEl.textContent = '';
   if ((providerId || '').toLowerCase() === 'azure') {
@@ -1237,6 +1261,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     setFieldError('llmApiKey', 'llmFieldError', '');
     document.getElementById('llmApiKey')?.classList.remove('field-input--error');
     updateLlmSaveDisabled();
+  });
+  document.getElementById('llmProjectId')?.addEventListener('input', () => {
+    const errEl = document.getElementById('llmFetchModelsError');
+    if (errEl) errEl.textContent = '';
+    updateLlmSaveDisabled();
+  });
+  document.getElementById('llmProjectId')?.addEventListener('blur', () => {
+    // Reload models when projectId changes and we have API key
+    const providerId = document.getElementById('llmType')?.value || '';
+    const hasApiKey = lastLlm?.llmType === providerId && (lastLlm?.apiKeyMasked || lastLlm?.isActive);
+    if (hasApiKey && providerId.toLowerCase() === 'openai' && isOpenAiCompatibleProvider(providerId)) {
+      fetchLlmModelsAndFill(getEffectiveModelType());
+    }
   });
 
   // Service admins
