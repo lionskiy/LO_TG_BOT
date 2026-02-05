@@ -5,7 +5,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 
 from api.db import CONNECTION_STATUS_SUCCESS, init_db
@@ -35,6 +35,16 @@ from api.settings_repository import (
     update_llm_model_and_prompt,
 )
 from api.telegram_test import test_telegram_connection, test_telegram_connection_async
+from api.service_admins_repository import (
+    ServiceAdminCreate,
+    ServiceAdminList,
+    ServiceAdminResponse,
+    create_service_admin,
+    delete_service_admin,
+    get_all_service_admins,
+    get_service_admin_by_telegram_id,
+    refresh_service_admin_profile,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -301,3 +311,58 @@ def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
     # Возвращаем только то, что вернул провайдер — без маппинга и без дополнения списка.
     # В UI сохраняем и отправляем в API ровно id модели из ответа провайдера.
     return {"models": models, "error": None}
+
+
+# --- Service admins ---
+
+
+@app.get("/api/service-admins", response_model=ServiceAdminList)
+def list_service_admins(_: None = Depends(_require_admin)):
+    """Return all service admins."""
+    admins = get_all_service_admins()
+    return ServiceAdminList(admins=admins, total=len(admins))
+
+
+@app.post(
+    "/api/service-admins",
+    response_model=ServiceAdminResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_service_admin(body: ServiceAdminCreate, _: None = Depends(_require_admin)):
+    """Add a service admin by Telegram ID. Fetches profile from Telegram if possible."""
+    try:
+        admin, warning = create_service_admin(body.telegram_id)
+    except ValueError as e:
+        msg = str(e)
+        if "already a service admin" in msg:
+            raise HTTPException(status_code=409, detail=msg) from e
+        raise HTTPException(status_code=400, detail=msg) from e
+    if warning:
+        logger.info("service_admin_created telegram_id=%s warning=%s", body.telegram_id, warning)
+    return admin
+
+
+@app.get("/api/service-admins/{telegram_id}", response_model=ServiceAdminResponse)
+def get_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+    """Return one service admin by Telegram ID."""
+    admin = get_service_admin_by_telegram_id(telegram_id)
+    if not admin:
+        raise HTTPException(status_code=404, detail="Service admin not found")
+    return admin
+
+
+@app.delete("/api/service-admins/{telegram_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+    """Remove a service admin."""
+    deleted = delete_service_admin(telegram_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Service admin not found")
+
+
+@app.post("/api/service-admins/{telegram_id}/refresh", response_model=ServiceAdminResponse)
+def refresh_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+    """Refresh service admin profile from Telegram."""
+    admin = refresh_service_admin_profile(telegram_id)
+    if not admin:
+        raise HTTPException(status_code=404, detail="Service admin not found")
+    return admin

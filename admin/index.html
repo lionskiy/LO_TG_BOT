@@ -23,34 +23,6 @@
     <main class="main">
       <h2 class="page-title">Основные настройки приложения</h2>
       <div class="blocks">
-        <section class="block block--telegram" id="blockTelegram">
-          <h3 class="block-title">Телеграм бот</h3>
-          <div class="status-bar" id="telegramStatusBar" data-status="not_configured">
-            <span class="status-text" id="telegramStatusText">Not configured</span>
-            <button type="button" class="btn btn-secondary" id="telegramRetry">Retry</button>
-          </div>
-          <div class="form">
-            <label class="field">
-              <span class="field-label">Access Token *</span>
-              <input type="password" id="telegramToken" class="field-input" placeholder="Токен бота">
-              <span class="field-error" id="telegramFieldError" role="alert"></span>
-            </label>
-            <div class="active-token" id="telegramActiveToken" hidden>
-              <span class="active-token-label">Активный токен</span>
-              <span class="active-token-value" id="telegramActiveTokenValue"></span>
-              <button type="button" class="btn btn-link btn-link--danger" id="telegramTokenDelete">Delete</button>
-            </div>
-            <label class="field">
-              <span class="field-label">Base URL</span>
-              <input type="text" id="telegramBaseUrl" class="field-input" placeholder="https://api.telegram.org">
-              <span class="field-hint">По умолчанию: https://api.telegram.org</span>
-            </label>
-            <div class="form-actions">
-              <button type="button" class="btn btn-primary" id="telegramSave">Сохранить</button>
-              <button type="button" class="btn btn-outline" id="telegramClear">Удалить ключи</button>
-            </div>
-          </div>
-        </section>
         <section class="block block--llm" id="blockLlm">
           <h3 class="block-title">LLM</h3>
           <div class="status-bar" id="llmStatusBar" data-status="not_configured">
@@ -109,6 +81,50 @@
             <div class="form-actions">
               <button type="button" class="btn btn-primary" id="llmSave">Сохранить</button>
               <button type="button" class="btn btn-outline" id="llmClear">Удалить ключи</button>
+            </div>
+          </div>
+        </section>
+        <section class="block block--telegram" id="blockTelegram">
+          <h3 class="block-title">Телеграм бот</h3>
+          <div class="status-bar" id="telegramStatusBar" data-status="not_configured">
+            <span class="status-text" id="telegramStatusText">Not configured</span>
+            <button type="button" class="btn btn-secondary" id="telegramRetry">Retry</button>
+          </div>
+          <div class="form">
+            <label class="field">
+              <span class="field-label">Access Token *</span>
+              <input type="password" id="telegramToken" class="field-input" placeholder="Токен бота">
+              <span class="field-error" id="telegramFieldError" role="alert"></span>
+            </label>
+            <div class="active-token" id="telegramActiveToken" hidden>
+              <span class="active-token-label">Активный токен</span>
+              <span class="active-token-value" id="telegramActiveTokenValue"></span>
+              <button type="button" class="btn btn-link btn-link--danger" id="telegramTokenDelete">Delete</button>
+            </div>
+            <label class="field">
+              <span class="field-label">Base URL</span>
+              <input type="text" id="telegramBaseUrl" class="field-input" placeholder="https://api.telegram.org">
+              <span class="field-hint">По умолчанию: https://api.telegram.org</span>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" id="telegramSave">Сохранить</button>
+              <button type="button" class="btn btn-outline" id="telegramClear">Удалить ключи</button>
+            </div>
+          </div>
+        </section>
+        <section class="block block--service-admins" id="blockServiceAdmins">
+          <h3 class="block-title">Админы сервиса</h3>
+          <div id="serviceAdminsList" class="service-admins-list">
+            <p class="block-placeholder" id="serviceAdminsPlaceholder">Нет добавленных администраторов</p>
+          </div>
+          <div class="form">
+            <label class="field">
+              <span class="field-label">Введите Telegram ID</span>
+              <input type="text" id="serviceAdminTelegramId" class="field-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+              <span class="field-error" id="serviceAdminFieldError" role="alert"></span>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" id="serviceAdminAdd">Добавить</button>
             </div>
           </div>
         </section>

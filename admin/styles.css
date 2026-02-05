@@ -337,8 +337,8 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem;
-  border: 1px solid #d93025;
+  padding: 0.3rem 0.5rem;
+  border: 0;
   border-radius: 4px;
   background: #fef7f7;
 }
@@ -459,4 +459,64 @@ body {
 .toast--error {
   background: var(--status-failed-bg);
   border: 1px solid #f5c6cb;
+}
+
+/* Service admins block */
+.service-admins-list {
+  margin-bottom: 1rem;
+  min-height: 2rem;
+}
+
+.service-admin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  background: #f8f9fa;
+}
+
+.service-admin-row:last-child {
+  margin-bottom: 0;
+}
+
+.service-admin-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.service-admin-id {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  color: #5f6368;
+  flex-shrink: 0;
+}
+
+.service-admin-name {
+  font-size: 14px;
+  color: #202124;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-admin-row .btn-link--danger {
+  flex-shrink: 0;
+}
+
+.service-admin-row--loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.service-admin-row--loading .service-admin-name::after {
+  content: ' (Adding...)';
+  color: #5f6368;
+  font-style: italic;
 }
