@@ -159,7 +159,11 @@ def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0, pr
     all_models: list[dict[str, Any]] = []
     seen_ids: set[str] = set()  # Deduplication
     after: str | None = None
-    max_pages = 100
+    # Without project_id filter, OpenAI returns many pages; limit to avoid 3–4 min load
+    if is_openai and not (project_id or "").strip():
+        max_pages = 5
+    else:
+        max_pages = 100
     page = 0
     
     try:

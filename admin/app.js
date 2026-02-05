@@ -188,6 +188,8 @@ function fillLlmTypeSelect(selectedId) {
     '<option value="">— выберите провайдера —</option>' +
     llmProviders.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
   if (selectedId) sel.value = selectedId;
+  // Keep Project ID field visibility in sync with selected provider
+  toggleLlmProjectIdField(sel.value || selectedId || '');
 }
 
 /** For custom provider there are no preset models; use text input. Returns true if provider uses custom model input. */
@@ -444,8 +446,9 @@ function toggleLlmAzureFields(providerId) {
 function toggleLlmProjectIdField(providerId) {
   const field = document.getElementById('llmProjectIdField');
   if (!field) return;
-  // Show field only for OpenAI provider
-  const isOpenAI = (providerId || '').toLowerCase() === 'openai';
+  // Show field only for OpenAI provider (id is lowercase from API)
+  const id = (providerId || '').trim().toLowerCase();
+  const isOpenAI = id === 'openai';
   if (isOpenAI) {
     field.removeAttribute('hidden');
   } else {
