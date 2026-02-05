@@ -817,9 +817,9 @@ async function llmSave() {
   }
 
   const requiresConnectionCheck = changed.some((f) =>
-    ['llmType', 'apiKey', 'baseUrl', 'azureEndpoint', 'apiVersion', 'projectId'].includes(f)
+    ['llmType', 'apiKey', 'baseUrl', 'azureEndpoint', 'apiVersion'].includes(f)
   );
-  const onlyModelOrPrompt = changed.length > 0 && !requiresConnectionCheck && (changed.includes('modelType') || changed.includes('systemPrompt'));
+  const onlyModelOrPrompt = changed.length > 0 && !requiresConnectionCheck && (changed.includes('modelType') || changed.includes('systemPrompt') || changed.includes('projectId'));
 
   if (changed.length === 0) {
     showToast('Нет изменений', 'success');
@@ -835,9 +835,9 @@ async function llmSave() {
         patchBody.azureEndpoint = azureEndpoint || undefined;
         patchBody.apiVersion = apiVersion || undefined;
       }
-      // Only include projectId if it's not empty (for OpenAI provider)
-      if (projectId && projectId.trim()) {
-        patchBody.projectId = projectId.trim();
+      // Include projectId if changed (allows clearing it by setting to null)
+      if (changed.includes('projectId')) {
+        patchBody.projectId = (projectId && projectId.trim()) || null;
       }
       const r = await api('/api/settings/llm', {
         method: 'PATCH',
