@@ -304,7 +304,8 @@ def fetch_models_google(api_key: str, timeout: float = 15.0, project_id: str | N
     """
     Fetch model list from Google Gemini GET /v1beta/models (key in query).
     Follows pagination (nextPageToken) when present so all models are returned.
-    If project_id is provided, it's added to query params to filter models for that project.
+    Note: project_id parameter is accepted for API compatibility but is not used.
+    Google Gemini API does not support project-based filtering for the models endpoint.
     Returns (list of {"id": "baseModelId", "display_name": "..."}, error_message or None).
     """
     key = (api_key or "").strip()
@@ -328,11 +329,10 @@ def fetch_models_google(api_key: str, timeout: float = 15.0, project_id: str | N
                 if page_token:
                     params["pageToken"] = page_token
                 
-                # Add project_id to query params if provided
-                if project_id:
-                    params["project"] = project_id
+                # Note: Google Gemini API does not support project parameter for filtering models
+                # The API only supports pageSize and pageToken query parameters
                 
-                logger.debug("Fetching Google models page %d from %s (pageToken=%s, project_id=%s)", page, url, page_token or "none", project_id or "none")
+                logger.debug("Fetching Google models page %d from %s (pageToken=%s)", page, url, page_token or "none")
                 r = client.get(url, params=params)
                 
                 if r.status_code != 200:
@@ -413,7 +413,8 @@ def fetch_models_anthropic(api_key: str, timeout: float = 15.0, project_id: str 
     """
     Fetch model list from Anthropic GET /v1/models.
     Follows pagination (has_more + after_id) when present so all models are returned.
-    If project_id is provided, it may be used in query params or headers depending on provider requirements.
+    Note: project_id parameter is accepted for API compatibility but is not used.
+    Anthropic API does not support project-based filtering for the models endpoint.
     Returns (list of {"id": "...", "display_name": "..."}, error_message or None).
     """
     key = (api_key or "").strip()
@@ -427,9 +428,8 @@ def fetch_models_anthropic(api_key: str, timeout: float = 15.0, project_id: str 
         "anthropic-version": "2023-06-01",
     }
     
-    # Add project_id to headers if provided (some providers use it in headers)
-    if project_id:
-        headers["x-anthropic-project-id"] = project_id
+    # Note: Anthropic API does not support project_id header or query parameter for filtering models
+    # The API only supports after_id, before_id, and limit query parameters for pagination
     
     all_models: list[dict[str, Any]] = []
     seen_ids: set[str] = set()  # Deduplication
@@ -446,11 +446,9 @@ def fetch_models_anthropic(api_key: str, timeout: float = 15.0, project_id: str 
                 if after_id:
                     params["after_id"] = after_id
                 
-                # Add project_id to query params if provided
-                if project_id:
-                    params["project_id"] = project_id
+                # Note: Anthropic API does not support project_id parameter for filtering models
                 
-                logger.debug("Fetching Anthropic models page %d from %s (after_id=%s, project_id=%s)", page, url, after_id or "none", project_id or "none")
+                logger.debug("Fetching Anthropic models page %d from %s (after_id=%s)", page, url, after_id or "none")
                 r = client.get(url, headers=headers, params=params if params else None)
                 
                 if r.status_code != 200:
