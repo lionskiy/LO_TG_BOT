@@ -1,0 +1,212 @@
+"""Test LLM provider connection (minimal API call)."""
+import logging
+from typing import Tuple
+
+import httpx
+
+from api.db import CONNECTION_STATUS_FAILED, CONNECTION_STATUS_SUCCESS
+from api.settings_repository import (
+    get_llm_credentials_for_test,
+    update_llm_connection_status,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _test_openai_compatible(creds: dict) -> Tuple[bool, str]:
+    """GET /models for OpenAI-compatible (openai, groq, openrouter, ollama, etc.)."""
+    base = (creds.get("base_url") or "").strip().rstrip("/")
+    key = (creds.get("api_key") or "").strip()
+    if not base:
+        return False, "Base URL is empty"
+    url = f"{base}/models"
+    headers = {}
+    if key and key != "ollama":
+        headers["Authorization"] = f"Bearer {key}"
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            r = client.get(url, headers=headers or None)
+    except Exception as e:
+        logger.warning("LLM models request failed: %s", e)
+        return False, str(e)
+    if r.status_code == 200:
+        return True, "Connection tested successfully"
+    try:
+        data = r.json()
+        msg = data.get("error", {}).get("message", data.get("message", r.text))
+    except Exception:
+        msg = r.text or f"HTTP {r.status_code}"
+    return False, msg or f"HTTP {r.status_code}"
+
+
+def _test_azure(creds: dict) -> Tuple[bool, str]:
+    """Azure OpenAI: GET {endpoint}/openai/models?api-version={version}."""
+    endpoint = (creds.get("azure_endpoint") or creds.get("base_url") or "").strip().rstrip("/")
+    version = (creds.get("api_version") or "2024-02-15-preview").strip()
+    key = (creds.get("api_key") or "").strip()
+    if not endpoint:
+        return False, "Azure endpoint is empty"
+    if not key:
+        return False, "API key is empty"
+    url = f"{endpoint}/openai/models?api-version={version}"
+    headers = {"Authorization": f"Bearer {key}"}
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            r = client.get(url, headers=headers)
+    except Exception as e:
+        logger.warning("Azure OpenAI models request failed: %s", e)
+        return False, str(e)
+    if r.status_code == 200:
+        return True, "Connection tested successfully"
+    try:
+        data = r.json()
+        msg = data.get("error", {}).get("message", data.get("message", r.text))
+    except Exception:
+        msg = r.text or f"HTTP {r.status_code}"
+    return False, msg or f"HTTP {r.status_code}"
+
+
+def _test_anthropic(creds: dict) -> Tuple[bool, str]:
+    """Minimal Anthropic messages API call."""
+    try:
+        import anthropic
+    except ImportError:
+        return False, "anthropic package not installed"
+    key = (creds.get("api_key") or "").strip()
+    if not key:
+        return False, "API key is empty"
+    try:
+        client = anthropic.Anthropic(api_key=key)
+        client.messages.create(
+            model="claude-3-haiku-20240307",
+            max_tokens=10,
+            messages=[{"role": "user", "content": "Hi"}],
+        )
+        return True, "Connection tested successfully"
+    except anthropic.APIStatusError as e:
+        return False, e.message or str(e)
+    except Exception as e:
+        logger.warning("Anthropic test failed: %s", e)
+        return False, str(e)
+
+
+def _test_google(creds: dict) -> Tuple[bool, str]:
+    """Minimal Google Generative AI call."""
+    try:
+        import google.generativeai as genai
+    except ImportError:
+        return False, "google-generativeai package not installed"
+    key = (creds.get("api_key") or "").strip()
+    if not key:
+        return False, "API key is empty"
+    try:
+        genai.configure(api_key=key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        model.generate_content("Hi")
+        return True, "Connection tested successfully"
+    except Exception as e:
+        logger.warning("Google genai test failed: %s", e)
+        return False, str(e)
+
+
+def _test_yandex(creds: dict) -> Tuple[bool, str]:
+    """Yandex GPT: POST .../completion with minimal body (model_uri requires folder_id from env)."""
+    import os
+
+    base = (creds.get("base_url") or "").strip().rstrip("/")
+    key = (creds.get("api_key") or "").strip()
+    folder_id = (os.getenv("YANDEX_FOLDER_ID") or "").strip()
+    if not base:
+        return False, "Base URL is empty"
+    if not key:
+        return False, "API key is empty"
+    model_uri = creds.get("model_type") or ""
+    if model_uri.startswith("gpt://"):
+        pass
+    elif folder_id:
+        model_uri = f"gpt://{folder_id}/yandexgpt-lite/latest"
+    else:
+        return False, "Set YANDEX_FOLDER_ID in env or save full model_uri (gpt://folder_id/model/latest)"
+    url = f"{base}/completion"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    body = {
+        "modelUri": model_uri,
+        "messages": [{"role": "user", "text": "Hi"}],
+        "completionOptions": {"maxTokens": 5},
+    }
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            r = client.post(url, headers=headers, json=body)
+    except Exception as e:
+        logger.warning("Yandex test request failed: %s", e)
+        return False, str(e)
+    if r.status_code == 200:
+        return True, "Connection tested successfully"
+    try:
+        data = r.json()
+        msg = data.get("error", {}).get("message", data.get("message", r.text))
+    except Exception:
+        msg = r.text or f"HTTP {r.status_code}"
+    return False, msg or f"HTTP {r.status_code}"
+
+
+def _test_perplexity(creds: dict) -> Tuple[bool, str]:
+    """Perplexity has no GET /models; test via POST /chat/completions with minimal body."""
+    base = (creds.get("base_url") or "").strip().rstrip("/")
+    key = (creds.get("api_key") or "").strip()
+    if not base:
+        return False, "Base URL is empty"
+    if not key:
+        return False, "API key is empty"
+    url = f"{base}/chat/completions"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    body = {
+        "model": "sonar",
+        "messages": [{"role": "user", "content": "Hi"}],
+        "max_tokens": 5,
+    }
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            r = client.post(url, headers=headers, json=body)
+    except Exception as e:
+        logger.warning("Perplexity test request failed: %s", e)
+        return False, str(e)
+    if r.status_code == 200:
+        return True, "Connection tested successfully"
+    try:
+        data = r.json()
+        msg = data.get("error", {}).get("message", data.get("message", r.text))
+    except Exception:
+        msg = r.text or f"HTTP {r.status_code}"
+    return False, msg or f"HTTP {r.status_code}"
+
+
+def test_llm_connection() -> Tuple[str, str]:
+    """
+    Run provider-specific test. Update DB status and return (status, message).
+    status is CONNECTION_STATUS_SUCCESS, CONNECTION_STATUS_FAILED, or 'not_configured'.
+    """
+    creds = get_llm_credentials_for_test()
+    if not creds:
+        update_llm_connection_status("not_configured")
+        return ("not_configured", "API key not configured")
+
+    llm_type = (creds.get("llm_type") or "").strip().lower()
+    ok, message = False, ""
+    if llm_type == "anthropic":
+        ok, message = _test_anthropic(creds)
+    elif llm_type == "google":
+        ok, message = _test_google(creds)
+    elif llm_type == "azure":
+        ok, message = _test_azure(creds)
+    elif llm_type == "perplexity":
+        ok, message = _test_perplexity(creds)
+    elif llm_type == "yandex":
+        ok, message = _test_yandex(creds)
+    else:
+        # openai, groq, openrouter, ollama, xai, deepseek, custom, etc.
+        ok, message = _test_openai_compatible(creds)
+
+    status = CONNECTION_STATUS_SUCCESS if ok else CONNECTION_STATUS_FAILED
+    update_llm_connection_status(status)
+    return (status, message)

@@ -1,0 +1,12 @@
+services:
+  bot:
+    build: .
+    env_file: .env  # Required for ADMIN_API_KEY, SETTINGS_ENCRYPTION_KEY, DATABASE_URL
+    ports:
+      - "8000:8000"
+    volumes:
+      - bot_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  bot_data:

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin panel — Основные настройки приложения</title>
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">Admin panel</h1>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item nav-item--active">Настройки</a>
+      </nav>
+      <div class="sidebar-footer">
+        <label class="admin-key-label">
+          Admin key (если задан на сервере):
+          <input type="password" id="adminKey" class="admin-key-input" placeholder="X-Admin-Key" autocomplete="off">
+        </label>
+      </div>
+    </aside>
+    <main class="main">
+      <h2 class="page-title">Основные настройки приложения</h2>
+      <div class="blocks">
+        <section class="block block--llm" id="blockLlm">
+          <h3 class="block-title">LLM</h3>
+          <div class="status-bar" id="llmStatusBar" data-status="not_configured">
+            <span class="status-text" id="llmStatusText">Not configured</span>
+            <button type="button" class="btn btn-secondary" id="llmRetry">Retry</button>
+          </div>
+          <div class="form">
+            <label class="field">
+              <span class="field-label">LLM type *</span>
+              <select id="llmType" class="field-input field-select" aria-required="true">
+                <option value="">— выберите провайдера —</option>
+              </select>
+              <span class="field-error" id="llmFieldError" role="alert"></span>
+            </label>
+            <label class="field">
+              <span class="field-label">API key *</span>
+              <input type="password" id="llmApiKey" class="field-input" placeholder="Ключ API" autocomplete="off">
+              <span class="field-hint">Для Ollama можно оставить пустым.</span>
+            </label>
+            <div class="active-token" id="llmActiveToken" hidden>
+              <span class="active-token-label">Активный токен</span>
+              <span class="active-token-value" id="llmActiveTokenValue"></span>
+              <button type="button" class="btn btn-link btn-link--danger" id="llmTokenDelete">Delete</button>
+            </div>
+            <label class="field">
+              <span class="field-label">Base URL</span>
+              <input type="text" id="llmBaseUrl" class="field-input" placeholder="URL API провайдера">
+              <span class="field-hint" id="llmBaseUrlHint"></span>
+            </label>
+            <label class="field">
+              <span class="field-label">Model type *</span>
+              <div class="field-model-row">
+                <select id="llmModel" class="field-input field-select" aria-required="true">
+                  <option value="">— выберите модель —</option>
+                </select>
+              </div>
+              <input type="text" id="llmModelCustom" class="field-input" placeholder="Например: gpt-4o" style="display: none;" aria-label="Модель (Custom)">
+              <span class="field-hint field-hint--tooltip" id="llmModelHint" title="Reasoning-модели (🧠) подходят для сложных рассуждений.">🧠 Reasoning-модели — для сложных рассуждений.</span>
+              <span class="field-error" id="llmFetchModelsError" role="alert"></span>
+            </label>
+            <div id="llmAzureFields" class="llm-azure-fields" hidden>
+              <label class="field">
+                <span class="field-label">Azure Endpoint</span>
+                <input type="text" id="llmAzureEndpoint" class="field-input" placeholder="https://your-resource.openai.azure.com/">
+                <span class="field-hint">URL ресурса Azure OpenAI (без пути к API).</span>
+              </label>
+              <label class="field">
+                <span class="field-label">API Version</span>
+                <input type="text" id="llmAzureApiVersion" class="field-input" placeholder="2024-02-15-preview">
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-label">System prompt (optional)</span>
+              <textarea id="llmSystemPrompt" class="field-input field-textarea" rows="3" placeholder="Введите системный промпт для настройки поведения модели..."></textarea>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" id="llmSave">Сохранить</button>
+              <button type="button" class="btn btn-outline" id="llmClear">Удалить ключи</button>
+            </div>
+          </div>
+        </section>
+        <section class="block block--telegram" id="blockTelegram">
+          <h3 class="block-title">Телеграм бот</h3>
+          <div class="status-bar" id="telegramStatusBar" data-status="not_configured">
+            <span class="status-text" id="telegramStatusText">Not configured</span>
+            <button type="button" class="btn btn-secondary" id="telegramRetry">Retry</button>
+          </div>
+          <div class="form">
+            <label class="field">
+              <span class="field-label">Access Token *</span>
+              <input type="password" id="telegramToken" class="field-input" placeholder="Токен бота">
+              <span class="field-error" id="telegramFieldError" role="alert"></span>
+            </label>
+            <div class="active-token" id="telegramActiveToken" hidden>
+              <span class="active-token-label">Активный токен</span>
+              <span class="active-token-value" id="telegramActiveTokenValue"></span>
+              <button type="button" class="btn btn-link btn-link--danger" id="telegramTokenDelete">Delete</button>
+            </div>
+            <label class="field">
+              <span class="field-label">Base URL</span>
+              <input type="text" id="telegramBaseUrl" class="field-input" placeholder="https://api.telegram.org">
+              <span class="field-hint">По умолчанию: https://api.telegram.org</span>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" id="telegramSave">Сохранить</button>
+              <button type="button" class="btn btn-outline" id="telegramClear">Удалить ключи</button>
+            </div>
+          </div>
+        </section>
+        <section class="block block--service-admins" id="blockServiceAdmins">
+          <h3 class="block-title">Админы сервиса</h3>
+          <div id="serviceAdminsList" class="service-admins-list">
+            <p class="block-placeholder" id="serviceAdminsPlaceholder">Нет добавленных администраторов</p>
+          </div>
+          <div class="form">
+            <label class="field">
+              <span class="field-label">Введите Telegram ID</span>
+              <input type="text" id="serviceAdminTelegramId" class="field-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+              <span class="field-error" id="serviceAdminFieldError" role="alert"></span>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" id="serviceAdminAdd">Добавить</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <div id="confirmModalOverlay" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <div class="modal" id="confirmModal">
+      <h4 class="modal-title" id="confirmModalTitle">Отвязать токен?</h4>
+      <p class="modal-text" id="confirmModalText"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="confirmModalCancel">Отмена</button>
+        <button type="button" class="btn btn-outline" id="confirmModalConfirm">Удалить</button>
+      </div>
+    </div>
+  </div>
+  <script src="/admin/app.js"></script>
+</body>
+</html>

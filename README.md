@@ -1,2 +1,111 @@
 # LO_TG_BOT
-t
+
+Telegram-бот с подключённым LLM (OpenAI) для общения в чате.
+
+## Требования
+
+- Python 3.10+
+- Токен бота от [@BotFather](https://t.me/BotFather)
+- API-ключ [OpenAI](https://platform.openai.com/api-keys)
+
+## Установка
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Настройка
+
+Скопируй `.env.example` в `.env` и заполни переменные:
+
+```bash
+cp .env.example .env
+```
+
+В `.env`:
+
+- `BOT_TOKEN` — токен бота из BotFather
+- `OPENAI_API_KEY` — ключ OpenAI для LLM
+
+## Запуск
+
+```bash
+python main.py
+```
+
+После запуска бот отвечает на сообщения в Telegram, используя историю диалога (последние 20 реплик) для контекста.
+
+## Admin API (настройки из БД)
+
+Для управления настройками Telegram и LLM через веб-интерфейс запусти сервер. В `.env` задай:
+
+- **`SETTINGS_ENCRYPTION_KEY`** — ключ для шифрования токенов/ключей в БД. Либо задай в `.env`, либо **в Docker не задавай** — при первом запуске ключ создаётся автоматически в volume (`data/.encryption_key`) и сохраняется между перезапусками. Локально без Docker: сгенерировать ключ (с активированным venv) и добавить в `.env`, см. [Инструкция по запуску](docs/LAUNCH_INSTRUCTIONS.md).
+- **`DATABASE_URL`** — опционально, по умолчанию `sqlite:///./data/settings.db`.
+- **`ADMIN_API_KEY`** — опционально; если задан, все запросы к `/api/settings*` требуют заголовок `X-Admin-Key: <значение>`. В админ-панели введи этот ключ в поле «Admin key».
+
+```bash
+uvicorn api.app:app --host 0.0.0.0 --port 8000
+```
+
+При старте поднимается подпроцесс бота, если в БД есть активные настройки Telegram. Админ-панель: **http://localhost:8000/admin/**.
+
+**Эндпоинты API:**
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/api/settings` | Все настройки (Telegram + LLM), секреты маскированы |
+| PUT | `/api/settings/telegram` | Сохранить настройки Telegram |
+| DELETE | `/api/settings/telegram` | Удалить сохранённые ключи Telegram (остановка бота) |
+| DELETE | `/api/settings/telegram/token` | Отвязать токен (удалить токен, оставить Base URL) |
+| POST | `/api/settings/telegram/test` | Проверить соединение с Telegram |
+| POST | `/api/settings/telegram/activate` | Применить настройки Telegram (после успешной проверки) |
+| PUT | `/api/settings/llm` | Сохранить настройки LLM |
+| PATCH | `/api/settings/llm` | Обновить только модель и system prompt (без проверки соединения) |
+| DELETE | `/api/settings/llm` | Удалить сохранённые ключи LLM |
+| DELETE | `/api/settings/llm/token` | Отвязать API key (оставить провайдер, модель, Base URL) |
+| POST | `/api/settings/llm/test` | Проверить соединение с LLM |
+| POST | `/api/settings/llm/activate` | Применить настройки LLM |
+| GET | `/api/settings/llm/providers` | Список провайдеров и моделей (без авторизации) |
+| GET | `/api/service-admins` | Получить список администраторов сервиса |
+| POST | `/api/service-admins` | Добавить администратора по Telegram ID |
+| GET | `/api/service-admins/{telegram_id}` | Получить информацию об администраторе |
+| DELETE | `/api/service-admins/{telegram_id}` | Удалить администратора |
+| POST | `/api/service-admins/{telegram_id}/refresh` | Обновить данные профиля из Telegram |
+
+Режим «только бот» (без API): `python main.py` — настройки из `.env`, как раньше.
+
+## Команды
+
+- `/start` — приветствие и краткое описание
+
+Остальные текстовые сообщения обрабатываются LLM и получают ответ в том же чате.
+
+## Запуск в Docker (локально)
+
+В контейнере запускается **API + админ-панель** (uvicorn), порт 8000. Бот поднимается подпроцессом, если в БД есть активные настройки Telegram. **Один экземпляр на один токен** — не запускай одновременно `python main.py` и Docker.
+
+Нужен файл `.env` (скопируй из `.env.example`). Ключ шифрования **не обязательно** задавать вручную: при первом запуске контейнера он создаётся автоматически в volume `bot_data` (файл `data/.encryption_key`) и сохраняется между перезапусками. Данные БД тоже в volume `bot_data`.
+
+```bash
+docker compose up --build
+```
+
+Админ-панель: **http://localhost:8000/admin/**  
+
+Остановка: `Ctrl+C`, при необходимости `docker compose down`.
+
+Запуск в фоне:
+
+```bash
+docker compose up -d --build
+```
+
+Остановка фоновых контейнеров: `docker compose down`.
+
+Запуск тестов в контейнере:
+
+```bash
+docker compose run --rm bot pytest tests/ -v
+```
