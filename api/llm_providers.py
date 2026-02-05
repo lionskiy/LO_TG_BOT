@@ -134,194 +134,96 @@ def get_default_base_url(llm_type: str) -> str:
 def fetch_models_from_api(base_url: str, api_key: str, timeout: float = 15.0) -> tuple[list[dict[str, Any]], str | None]:
     """
     Fetch full model list from OpenAI-compatible GET /models.
-    Handles different response formats and pagination styles.
+    Handles different response formats.
     Returns (list of {"id": "model-id", "display_name": ...?}, error_message or None).
     """
     base = (base_url or "").strip().rstrip("/")
     if not base:
         return [], "Base URL is empty"
     
-    # Detect provider type for optimization
-    is_openai = "api.openai.com" in base
-    is_groq = "groq.com" in base
-    is_openrouter = "openrouter.ai" in base
-    
-    # Page size: OpenAI supports 100, others vary
-    page_size = 100 if is_openai else (50 if (is_groq or is_openrouter) else None)
-    
     headers: dict[str, str] = {}
     if (api_key or "").strip() and (api_key or "").strip() != "ollama":
         headers["Authorization"] = f"Bearer {(api_key or '').strip()}"
     
-    all_models: list[dict[str, Any]] = []
-    seen_ids: set[str] = set()  # Deduplication
-    after: str | None = None
-    max_pages = 100
-    page = 0
+    url = f"{base}/models"
     
     try:
         with httpx.Client(timeout=timeout) as client:
-            while page < max_pages:
-                page += 1
-                url = f"{base}/models"
-                params: dict[str, str] = {}
-                
-                # Pagination parameters (different providers use different params)
-                if after:
-                    params["after"] = after
-                elif page > 1:
-                    # Some providers use 'offset' or 'page' instead of 'after'
-                    # Try 'after' first, fallback handled below
-                    pass
-                
-                # Always include limit if page_size is set to ensure consistent page sizes
-                # This prevents pagination issues where later pages return different sizes
-                if page_size is not None:
-                    params["limit"] = str(page_size)
-                
-                logger.debug("Fetching models page %d from %s (after=%s, limit=%s)", 
-                           page, url, after or "none", params.get("limit") or "none")
-                
+            logger.debug("Fetching models from %s", url)
+            r = client.get(url, headers=headers if headers else None)
+            
+            if r.status_code != 200:
                 try:
-                    r = client.get(url, headers=headers if headers else None, params=params if params else None)
-                except httpx.TimeoutException:
-                    if page == 1:
-                        return [], "Request timeout"
-                    logger.debug("Page %d timeout, stopping pagination", page)
-                    break
-                except httpx.RequestError as e:
-                    if page == 1:
-                        return [], f"Request failed: {e}"
-                    logger.debug("Page %d request error, stopping pagination: %s", page, e)
-                    break
+                    error_data = r.json()
+                    msg = error_data.get("error", {}).get("message", 
+                          error_data.get("message", r.text[:200]))
+                except Exception:
+                    msg = r.text[:200] if r.text else f"HTTP {r.status_code}"
+                return [], msg or f"HTTP {r.status_code}"
+            
+            try:
+                data = r.json()
+            except Exception as e:
+                return [], f"Invalid JSON response: {e}"
+            
+            # Handle different response formats
+            raw: list[dict[str, Any]] = []
+            if isinstance(data, dict):
+                # Standard format: {"data": [...]}
+                raw = data.get("data", [])
+                # Alternative: {"models": [...]} (some providers)
+                if not raw:
+                    raw = data.get("models", [])
+                # Alternative: direct list in "result"
+                if not raw and "result" in data:
+                    result = data["result"]
+                    if isinstance(result, list):
+                        raw = result
+            elif isinstance(data, list):
+                # Some providers return list directly
+                raw = data
+            
+            if not isinstance(raw, list):
+                raw = []
+            
+            # Process models
+            all_models: list[dict[str, Any]] = []
+            seen_ids: set[str] = set()  # Deduplication
+            
+            for item in raw:
+                if not isinstance(item, dict):
+                    continue
                 
-                if r.status_code != 200:
-                    if page == 1:
-                        try:
-                            error_data = r.json()
-                            msg = error_data.get("error", {}).get("message", 
-                                  error_data.get("message", r.text[:200]))
-                        except Exception:
-                            msg = r.text[:200] if r.text else f"HTTP {r.status_code}"
-                        return [], msg or f"HTTP {r.status_code}"
-                    # On later pages, non-200 might mean end of pagination
-                    logger.debug("Page %d returned status %d, stopping pagination", page, r.status_code)
-                    break
+                # Extract model ID (try different field names)
+                mid = (item.get("id") or item.get("model") or 
+                      item.get("name") or "").strip()
                 
-                try:
-                    data = r.json()
-                except Exception as e:
-                    if page == 1:
-                        return [], f"Invalid JSON response: {e}"
-                    logger.debug("Page %d JSON parse failed, stopping pagination: %s", page, e)
-                    break
+                # Clean up model ID (remove "models/" prefix if present)
+                if mid.startswith("models/"):
+                    mid = mid[7:].strip()
                 
-                # Handle different response formats
-                raw: list[dict[str, Any]] = []
-                if isinstance(data, dict):
-                    # Standard format: {"data": [...]}
-                    raw = data.get("data", [])
-                    # Alternative: {"models": [...]} (some providers)
-                    if not raw:
-                        raw = data.get("models", [])
-                    # Alternative: direct list in "result"
-                    if not raw and "result" in data:
-                        result = data["result"]
-                        if isinstance(result, list):
-                            raw = result
-                elif isinstance(data, list):
-                    # Some providers return list directly
-                    raw = data
+                if not mid:
+                    continue
                 
-                if not isinstance(raw, list):
-                    raw = []
+                # Deduplication
+                mid_lower = mid.lower()
+                if mid_lower in seen_ids:
+                    continue
+                seen_ids.add(mid_lower)
                 
-                # Process models from this page
-                page_models_count = 0
-                for item in raw:
-                    if not isinstance(item, dict):
-                        continue
-                    
-                    # Extract model ID (try different field names)
-                    mid = (item.get("id") or item.get("model") or 
-                          item.get("name") or "").strip()
-                    
-                    # Clean up model ID (remove "models/" prefix if present)
-                    if mid.startswith("models/"):
-                        mid = mid[7:].strip()
-                    
-                    if not mid:
-                        continue
-                    
-                    # Deduplication
-                    mid_lower = mid.lower()
-                    if mid_lower in seen_ids:
-                        continue
-                    seen_ids.add(mid_lower)
-                    
-                    # Extract display name
-                    display = (item.get("display_name") or item.get("name") or 
-                              item.get("displayName") or "").strip() or None
-                    
-                    all_models.append({"id": mid, "display_name": display})
-                    page_models_count += 1
+                # Extract display name
+                display = (item.get("display_name") or item.get("name") or 
+                          item.get("displayName") or "").strip() or None
                 
-                logger.debug("Page %d: got %d models (total so far: %d)", 
-                           page, page_models_count, len(all_models))
-                
-                # If we got no models and it's not the first page, we're done
-                if page_models_count == 0 and page > 1:
-                    logger.debug("Page %d returned no models, stopping pagination", page)
-                    break
-                
-                # Check pagination indicators (handle different formats)
-                has_more = False
-                last_id: str | None = None
-                
-                if isinstance(data, dict):
-                    has_more = data.get("has_more", False)
-                    last_id = data.get("last_id") or data.get("lastId")
-                    
-                    # Some providers use "next" or "nextPageToken"
-                    if not has_more and not last_id:
-                        next_token = data.get("next") or data.get("nextPageToken")
-                        if next_token:
-                            has_more = True
-                            last_id = next_token
-                
-                # Get last item ID as fallback
-                last_item_id: str | None = None
-                if raw and isinstance(raw[-1], dict):
-                    last_item_id = (raw[-1].get("id") or raw[-1].get("model") or "").strip()
-                
-                # Determine next page token
-                after = None
-                if last_id and isinstance(last_id, str) and last_id.strip():
-                    after = last_id.strip()
-                elif last_item_id:
-                    after = last_item_id
-                
-                # Decide whether to continue pagination
-                should_continue = False
-                
-                # Explicit has_more flag
-                if has_more is True:
-                    should_continue = True
-                # Got a full page - might be more
-                elif page_size is not None and len(raw) >= page_size:
-                    should_continue = True
-                # Have pagination token
-                elif after:
-                    should_continue = True
-                
-                if not should_continue:
-                    logger.debug("No more pages (has_more=%s, after=%s, page_size=%d, got=%d)", 
-                               has_more, after, page_size or 0, len(raw))
-                    break
-                    
-        logger.info("Fetched %d unique models from %s", len(all_models), base)
-        return all_models, None
-        
+                all_models.append({"id": mid, "display_name": display})
+            
+            logger.info("Fetched %d unique models from %s", len(all_models), base)
+            return all_models, None
+            
+    except httpx.TimeoutException:
+        return [], "Request timeout"
+    except httpx.RequestError as e:
+        return [], f"Request failed: {e}"
     except Exception as e:
         logger.exception("Fetch models request failed: %s", e)
         return [], f"Unexpected error: {e}"
@@ -339,102 +241,67 @@ def fetch_models_google(api_key: str, timeout: float = 15.0) -> tuple[list[dict[
     base = "https://generativelanguage.googleapis.com"
     url = f"{base}/v1beta/models"
     params: dict[str, str] = {"key": key}
-    all_models: list[dict[str, Any]] = []
-    seen_ids: set[str] = set()  # Deduplication
-    page_token: str | None = None
-    max_pages = 50  # Increased limit
-    page = 0
     
     try:
         with httpx.Client(timeout=timeout) as client:
-            while page < max_pages:
-                page += 1
-                current_params = params.copy()
-                if page_token:
-                    current_params["pageToken"] = page_token
-                
-                logger.debug("Fetching Google models page %d (pageToken=%s)", page, page_token or "none")
-                
+            logger.debug("Fetching Google models from %s", url)
+            r = client.get(url, params=params)
+            
+            if r.status_code != 200:
                 try:
-                    r = client.get(url, params=current_params)
-                except httpx.TimeoutException:
-                    if page == 1:
-                        return [], "Request timeout"
-                    logger.debug("Page %d timeout, stopping pagination", page)
-                    break
-                except httpx.RequestError as e:
-                    if page == 1:
-                        return [], f"Request failed: {e}"
-                    logger.debug("Page %d request error, stopping pagination: %s", page, e)
-                    break
+                    error_data = r.json()
+                    msg = error_data.get("error", {}).get("message", 
+                          error_data.get("message", r.text[:200]))
+                except Exception:
+                    msg = r.text[:200] if r.text else f"HTTP {r.status_code}"
+                return [], msg or f"HTTP {r.status_code}"
+            
+            try:
+                data = r.json()
+            except Exception as e:
+                return [], f"Invalid JSON response: {e}"
+            
+            raw = data.get("models", []) if isinstance(data, dict) else []
+            if not isinstance(raw, list):
+                raw = []
+            
+            # Process models
+            all_models: list[dict[str, Any]] = []
+            seen_ids: set[str] = set()  # Deduplication
+            
+            for item in raw:
+                if not isinstance(item, dict):
+                    continue
                 
-                if r.status_code != 200:
-                    if page == 1:
-                        try:
-                            error_data = r.json()
-                            msg = error_data.get("error", {}).get("message", 
-                                  error_data.get("message", r.text[:200]))
-                        except Exception:
-                            msg = r.text[:200] if r.text else f"HTTP {r.status_code}"
-                        return [], msg or f"HTTP {r.status_code}"
-                    logger.debug("Page %d returned status %d, stopping pagination", page, r.status_code)
-                    break
+                # Google uses "baseModelId" or extracts from "name"
+                name = (item.get("name") or "").strip()
+                base_id = (item.get("baseModelId") or "").strip()
                 
-                try:
-                    data = r.json()
-                except Exception as e:
-                    if page == 1:
-                        return [], f"Invalid JSON response: {e}"
-                    logger.debug("Page %d JSON parse failed, stopping pagination: %s", page, e)
-                    break
+                # Extract model ID
+                mid = base_id
+                if not mid and name:
+                    # Remove "models/" prefix if present
+                    mid = name.replace("models/", "").strip()
                 
-                raw = data.get("models", []) if isinstance(data, dict) else []
-                if not isinstance(raw, list):
-                    raw = []
+                if not mid:
+                    continue
                 
-                if not raw and page > 1:
-                    logger.debug("Page %d returned no models, stopping pagination", page)
-                    break
+                # Deduplication
+                mid_lower = mid.lower()
+                if mid_lower in seen_ids:
+                    continue
+                seen_ids.add(mid_lower)
                 
-                page_models_count = 0
-                for item in raw:
-                    if not isinstance(item, dict):
-                        continue
-                    
-                    # Google uses "baseModelId" or extracts from "name"
-                    name = (item.get("name") or "").strip()
-                    base_id = (item.get("baseModelId") or "").strip()
-                    
-                    # Extract model ID
-                    mid = base_id
-                    if not mid and name:
-                        # Remove "models/" prefix if present
-                        mid = name.replace("models/", "").strip()
-                    
-                    if not mid:
-                        continue
-                    
-                    # Deduplication
-                    mid_lower = mid.lower()
-                    if mid_lower in seen_ids:
-                        continue
-                    seen_ids.add(mid_lower)
-                    
-                    display = (item.get("displayName") or "").strip() or None
-                    all_models.append({"id": mid, "display_name": display})
-                    page_models_count += 1
-                
-                logger.debug("Page %d: got %d models (total so far: %d)", 
-                           page, page_models_count, len(all_models))
-                
-                page_token = (data.get("nextPageToken") or "").strip() or None
-                if not page_token:
-                    logger.debug("No nextPageToken, stopping pagination")
-                    break
-                    
-        logger.info("Fetched %d unique models from Google", len(all_models))
-        return all_models, None
-        
+                display = (item.get("displayName") or "").strip() or None
+                all_models.append({"id": mid, "display_name": display})
+            
+            logger.info("Fetched %d unique models from Google", len(all_models))
+            return all_models, None
+            
+    except httpx.TimeoutException:
+        return [], "Request timeout"
+    except httpx.RequestError as e:
+        return [], f"Request failed: {e}"
     except Exception as e:
         logger.exception("Google fetch models failed: %s", e)
         return [], f"Unexpected error: {e}"
@@ -455,98 +322,58 @@ def fetch_models_anthropic(api_key: str, timeout: float = 15.0) -> tuple[list[di
         "x-api-key": key,
         "anthropic-version": "2023-06-01",
     }
-    all_models: list[dict[str, Any]] = []
-    seen_ids: set[str] = set()  # Deduplication
-    after_id: str | None = None
-    max_pages = 100
-    page = 0
     
     try:
         with httpx.Client(timeout=timeout) as client:
-            while page < max_pages:
-                page += 1
-                params: dict[str, str] = {}
-                if after_id:
-                    params["after_id"] = after_id
-                
-                logger.debug("Fetching Anthropic models page %d (after_id=%s)", page, after_id or "none")
-                
+            logger.debug("Fetching Anthropic models from %s", url)
+            r = client.get(url, headers=headers)
+            
+            if r.status_code != 200:
                 try:
-                    r = client.get(url, headers=headers, params=params if params else None)
-                except httpx.TimeoutException:
-                    if page == 1:
-                        return [], "Request timeout"
-                    logger.debug("Page %d timeout, stopping pagination", page)
-                    break
-                except httpx.RequestError as e:
-                    if page == 1:
-                        return [], f"Request failed: {e}"
-                    logger.debug("Page %d request error, stopping pagination: %s", page, e)
-                    break
+                    error_data = r.json()
+                    msg = error_data.get("error", {}).get("message", 
+                          error_data.get("message", r.text[:200]))
+                except Exception:
+                    msg = r.text[:200] if r.text else f"HTTP {r.status_code}"
+                return [], msg or f"HTTP {r.status_code}"
+            
+            try:
+                data = r.json()
+            except Exception as e:
+                return [], f"Invalid JSON response: {e}"
+            
+            raw = data.get("data", []) if isinstance(data, dict) else []
+            if not isinstance(raw, list):
+                raw = []
+            
+            # Process models
+            all_models: list[dict[str, Any]] = []
+            seen_ids: set[str] = set()  # Deduplication
+            
+            for item in raw:
+                if not isinstance(item, dict):
+                    continue
                 
-                if r.status_code != 200:
-                    if page == 1:
-                        try:
-                            error_data = r.json()
-                            msg = error_data.get("error", {}).get("message", 
-                                  error_data.get("message", r.text[:200]))
-                        except Exception:
-                            msg = r.text[:200] if r.text else f"HTTP {r.status_code}"
-                        return [], msg or f"HTTP {r.status_code}"
-                    logger.debug("Page %d returned status %d, stopping pagination", page, r.status_code)
-                    break
+                mid = (item.get("id") or "").strip()
+                if not mid:
+                    continue
                 
-                try:
-                    data = r.json()
-                except Exception as e:
-                    if page == 1:
-                        return [], f"Invalid JSON response: {e}"
-                    logger.debug("Page %d JSON parse failed, stopping pagination: %s", page, e)
-                    break
+                # Deduplication
+                mid_lower = mid.lower()
+                if mid_lower in seen_ids:
+                    continue
+                seen_ids.add(mid_lower)
                 
-                raw = data.get("data", []) if isinstance(data, dict) else []
-                if not isinstance(raw, list):
-                    raw = []
-                
-                if not raw and page > 1:
-                    logger.debug("Page %d returned no models, stopping pagination", page)
-                    break
-                
-                page_models_count = 0
-                for item in raw:
-                    if not isinstance(item, dict):
-                        continue
-                    
-                    mid = (item.get("id") or "").strip()
-                    if not mid:
-                        continue
-                    
-                    # Deduplication
-                    mid_lower = mid.lower()
-                    if mid_lower in seen_ids:
-                        continue
-                    seen_ids.add(mid_lower)
-                    
-                    display = (item.get("display_name") or "").strip() or None
-                    all_models.append({"id": mid, "display_name": display})
-                    page_models_count += 1
-                
-                logger.debug("Page %d: got %d models (total so far: %d)", 
-                           page, page_models_count, len(all_models))
-                
-                # Anthropic pagination
-                has_more = data.get("has_more", False) if isinstance(data, dict) else False
-                last_id = data.get("last_id") if isinstance(data, dict) else None
-                
-                if has_more and last_id:
-                    after_id = last_id
-                else:
-                    logger.debug("No more pages (has_more=%s, last_id=%s)", has_more, last_id)
-                    break
-                    
-        logger.info("Fetched %d unique models from Anthropic", len(all_models))
-        return all_models, None
-        
+                display = (item.get("display_name") or "").strip() or None
+                all_models.append({"id": mid, "display_name": display})
+            
+            logger.info("Fetched %d unique models from Anthropic", len(all_models))
+            return all_models, None
+            
+    except httpx.TimeoutException:
+        return [], "Request timeout"
+    except httpx.RequestError as e:
+        return [], f"Request failed: {e}"
     except Exception as e:
         logger.exception("Anthropic fetch models failed: %s", e)
         return [], f"Unexpected error: {e}"
