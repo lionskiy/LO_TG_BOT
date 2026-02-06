@@ -1206,7 +1206,34 @@ async function serviceAdminDelete(telegramId, displayName) {
   }
 }
 
+function showSection(sectionId) {
+  ['section-settings', 'section-tools', 'section-admins'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = id !== sectionId;
+  });
+  document.querySelectorAll('.sidebar-nav .nav-item').forEach((a) => {
+    a.classList.toggle('nav-item--active', a.getAttribute('data-section') === sectionId);
+  });
+  if (sectionId === 'tools' && typeof window.loadTools === 'function') window.loadTools();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  const hash = (window.location.hash || '#settings').replace('#', '');
+  const sectionId = hash === 'tools' ? 'tools' : hash === 'admins' ? 'admins' : 'settings';
+  showSection(sectionId);
+  window.addEventListener('hashchange', () => {
+    const h = (window.location.hash || '#settings').replace('#', '');
+    showSection(h === 'tools' ? 'tools' : h === 'admins' ? 'admins' : 'settings');
+  });
+  document.querySelectorAll('.sidebar-nav .nav-item').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      const s = a.getAttribute('data-section');
+      if (s) {
+        window.location.hash = s;
+        e.preventDefault();
+      }
+    });
+  });
   const savedKey = sessionStorage.getItem('adminApiKey');
   if (savedKey) document.getElementById('adminKey').value = savedKey;
   document.getElementById('adminKey').addEventListener('change', (e) => {

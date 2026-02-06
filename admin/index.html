@@ -11,7 +11,9 @@
     <aside class="sidebar">
       <h1 class="sidebar-title">Admin panel</h1>
       <nav class="sidebar-nav">
-        <a href="#" class="nav-item nav-item--active">Настройки</a>
+        <a href="#settings" class="nav-item nav-item--active" data-section="settings">Настройки</a>
+        <a href="#tools" class="nav-item" data-section="tools">Инструменты</a>
+        <a href="#admins" class="nav-item" data-section="admins">Администраторы</a>
       </nav>
       <div class="sidebar-footer">
         <label class="admin-key-label">
@@ -21,8 +23,9 @@
       </div>
     </aside>
     <main class="main">
-      <h2 class="page-title">Основные настройки приложения</h2>
-      <div class="blocks">
+      <div id="section-settings" class="section">
+        <h2 class="page-title">Основные настройки приложения</h2>
+        <div class="blocks">
         <section class="block block--llm" id="blockLlm">
           <h3 class="block-title">LLM</h3>
           <div class="status-bar" id="llmStatusBar" data-status="not_configured">
@@ -133,6 +136,20 @@
             </div>
           </div>
         </section>
+        </div>
+      </div>
+      <div id="section-tools" class="section" hidden>
+        <h2 class="page-title">Инструменты</h2>
+        <div class="tools-header">
+          <span class="tools-summary" id="toolsSummary">Загрузка...</span>
+          <button type="button" class="btn btn-secondary" id="toolsReload">Перезагрузить плагины</button>
+        </div>
+        <div id="toolsList" class="tools-list"></div>
+        <p class="block-placeholder" id="toolsPlaceholder" hidden>Нет инструментов. Нажмите «Перезагрузить плагины».</p>
+      </div>
+      <div id="section-admins" class="section" hidden>
+        <h2 class="page-title">Администраторы</h2>
+        <p class="block-placeholder">Раздел в разработке (Phase 5).</p>
       </div>
     </main>
   </div>
@@ -148,5 +165,6 @@
     </div>
   </div>
   <script src="/admin/app.js"></script>
+  <script src="/admin/tools.js"></script>
 </body>
 </html>
