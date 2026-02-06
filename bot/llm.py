@@ -47,8 +47,16 @@ _google_model = None
 
 def _needs_max_completion_tokens(model: str) -> bool:
     """
-    Check if model requires max_completion_tokens instead of max_tokens.
-    New OpenAI models (gpt-5, o3, o4 series) use max_completion_tokens.
+    Check if OpenAI-compatible model requires max_completion_tokens instead of max_tokens.
+    
+    Applies to OpenAI-compatible providers (OpenAI, Groq, OpenRouter, Ollama, Azure, etc.):
+    - New OpenAI models (gpt-5, o3, o4 series) require max_completion_tokens
+    - Older models (gpt-4, gpt-3.5, etc.) use max_tokens
+    
+    Does NOT apply to:
+    - Anthropic (uses max_tokens)
+    - Google Gemini (uses max_output_tokens)
+    - Yandex GPT (uses maxTokens)
     """
     model_lower = model.lower()
     # GPT-5 series
@@ -65,7 +73,7 @@ def _needs_max_completion_tokens(model: str) -> bool:
 
 async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
     """
-    OpenAI-compatible: always create client from kwargs so DB/config hot-swap uses current api_key and base_url.
+    OpenAI: always create client from kwargs so DB/config hot-swap uses current api_key and base_url.
     For new models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
     """
     from openai import AsyncOpenAI
@@ -81,7 +89,7 @@ async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
     else:
         client = AsyncOpenAI(api_key=api_key, **client_kw)
     
-    # New models require max_completion_tokens; older models use max_tokens
+    # OpenAI: new models (gpt-5, o3, o4) require max_completion_tokens; older models use max_tokens
     if _needs_max_completion_tokens(model):
         resp = await client.chat.completions.create(
             model=model, messages=messages, max_completion_tokens=1024
@@ -94,7 +102,10 @@ async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
 
 
 async def _reply_groq(messages: List[dict], model: str, kwargs: dict) -> str:
-    """Groq uses OpenAI-compatible API; new OpenAI models need max_completion_tokens."""
+    """
+    Groq: OpenAI-compatible API.
+    For new OpenAI models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
+    """
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=kwargs["base_url"])
@@ -110,7 +121,10 @@ async def _reply_groq(messages: List[dict], model: str, kwargs: dict) -> str:
 
 
 async def _reply_openrouter(messages: List[dict], model: str, kwargs: dict) -> str:
-    """OpenRouter uses OpenAI-compatible API; new OpenAI models need max_completion_tokens."""
+    """
+    OpenRouter: OpenAI-compatible API, supports both max_tokens and max_completion_tokens.
+    For new OpenAI models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
+    """
     from openai import AsyncOpenAI
 
     # OpenRouter/DeepSeek могут отвечать долго — увеличиваем таймаут
@@ -132,11 +146,14 @@ async def _reply_openrouter(messages: List[dict], model: str, kwargs: dict) -> s
 
 
 async def _reply_ollama(messages: List[dict], model: str, kwargs: dict) -> str:
-    """Ollama uses OpenAI-compatible API; typically uses max_tokens (local models)."""
+    """
+    Ollama: OpenAI-compatible endpoint (/v1/chat/completions) accepts max_tokens.
+    For new OpenAI models (gpt-5, o3, o4) routed through Ollama, uses max_completion_tokens;
+    local Ollama models typically use max_tokens.
+    """
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=kwargs["base_url"])
-    # Ollama models typically don't need max_completion_tokens, but check for OpenAI models routed through Ollama
     if _needs_max_completion_tokens(model):
         resp = await client.chat.completions.create(
             model=model, messages=messages, max_completion_tokens=1024
@@ -149,7 +166,10 @@ async def _reply_ollama(messages: List[dict], model: str, kwargs: dict) -> str:
 
 
 async def _reply_azure(messages: List[dict], model: str, kwargs: dict) -> str:
-    """Azure OpenAI; new OpenAI models (gpt-5, o3, o4) need max_completion_tokens."""
+    """
+    Azure OpenAI: OpenAI-compatible API.
+    For new OpenAI models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
+    """
     from openai import AsyncAzureOpenAI
 
     endpoint = kwargs.get("azure_endpoint") or (kwargs.get("base_url") or "").rstrip("/")
@@ -171,6 +191,10 @@ async def _reply_azure(messages: List[dict], model: str, kwargs: dict) -> str:
 
 
 async def _reply_anthropic(messages: List[dict], model: str, kwargs: dict) -> str:
+    """
+    Anthropic Claude: uses max_tokens (not max_completion_tokens).
+    This is Anthropic's native API parameter.
+    """
     import anthropic
 
     client = anthropic.AsyncAnthropic(api_key=kwargs["api_key"])
@@ -190,10 +214,17 @@ async def _reply_anthropic(messages: List[dict], model: str, kwargs: dict) -> st
 
 
 async def _reply_google(messages: List[dict], model: str, kwargs: dict) -> str:
+    """
+    Google Gemini: uses max_output_tokens in generation_config (not max_tokens).
+    This is Google's native API parameter.
+    """
     import google.generativeai as genai
 
     genai.configure(api_key=kwargs["api_key"])
-    gemini = genai.GenerativeModel(model)
+    gemini = genai.GenerativeModel(
+        model,
+        generation_config={"max_output_tokens": 1024}
+    )
     system = next((m["content"] for m in messages if m.get("role") == "system"), None)
     parts = []
     if system:
@@ -209,7 +240,10 @@ async def _reply_google(messages: List[dict], model: str, kwargs: dict) -> str:
 
 
 async def _reply_yandex(messages: List[dict], model: str, kwargs: dict) -> str:
-    """Yandex GPT: POST .../completion with modelUri (gpt://folder_id/model/latest). Folder from YANDEX_FOLDER_ID."""
+    """
+    Yandex GPT: uses maxTokens in completionOptions (not max_tokens).
+    POST .../completion with modelUri (gpt://folder_id/model/latest). Folder from YANDEX_FOLDER_ID.
+    """
     import httpx
 
     base = (kwargs.get("base_url") or "").strip().rstrip("/")
