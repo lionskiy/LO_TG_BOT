@@ -1,0 +1,72 @@
+id: worklog-checker
+name: "Worklog Checker"
+version: "1.0.0"
+description: "Check employee worklogs via Jira and Tempo"
+enabled: false
+
+tools:
+  - name: check_worklogs
+    description: "Checks employee worklogs for a period. Returns logged hours, required hours, deficit/overtime, and task list. Configure Jira and Tempo in admin first."
+    handler: check_worklogs
+    timeout: 60
+    parameters:
+      type: object
+      properties:
+        employee:
+          type: string
+          description: "Employee name, surname, or email (for Jira user search)"
+        period:
+          type: string
+          description: "Period: this_week, last_week, this_month, last_month, or YYYY-MM-DD/YYYY-MM-DD"
+      required:
+        - employee
+        - period
+
+  - name: get_worklog_summary
+    description: "Summary of worklogs for a team or multiple employees for a period (totals per person, overall picture)."
+    handler: get_worklog_summary
+    timeout: 90
+    parameters:
+      type: object
+      properties:
+        team:
+          type: string
+          description: "Team name or comma-separated list of names/identifiers (optional)"
+        period:
+          type: string
+          description: "Period: this_week, last_week, this_month, last_month, or YYYY-MM-DD/YYYY-MM-DD"
+      required:
+        - period
+
+settings:
+  - key: jira_url
+    label: "Jira URL"
+    type: string
+    required: true
+    description: "Base URL of Jira (e.g. https://company.atlassian.net)"
+  - key: jira_email
+    label: "Jira email (Cloud)"
+    type: string
+    required: true
+    description: "Email for Jira Cloud API token"
+  - key: jira_token
+    label: "Jira API Token"
+    type: password
+    required: true
+    description: "Jira Cloud API token or PAT (Server)"
+  - key: tempo_token
+    label: "Tempo API Token"
+    type: password
+    required: true
+    description: "Tempo API token"
+  - key: required_hours_per_day
+    label: "Required hours per day"
+    type: number
+    required: false
+    default: 8
+    description: "Expected working hours per day"
+  - key: working_days
+    label: "Working days"
+    type: string
+    required: false
+    description: "Comma-separated: mon,tue,wed,thu,fri"
