@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_plugin_setting(plugin_id: str, key: str, default: Any = None) -> Any:
-    """
-    Get plugin setting value. Phase 2: returns default. Phase 3+: from DB.
-    """
-    # TODO Phase 3: read from DB
-    return default
+    """Get plugin setting value. Reads from DB via settings_manager when available."""
+    try:
+        from tools.settings_manager import get_plugin_setting as _get
+        return _get(plugin_id, key, default)
+    except Exception:
+        return default
 
 
 def require_plugin_setting(plugin_id: str, key: str) -> Any:

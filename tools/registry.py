@@ -43,6 +43,10 @@ class ToolRegistry:
         """Get tool by name."""
         return self._tools.get(name)
 
+    def get_plugin(self, plugin_id: str) -> Optional[PluginManifest]:
+        """Get plugin manifest by id."""
+        return self._plugins.get(plugin_id)
+
     def get_all_tools(self) -> List[ToolDefinition]:
         """Get all tools (including disabled)."""
         return list(self._tools.values())

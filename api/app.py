@@ -61,8 +61,19 @@ def _require_admin(x_admin_key: str = Header(None, alias="X-Admin-Key")) -> None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize DB on startup; start bot subprocess if active Telegram settings exist."""
+    """Initialize DB; load plugins and sync settings; start bot subprocess if active Telegram settings exist."""
     init_db()
+    try:
+        from tools import load_all_plugins
+        from tools.settings_manager import sync_settings_with_registry
+        result = await load_all_plugins()
+        logger.info("Loaded %d plugins with %d tools", len(result.loaded), result.total_tools)
+        for e in result.failed:
+            logger.error("Plugin load failed %s: %s", e.plugin_path, e.error)
+        await sync_settings_with_registry()
+        logger.info("Plugin settings synced with database")
+    except Exception as e:
+        logger.exception("Plugin loading failed: %s", e)
     if get_telegram_settings_decrypted():
         start_bot()
     yield
@@ -74,6 +85,11 @@ app = FastAPI(title="LO_TG_BOT Admin API", lifespan=lifespan)
 _admin_dir = Path(__file__).resolve().parent.parent / "admin"
 if _admin_dir.exists():
     app.mount("/admin", StaticFiles(directory=str(_admin_dir), html=True), name="admin")
+
+from api.tools_router import router as tools_router
+from api.plugins_router import router as plugins_router
+app.include_router(tools_router)
+app.include_router(plugins_router)
 
 
 @app.get("/api/settings")

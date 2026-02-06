@@ -11,7 +11,7 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 from dotenv import load_dotenv
-from sqlalchemy import BigInteger, Boolean, DateTime, String, Text, create_engine, text
+from sqlalchemy import BigInteger, Boolean, DateTime, Index, String, Text, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -88,6 +88,18 @@ class LLMSettingsModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_checked: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now, onupdate=_utc_now)
+
+
+class ToolSettingsModel(Base):
+    """Tool/plugin settings: enabled status and encrypted settings_json."""
+    __tablename__ = "tool_settings"
+
+    tool_name: Mapped[str] = mapped_column(String(128), primary_key=True)
+    plugin_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    settings_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now, onupdate=_utc_now)
 
