@@ -37,7 +37,14 @@ def _llm_error_message(exc: Exception) -> str:
             lower_msg = exc_msg.lower()
             if "api key" in lower_msg or "incorrect api key" in lower_msg or "invalid api key" in lower_msg:
                 return f"Ошибка доступа к API: неверный или истёкший API-ключ. Убедитесь, что выбран правильный провайдер (OpenAI/Anthropic/и т.д.) и ключ от него. {settings_hint}"
-            return f"Неверный запрос к модели (например, неверное имя модели). {settings_hint}"
+            # Текст от API: из body.error.message или str(exc)
+            api_detail = exc_msg
+            if getattr(exc, "body", None) and isinstance(exc.body, dict):
+                err = exc.body.get("error") or exc.body
+                if isinstance(err, dict) and err.get("message"):
+                    api_detail = str(err.get("message")).strip()
+            api_hint = (api_detail[:280] + "…") if len(api_detail) > 280 else api_detail
+            return f"Неверный запрос к модели. {api_hint} {settings_hint}"
         if isinstance(exc, NotFoundError):  # openai.NotFoundError
             return f"Модель или ресурс не найден. Проверьте имя модели. {settings_hint}"
         if isinstance(exc, PermissionDeniedError):
