@@ -78,91 +78,91 @@ Verify that the current implementation works correctly, all tests pass, and docu
 - [ ] All tests pass (`pytest tests/` — green)
 - [ ] Bot works in main.py mode
 - [ ] Bot works in uvicorn + subprocess mode
-- [ ] Админка функциональна
-- [ ] Документация соответствует реальности
+- [ ] Admin panel works
+- [ ] Documentation matches reality
 
 ---
 
-## Задача 0.2: Дополнение тестов (если необходимо)
+## Task 0.2: Test additions (if needed)
 
-### Описание
-Добавить недостающие тесты для критичных путей, которые будут затронуты в Фазе 1.
+### Description
+Add missing tests for critical paths that will be touched in Phase 1.
 
-### Что должно быть покрыто тестами
+### What should be covered
 1. **bot/llm.py — get_reply()**
-   - Тест: успешный ответ от LLM
-   - Тест: обработка ошибки LLM (timeout, API error)
-   - Тест: использование настроек из БД (приоритет над .env)
+   - Test: successful LLM response
+   - Test: LLM error handling (timeout, API error)
+   - Test: settings from DB (priority over .env)
 
-2. **bot/telegram_bot.py — обработка сообщений**
-   - Тест: история диалога сохраняется
-   - Тест: ограничение истории (20 пар)
+2. **bot/telegram_bot.py — message handling**
+   - Test: conversation history is kept
+   - Test: history limit (20 pairs)
 
 3. **api/app.py — startup/shutdown**
-   - Тест: приложение стартует без ошибок
-   - Тест: бот-подпроцесс запускается при наличии активных настроек
+   - Test: application starts without errors
+   - Test: bot subprocess starts when active settings exist
 
-### Критерий готовности
-- [ ] Покрытие критичных путей в bot/llm.py
-- [ ] Тесты не зависят от реальных API (мокирование)
-
----
-
-## Задача 0.3: Создание ветки и тега
-
-### Описание
-Зафиксировать текущее состояние для возможности отката.
-
-### Шаги
-1. Создать тег текущего состояния: `git tag v0.9-pre-tools`
-2. Создать ветку для работ: `git checkout -b feature/tool-calling`
-3. Убедиться что CI (если есть) проходит на текущем состоянии
-
-### Критерий готовности
-- [ ] Тег создан и запушен
-- [ ] Ветка создана
-- [ ] Возможность отката к стабильному состоянию
+### Done when
+- [ ] Critical paths in bot/llm.py covered
+- [ ] Tests do not depend on real APIs (mocking)
 
 ---
 
-## Задача 0.4: Подготовка структуры для новых модулей
+## Task 0.3: Create branch and tag
 
-### Описание
-Создать пустые файлы и папки для новых модулей, чтобы импорты работали.
+### Description
+Freeze current state for possible rollback.
 
-### Структура
+### Steps
+1. Create tag for current state: `git tag v0.9-pre-tools`
+2. Create branch for work: `git checkout -b feature/tool-calling`
+3. Ensure CI (if any) passes on current state
+
+### Done when
+- [ ] Tag created and pushed
+- [ ] Branch created
+- [ ] Can roll back to stable state
+
+---
+
+## Task 0.4: Prepare structure for new modules
+
+### Description
+Create empty files and folders for new modules so imports work.
+
+### Structure
 ```
 LO_TG_BOT/
 ├── bot/
-│   ├── llm.py                  # существующий
-│   └── tool_calling.py         # НОВЫЙ (пустой пока)
+│   ├── llm.py                  # existing
+│   └── tool_calling.py         # NEW (empty for now)
 │
-├── tools/                      # НОВАЯ ПАПКА
-│   └── __init__.py             # пустой
+├── tools/                      # NEW FOLDER
+│   └── __init__.py             # empty
 │
-└── plugins/                    # НОВАЯ ПАПКА
-    └── __init__.py             # пустой
+└── plugins/                    # NEW FOLDER
+    └── __init__.py             # empty
 ```
 
-### Критерий готовности
-- [ ] Папка tools/ создана с __init__.py
-- [ ] Папка plugins/ создана с __init__.py
-- [ ] Файл bot/tool_calling.py создан (может быть пустой или с TODO)
-- [ ] Импорты не ломают существующий код
+### Done when
+- [ ] Folder tools/ created with __init__.py
+- [ ] Folder plugins/ created with __init__.py
+- [ ] File bot/tool_calling.py created (can be empty or with TODO)
+- [ ] Imports do not break existing code
 
 ---
 
-# ФАЗА 1: Tool-Calling в LLM Engine
+# PHASE 1: Tool-Calling in LLM Engine
 
-**Цель:** LLM может вызывать инструменты. Пока инструменты захардкожены в коде (2 тестовых).
+**Goal:** LLM can call tools. For now tools are hardcoded (2 test ones).
 
-**Срок:** 3-5 дней
+**Duration:** 3–5 days
 
-**Принцип:** Минимальные изменения в существующем коде. Новая логика — в новых файлах.
+**Principle:** Minimal changes to existing code. New logic in new files.
 
 ---
 
-## Обзор архитектуры Фазы 1
+## Phase 1 architecture overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -170,59 +170,59 @@ LO_TG_BOT/
 │  telegram_bot.py                                                            │
 │  │                                                                          │
 │  │  handle_message()                                                        │
-│  │  ├── Собирает messages (system + history + user)                        │
-│  │  ├── Вызывает get_reply(messages)          ← ИЗМЕНЕНИЕ                  │
-│  │  └── Отправляет ответ пользователю                                      │
+│  │  ├── Builds messages (system + history + user)                          │
+│  │  ├── Calls get_reply(messages)             ← CHANGE                     │
+│  │  └── Sends reply to user                                                 │
 │  │                                                                          │
 │  └──────────────────────────┬──────────────────────────────────────────────┘
 │                             │
 │                             ▼
 │  ┌─────────────────────────────────────────────────────────────────────────┐
 │  │                                                                         │
-│  │  llm.py — get_reply(messages, tools=None)         ← РАСШИРЕНИЕ          │
+│  │  llm.py — get_reply(messages, tools=None)         ← EXTENSION          │
 │  │  │                                                                      │
-│  │  │  Если tools=None:                                                    │
-│  │  │  └── Работает как раньше (без изменений)                            │
+│  │  │  If tools=None:                                                      │
+│  │  │  └── Works as before (no changes)                                    │
 │  │  │                                                                      │
-│  │  │  Если tools предоставлены:                                           │
-│  │  │  └── Передаёт tools в LLM API                                       │
-│  │  │  └── Возвращает (content, tool_calls)                               │
+│  │  │  If tools provided:                                                  │
+│  │  │  └── Passes tools to LLM API                                         │
+│  │  │  └── Returns (content, tool_calls)                                   │
 │  │  │                                                                      │
 │  │  └──────────────────────────────────────────────────────────────────────┘
 │                             │
 │                             ▼
 │  ┌─────────────────────────────────────────────────────────────────────────┐
 │  │                                                                         │
-│  │  tool_calling.py — get_reply_with_tools(messages)       ← НОВЫЙ        │
+│  │  tool_calling.py — get_reply_with_tools(messages)       ← NEW          │
 │  │  │                                                                      │
-│  │  │  1. Получает tools из HARDCODED_TOOLS                               │
-│  │  │  2. Вызывает llm.get_reply(messages, tools)                         │
-│  │  │  3. Если есть tool_calls:                                           │
-│  │  │     ├── Выполняет инструменты                                       │
-│  │  │     ├── Добавляет результаты в messages                             │
-│  │  │     └── Повторяет запрос к LLM                                      │
-│  │  │  4. Возвращает финальный текстовый ответ                            │
+│  │  │  1. Gets tools from HARDCODED_TOOLS                                   │
+│  │  │  2. Calls llm.get_reply(messages, tools)                            │
+│  │  │  3. If tool_calls present:                                           │
+│  │  │     ├── Executes tools                                               │
+│  │  │     ├── Appends results to messages                                  │
+│  │  │     └── Repeats request to LLM                                       │
+│  │  │  4. Returns final text reply                                         │
 │  │  │                                                                      │
 │  │  └──────────────────────────────────────────────────────────────────────┘
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**История диалога при tool-calling:** в историю сохраняется только **финальный текстовый ответ** пользователю. Промежуточные сообщения (assistant с tool_calls, tool results) в историю не записываются.
+**Conversation history with tool-calling:** only the **final text reply** to the user is stored in history. Intermediate messages (assistant with tool_calls, tool results) are not written to history.
 
 ---
 
-## Задача 1.1: Расширение get_reply() для поддержки tools
+## Task 1.1: Extend get_reply() to support tools
 
-### Описание
-Модифицировать функцию `get_reply()` в `bot/llm.py` так, чтобы она могла принимать опциональный параметр `tools` и возвращать информацию о tool_calls.
+### Description
+Modify `get_reply()` in `bot/llm.py` so it can accept an optional `tools` parameter and return tool_calls information.
 
-### Текущая сигнатура
+### Current signature
 ```python
 async def get_reply(messages: List[dict]) -> str
 ```
 
-### Новая сигнатура
+### New signature
 ```python
 async def get_reply(
     messages: List[dict], 
@@ -231,27 +231,27 @@ async def get_reply(
 ) -> tuple[str, List[ToolCall] | None]
 ```
 
-### Поведение
+### Behaviour
 
-**Без tools (обратная совместимость):**
-- Если `tools=None`, функция работает как раньше
-- Возвращает `(content, None)`
+**Without tools (backward compatible):**
+- If `tools=None`, function works as before
+- Returns `(content, None)`
 
-**С tools:**
-- Передаёт `tools` и `tool_choice` в API LLM
-- Если LLM вернул tool_calls, возвращает `(None, [ToolCall(...)])`
-- Если LLM вернул текст, возвращает `(content, None)`
+**With tools:**
+- Passes `tools` and `tool_choice` to LLM API
+- If LLM returned tool_calls, returns `(None, [ToolCall(...)])`
+- If LLM returned text, returns `(content, None)`
 
-### Структура ToolCall
+### ToolCall structure
 ```python
 @dataclass
 class ToolCall:
-    id: str              # Уникальный ID вызова (от LLM)
-    name: str            # Имя инструмента
-    arguments: dict      # Аргументы (уже распарсенный JSON)
+    id: str              # Unique call ID (from LLM)
+    name: str            # Tool name
+    arguments: dict      # Arguments (already parsed JSON)
 ```
 
-### Изменения по провайдерам
+### Provider-specific changes
 
 #### OpenAI / OpenAI-compatible (Groq, OpenRouter, Ollama, etc.)
 ```
@@ -274,7 +274,7 @@ Response:
 #### Anthropic (Claude)
 ```
 Request:
-  tools: [...]  # Формат Anthropic отличается
+  tools: [...]  # Anthropic format differs
 
 Response:
   content: [
@@ -290,7 +290,7 @@ Response:
 #### Google (Gemini)
 ```
 Request:
-  tools: [...]  # Формат Gemini
+  tools: [...]  # Gemini format
 
 Response:
   candidates[0].content.parts: [
@@ -303,30 +303,30 @@ Response:
   ]
 ```
 
-### Задачи
-1. Добавить dataclass `ToolCall` в bot/llm.py (или отдельный models.py)
-2. Модифицировать каждый провайдер для поддержки tools
-3. Унифицировать парсинг tool_calls в ToolCall
-4. Добавить конвертеры tools между форматами (если нужно)
+### Tasks
+1. Add dataclass `ToolCall` in bot/llm.py (or separate models.py)
+2. Modify each provider to support tools
+3. Unify parsing of tool_calls into ToolCall
+4. Add tool converters between formats (if needed)
 
-### Критерий готовности
-- [ ] get_reply() принимает опциональный параметр tools
-- [ ] Без tools — работает как раньше (регрессии нет)
-- [ ] С tools — возвращает ToolCall для OpenAI
-- [ ] С tools — возвращает ToolCall для Anthropic
-- [ ] С tools — возвращает ToolCall для Google
-- [ ] Тесты на все варианты
+### Done when
+- [ ] get_reply() accepts optional tools parameter
+- [ ] Without tools — works as before (no regression)
+- [ ] With tools — returns ToolCall for OpenAI
+- [ ] With tools — returns ToolCall for Anthropic
+- [ ] With tools — returns ToolCall for Google
+- [ ] Tests for all cases
 
 ---
 
-## Задача 1.2: Создание модуля tool_calling.py
+## Task 1.2: Create tool_calling.py module
 
-### Описание
-Новый модуль, который оркестрирует процесс tool-calling: получает tools, вызывает LLM, выполняет инструменты, возвращает финальный ответ.
+### Description
+New module that orchestrates tool-calling: gets tools, calls LLM, executes tools, returns final reply.
 
-### Файл: bot/tool_calling.py
+### File: bot/tool_calling.py
 
-### Основная функция
+### Main function
 ```python
 async def get_reply_with_tools(
     messages: List[dict],
@@ -334,39 +334,39 @@ async def get_reply_with_tools(
 ) -> str
 ```
 
-### Алгоритм работы
+### Algorithm
 
 ```
-1. ПОДГОТОВКА
+1. PREPARE
    │
-   ├── Получить список tools (пока HARDCODED_TOOLS)
-   ├── Если tools пустой → вызвать обычный get_reply() без tools
+   ├── Get tools list (HARDCODED_TOOLS for now)
+   ├── If tools empty → call plain get_reply() without tools
    │
-2. ЦИКЛ TOOL-CALLING (max_iterations раз)
+2. TOOL-CALLING LOOP (max_iterations)
    │
-   ├── Вызвать get_reply(messages, tools)
+   ├── Call get_reply(messages, tools)
    │   │
-   │   ├── Если вернулся текст (content) → ВЫХОД, вернуть content
+   │   ├── If text (content) returned → EXIT, return content
    │   │
-   │   └── Если вернулись tool_calls:
+   │   └── If tool_calls returned:
    │       │
-   │       ├── Для каждого tool_call:
-   │       │   ├── Найти handler по имени
-   │       │   ├── Выполнить handler(arguments)
-   │       │   └── Сохранить результат
+   │       ├── For each tool_call:
+   │       │   ├── Find handler by name
+   │       │   ├── Execute handler(arguments)
+   │       │   └── Store result
    │       │
-   │       ├── Добавить в messages:
-   │       │   ├── assistant message с tool_calls
+   │       ├── Append to messages:
+   │       │   ├── assistant message with tool_calls
    │       │   └── tool result messages
    │       │
-   │       └── Продолжить цикл
+   │       └── Continue loop
    │
-3. ЗАЩИТА ОТ ЗАЦИКЛИВАНИЯ
+3. LOOP GUARD
    │
-   └── Если достигнут max_iterations → вернуть fallback ответ
+   └── If max_iterations reached → return fallback reply
 ```
 
-### Формат tool result message (OpenAI)
+### Tool result message format (OpenAI)
 ```python
 {
     "role": "tool",
@@ -375,7 +375,7 @@ async def get_reply_with_tools(
 }
 ```
 
-### Формат tool result message (Anthropic)
+### Tool result message format (Anthropic)
 ```python
 {
     "role": "user",
@@ -389,44 +389,44 @@ async def get_reply_with_tools(
 }
 ```
 
-### Обработка ошибок
+### Error handling
 
-| Ситуация | Поведение |
-|----------|-----------|
-| Tool не найден | Вернуть error message в tool result |
-| Tool выбросил исключение | Вернуть error message в tool result |
-| Таймаут выполнения | Вернуть timeout error в tool result |
-| Достигнут max_iterations | Вернуть текст: "Не удалось завершить операцию" |
-| LLM API error | Пробросить исключение (как раньше) |
+| Situation | Behaviour |
+|-----------|-----------|
+| Tool not found | Return error message in tool result |
+| Tool raised exception | Return error message in tool result |
+| Execution timeout | Return timeout error in tool result |
+| max_iterations reached | Return text: "Could not complete the operation" |
+| LLM API error | Re-raise exception (as before) |
 
-### Критерий готовности
-- [ ] Функция get_reply_with_tools() реализована
-- [ ] Цикл tool-calling работает
-- [ ] Tool results правильно добавляются в messages
-- [ ] Защита от бесконечного цикла
-- [ ] Обработка ошибок выполнения tools
-- [ ] Тесты на цикл tool-calling
+### Done when
+- [ ] get_reply_with_tools() implemented
+- [ ] Tool-calling loop works
+- [ ] Tool results correctly appended to messages
+- [ ] Infinite loop guard in place
+- [ ] Tool execution error handling
+- [ ] Tests for tool-calling loop
 
 ---
 
-## Задача 1.3: Захардкоженные тестовые инструменты
+## Task 1.3: Hardcoded test tools
 
-### Описание
-Создать 2 простых инструмента прямо в коде для тестирования tool-calling. В Фазе 2 они будут вынесены в плагины.
+### Description
+Create 2 simple tools in code for testing tool-calling. In Phase 2 they will be moved to plugins.
 
-### Инструмент 1: get_current_datetime
+### Tool 1: get_current_datetime
 
-**Описание (для LLM, английский):**
+**Description (for LLM, English):**
 ```
 Returns current date and time in ISO format with weekday name.
 ```
 
-**Параметры:** Нет
+**Parameters:** None
 
-**Поведение:**
-- Возвращает текущую дату и время
-- Формат: "2024-01-15 14:30:00 (Monday)"
-- Использует UTC или локальное время (настраиваемо)
+**Behaviour:**
+- Returns current date and time
+- Format: "2024-01-15 14:30:00 (Monday)"
+- Uses UTC or local time (configurable)
 
 **Tool definition (OpenAI format):**
 ```json
@@ -447,19 +447,19 @@ Returns current date and time in ISO format with weekday name.
 **Handler:**
 ```python
 async def get_current_datetime() -> str:
-    # Возвращает текущее время
+    # Returns current time
 ```
 
-### Инструмент 2: calculate
+### Tool 2: calculate
 
-**Описание (для LLM, английский):**
+**Description (for LLM, English):**
 ```
 Evaluates a mathematical expression and returns the result. 
 Supports: +, -, *, /, **, parentheses, sqrt, sin, cos, tan, log, pi, e.
 ```
 
-**Параметры:**
-- `expression` (string, required) — математическое выражение
+**Parameters:**
+- `expression` (string, required) — mathematical expression
 
 **Tool definition:**
 ```json
@@ -485,16 +485,16 @@ Supports: +, -, *, /, **, parentheses, sqrt, sin, cos, tan, log, pi, e.
 **Handler:**
 ```python
 async def calculate(expression: str) -> str:
-    # Безопасный eval с ограниченным набором функций
-    # Возвращает результат или сообщение об ошибке
+    # Safe eval with limited function set
+    # Returns result or error message
 ```
 
-**Безопасность:**
-- Использовать ограниченный набор разрешённых функций
-- Не использовать `eval()` напрямую
-- Использовать `ast.literal_eval` или библиотеку `simpleeval`
+**Security:**
+- Use a limited set of allowed functions
+- Do not use `eval()` directly
+- Use `ast.literal_eval` or the `simpleeval` library
 
-### Структура в коде
+### Structure in code
 ```python
 # bot/tool_calling.py
 
@@ -510,21 +510,21 @@ HARDCODED_TOOLS = [
 ]
 ```
 
-### Критерий готовности
-- [ ] get_current_datetime работает
-- [ ] calculate работает с базовыми операциями
-- [ ] calculate безопасен (нет code injection)
-- [ ] Tool definitions корректны для OpenAI
-- [ ] Тесты на оба инструмента
+### Done when
+- [ ] get_current_datetime works
+- [ ] calculate works with basic operations
+- [ ] calculate is safe (no code injection)
+- [ ] Tool definitions correct for OpenAI
+- [ ] Tests for both tools
 
 ---
 
-## Задача 1.4: Интеграция в telegram_bot.py
+## Task 1.4: Integration in telegram_bot.py
 
-### Описание
-Подключить tool-calling в обработчик сообщений. Должна быть возможность включать/выключать tool-calling.
+### Description
+Wire tool-calling into the message handler. There must be a way to enable/disable tool-calling.
 
-### Текущий flow (упрощённо)
+### Current flow (simplified)
 ```python
 # telegram_bot.py
 
@@ -535,14 +535,14 @@ async def handle_message(update, context):
     save_to_history(chat_id, text, reply)
 ```
 
-### Новый flow
+### New flow
 ```python
 # telegram_bot.py
 
 async def handle_message(update, context):
     messages = build_messages(chat_id, text)
     
-    if tools_enabled():  # Проверка флага
+    if tools_enabled():  # Flag check
         reply = await get_reply_with_tools(messages)
     else:
         reply = await get_reply(messages)
@@ -551,31 +551,31 @@ async def handle_message(update, context):
     save_to_history(chat_id, text, reply)
 ```
 
-### Флаг включения tool-calling
+### Tool-calling enable flag
 
-**Варианты (выбрать один):**
+**Options (choose one):**
 
-1. **Переменная окружения:**
+1. **Environment variable:**
    ```
    ENABLE_TOOL_CALLING=true
    ```
 
-2. **Настройка в БД (в LLM settings):**
+2. **DB setting (in LLM settings):**
    ```python
    llm_settings.enable_tools = True
    ```
 
-3. **Всегда включено** (для Фазы 1, упрощение):
+3. **Always on** (for Phase 1, simplification):
    ```python
-   # Пока просто всегда используем tools
+   # For now just always use tools
    reply = await get_reply_with_tools(messages)
    ```
 
-**Рекомендация для Фазы 1:** Использовать переменную окружения `ENABLE_TOOL_CALLING=true`. Это позволяет быстро откатиться если что-то пойдёт не так.
+**Recommendation for Phase 1:** Use environment variable `ENABLE_TOOL_CALLING=true`. This allows quick rollback if something goes wrong.
 
-### Обработка ошибок
+### Error handling
 
-Tool-calling не должен ломать бота. Если что-то пошло не так:
+Tool-calling must not break the bot. If something goes wrong:
 ```python
 try:
     reply = await get_reply_with_tools(messages)
@@ -584,26 +584,26 @@ except Exception as e:
     reply = await get_reply(messages)  # Fallback
 ```
 
-### Критерий готовности
-- [ ] tool-calling интегрирован в telegram_bot.py
-- [ ] Есть флаг для включения/выключения
-- [ ] Fallback на обычный режим при ошибках
-- [ ] Логирование tool-calls
-- [ ] История диалога корректно сохраняется
+### Done when
+- [ ] Tool-calling integrated in telegram_bot.py
+- [ ] Flag to enable/disable exists
+- [ ] Fallback to normal mode on errors
+- [ ] Tool-calls logging
+- [ ] Conversation history saved correctly
 
 ---
 
-## Задача 1.5: System prompt для tool-calling
+## Task 1.5: System prompt for tool-calling
 
-### Описание
-Обновить system prompt, чтобы LLM понимал как использовать инструменты и всегда отвечал на русском.
+### Description
+Update system prompt so the LLM knows how to use tools and always replies in Russian.
 
-### Текущий system prompt
+### Current system prompt
 ```
-Ты — полезный ассистент. Отвечай на вопросы пользователя.
+You are a helpful assistant. Answer the user's questions.
 ```
 
-### Новый system prompt (английский для экономии токенов)
+### New system prompt (English to save tokens)
 ```
 You are a helpful assistant in a Telegram bot.
 
@@ -618,38 +618,38 @@ IMPORTANT RULES:
 Be concise and helpful.
 ```
 
-### Где хранится
+### Where it is stored
 
-1. **Дефолтный** — в коде (bot/config.py или bot/tool_calling.py)
-2. **Переопределённый** — в настройках LLM в БД (существующее поле systemPrompt)
+1. **Default** — in code (bot/config.py or bot/tool_calling.py)
+2. **Override** — in LLM settings in DB (existing systemPrompt field)
 
-### Логика
+### Logic
 ```python
 def get_system_prompt():
-    # 1. Проверить настройки в БД
+    # 1. Check DB settings
     db_settings = get_llm_settings()
     if db_settings and db_settings.system_prompt:
         return db_settings.system_prompt
     
-    # 2. Использовать дефолтный с tools
+    # 2. Use default with tools
     return DEFAULT_SYSTEM_PROMPT_WITH_TOOLS
 ```
 
-### Критерий готовности
-- [ ] Новый system prompt создан
-- [ ] Prompt на английском (экономия токенов)
-- [ ] Инструкция отвечать на русском
-- [ ] Prompt используется при tool-calling
-- [ ] Можно переопределить через админку
+### Done when
+- [ ] New system prompt created
+- [ ] Prompt in English (saves tokens)
+- [ ] Instruction to reply in Russian
+- [ ] Prompt used when tool-calling
+- [ ] Can override via admin panel
 
 ---
 
-## Задача 1.6: Тестирование Фазы 1
+## Task 1.6: Phase 1 testing
 
-### Описание
-Написать тесты для всех новых компонентов и провести ручное тестирование.
+### Description
+Write tests for all new components and perform manual testing.
 
-### Unit-тесты
+### Unit tests
 
 #### test_tool_calling.py
 ```
@@ -666,7 +666,7 @@ test_get_reply_with_tools_max_iterations
 test_get_reply_with_tools_tool_error_handling
 ```
 
-#### test_llm_tools.py (расширение существующих)
+#### test_llm_tools.py (extend existing)
 ```
 test_get_reply_with_tools_openai
 test_get_reply_with_tools_anthropic
@@ -674,7 +674,7 @@ test_get_reply_with_tools_google
 test_get_reply_without_tools_unchanged
 ```
 
-### Integration тесты
+### Integration tests
 
 ```
 test_full_flow_datetime_question
@@ -683,159 +683,159 @@ test_full_flow_regular_question_no_tools
 test_fallback_on_tool_error
 ```
 
-### Ручное тестирование (чеклист)
+### Manual testing (checklist)
 
-**Подготовка:**
-- [ ] Бот запущен с `ENABLE_TOOL_CALLING=true`
-- [ ] LLM настроен (OpenAI или другой с поддержкой tools)
+**Setup:**
+- [ ] Bot running with `ENABLE_TOOL_CALLING=true`
+- [ ] LLM configured (OpenAI or other with tools support)
 
-**Тесты datetime:**
-- [ ] "Сколько сейчас времени?" → ответ с текущим временем
-- [ ] "Какой сегодня день недели?" → правильный день
-- [ ] "What time is it?" → ответ на русском с временем
+**Datetime tests:**
+- [ ] "What time is it?" → reply with current time
+- [ ] "What day of the week is it?" → correct day
+- [ ] "What time is it?" (any language) → reply with time
 
-**Тесты calculate:**
-- [ ] "Посчитай 2+2" → "4"
-- [ ] "Сколько будет 15% от 200?" → "30"
-- [ ] "Чему равен квадратный корень из 144?" → "12"
+**Calculate tests:**
+- [ ] "Calculate 2+2" → "4"
+- [ ] "What is 15% of 200?" → "30"
+- [ ] "Square root of 144?" → "12"
 - [ ] "sin(0) + cos(0)" → "1"
 
-**Тесты без tools:**
-- [ ] "Привет, как дела?" → обычный ответ (без вызова tools)
-- [ ] "Расскажи анекдот" → обычный ответ
+**Tests without tools:**
+- [ ] "Hi, how are you?" → normal reply (no tool calls)
+- [ ] "Tell me a joke" → normal reply
 
-**Тесты ошибок:**
-- [ ] "Посчитай 1/0" → понятное сообщение об ошибке
-- [ ] "Посчитай abc" → понятное сообщение об ошибке
+**Error tests:**
+- [ ] "Calculate 1/0" → clear error message
+- [ ] "Calculate abc" → clear error message
 
-**Тесты совместимости:**
-- [ ] История диалога работает
-- [ ] Бот не падает при длинных диалогах
-- [ ] Админка работает как раньше
+**Compatibility tests:**
+- [ ] Conversation history works
+- [ ] Bot does not crash on long conversations
+- [ ] Admin panel works as before
 
-### Критерий готовности
-- [ ] Все unit-тесты проходят
-- [ ] Integration тесты проходят
-- [ ] Ручное тестирование пройдено
-- [ ] Нет регрессий в существующей функциональности
+### Done when
+- [ ] All unit tests pass
+- [ ] Integration tests pass
+- [ ] Manual testing completed
+- [ ] No regressions in existing functionality
 
 ---
 
-## Последовательность работ
+## Work sequence
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 1: Фаза 0                                                             │
+│  DAY 1: Phase 0                                                             │
 │                                                                             │
-│  Утро:                                                                      │
-│  ├── 0.1 Ревью текущего состояния                                          │
-│  └── 0.2 Дополнение тестов (если нужно)                                    │
+│  Morning:                                                                    │
+│  ├── 0.1 Review current state                                              │
+│  └── 0.2 Test additions (if needed)                                         │
 │                                                                             │
-│  После обеда:                                                               │
-│  ├── 0.3 Создание ветки и тега                                             │
-│  └── 0.4 Подготовка структуры для новых модулей                            │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 2: Задача 1.1 — Расширение get_reply()                               │
-│                                                                             │
-│  ├── Добавить ToolCall dataclass                                           │
-│  ├── Модифицировать OpenAI провайдер                                       │
-│  ├── Модифицировать Anthropic провайдер                                    │
-│  ├── Модифицировать Google провайдер                                       │
-│  └── Тесты                                                                 │
+│  Afternoon:                                                                  │
+│  ├── 0.3 Create branch and tag                                              │
+│  └── 0.4 Prepare structure for new modules                                  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 3: Задачи 1.2 + 1.3 — tool_calling.py + инструменты                  │
+│  DAY 2: Task 1.1 — Extend get_reply()                                      │
 │                                                                             │
-│  Утро:                                                                      │
-│  ├── Создать bot/tool_calling.py                                           │
-│  ├── Реализовать get_reply_with_tools()                                    │
-│  └── Цикл tool-calling                                                     │
-│                                                                             │
-│  После обеда:                                                               │
-│  ├── Реализовать get_current_datetime                                      │
-│  ├── Реализовать calculate                                                 │
-│  └── Тесты инструментов                                                    │
+│  ├── Add ToolCall dataclass                                                 │
+│  ├── Modify OpenAI provider                                                 │
+│  ├── Modify Anthropic provider                                              │
+│  ├── Modify Google provider                                                 │
+│  └── Tests                                                                  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 4: Задачи 1.4 + 1.5 — Интеграция + System prompt                     │
+│  DAY 3: Tasks 1.2 + 1.3 — tool_calling.py + tools                           │
 │                                                                             │
-│  Утро:                                                                      │
-│  ├── Интеграция в telegram_bot.py                                          │
-│  ├── Флаг ENABLE_TOOL_CALLING                                              │
-│  └── Fallback логика                                                       │
+│  Morning:                                                                    │
+│  ├── Create bot/tool_calling.py                                             │
+│  ├── Implement get_reply_with_tools()                                       │
+│  └── Tool-calling loop                                                      │
 │                                                                             │
-│  После обеда:                                                               │
-│  ├── Новый system prompt                                                   │
-│  ├── Логирование tool-calls                                                │
-│  └── Тесты интеграции                                                      │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 5: Задача 1.6 — Тестирование                                         │
-│                                                                             │
-│  ├── Дописать unit-тесты                                                   │
-│  ├── Integration тесты                                                     │
-│  ├── Ручное тестирование по чеклисту                                       │
-│  ├── Исправление багов                                                     │
-│  └── Документация изменений                                                │
+│  Afternoon:                                                                  │
+│  ├── Implement get_current_datetime                                         │
+│  ├── Implement calculate                                                    │
+│  └── Tool tests                                                             │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  РЕЗУЛЬТАТ ФАЗЫ 1                                                          │
+│  DAY 4: Tasks 1.4 + 1.5 — Integration + System prompt                       │
 │                                                                             │
-│  ✅ Бот умеет использовать инструменты                                     │
-│  ✅ 2 тестовых инструмента работают (datetime, calculator)                 │
-│  ✅ Tool-calling работает для OpenAI, Anthropic, Google                    │
-│  ✅ Можно включить/выключить через env                                     │
-│  ✅ Текущая функциональность не сломана                                    │
-│  ✅ Готов фундамент для Фазы 2 (Plugin System)                             │
+│  Morning:                                                                    │
+│  ├── Integration in telegram_bot.py                                         │
+│  ├── ENABLE_TOOL_CALLING flag                                               │
+│  └── Fallback logic                                                         │
+│                                                                             │
+│  Afternoon:                                                                  │
+│  ├── New system prompt                                                      │
+│  ├── Tool-calls logging                                                     │
+│  └── Integration tests                                                      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  DAY 5: Task 1.6 — Testing                                                 │
+│                                                                             │
+│  ├── Complete unit tests                                                    │
+│  ├── Integration tests                                                     │
+│  ├── Manual testing per checklist                                           │
+│  ├── Bug fixes                                                              │
+│  └── Documentation updates                                                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 1 OUTCOME                                                            │
+│                                                                             │
+│  ✅ Bot can use tools                                                       │
+│  ✅ 2 test tools work (datetime, calculator)                                │
+│  ✅ Tool-calling works for OpenAI, Anthropic, Google                         │
+│  ✅ Can enable/disable via env                                              │
+│  ✅ Current functionality intact                                            │
+│  ✅ Foundation ready for Phase 2 (Plugin System)                             │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Риски и митигации
+## Risks and mitigations
 
-| Риск | Вероятность | Влияние | Митигация |
-|------|-------------|---------|-----------|
-| LLM не вызывает tools | Средняя | Высокое | Улучшить system prompt, проверить формат tools |
-| Разные форматы tool-calling у провайдеров | Высокая | Среднее | Абстракция ToolCall, конвертеры |
-| Tool-calling замедляет ответы | Средняя | Среднее | Флаг отключения, логирование времени |
-| calculate небезопасен | Низкая | Высокое | Использовать simpleeval, тесты на injection |
-| Регрессии в существующем коде | Средняя | Высокое | Тесты, fallback, постепенная интеграция |
-
----
-
-## Definition of Done для Фазы 1
-
-- [ ] Все задачи 0.1-0.4 выполнены
-- [ ] Все задачи 1.1-1.6 выполнены
-- [ ] Все unit-тесты проходят
-- [ ] Ручное тестирование пройдено
-- [ ] Нет регрессий (существующие тесты проходят)
-- [ ] Код отревьюен
-- [ ] Ветка готова к мержу (или продолжению в Фазе 2)
-- [ ] Документация обновлена (README, CURRENT_IMPLEMENTATION.md)
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| LLM does not call tools | Medium | High | Improve system prompt, check tools format |
+| Different tool-calling formats per provider | High | Medium | ToolCall abstraction, converters |
+| Tool-calling slows responses | Medium | Medium | Disable flag, timing logs |
+| calculate unsafe | Low | High | Use simpleeval, injection tests |
+| Regressions in existing code | Medium | High | Tests, fallback, gradual integration |
 
 ---
 
-## Версионирование документа
+## Definition of Done for Phase 1
 
-| Версия | Дата | Описание |
-|--------|------|----------|
-| 1.0 | 2026-02-06 | Первая версия плана Фаз 0-1 |
+- [ ] All tasks 0.1–0.4 done
+- [ ] All tasks 1.1–1.6 done
+- [ ] All unit tests pass
+- [ ] Manual testing done
+- [ ] No regressions (existing tests pass)
+- [ ] Code reviewed
+- [ ] Branch ready to merge (or to continue in Phase 2)
+- [ ] Documentation updated (README, CURRENT_IMPLEMENTATION.md)
+
+---
+
+## Document versioning
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0 | 2026-02-06 | First version of Phase 0–1 plan |

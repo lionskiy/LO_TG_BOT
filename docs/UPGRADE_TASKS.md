@@ -125,22 +125,22 @@
 │
 ├── 2.1 Tool Registry [NEW]
 │   │
-│   ├── 2.1.1 Структуры данных
+│   ├── 2.1.1 Data structures
 │   │   ├── ToolDefinition (name, description, parameters, handler, timeout)
 │   │   ├── PluginManifest (id, name, version, tools, settings)
 │   │   └── ToolStatus (enabled, needs_config, error)
 │   │
-│   ├── 2.1.2 Хранение в памяти
+│   ├── 2.1.2 In-memory storage
 │   │   ├── Dict[tool_name, ToolDefinition]
 │   │   ├── Dict[plugin_id, PluginManifest]
-│   │   └── Синхронизация с БД (статусы, настройки)
+│   │   └── Sync with DB (statuses, settings)
 │   │
-│   ├── 2.1.3 API для LLM Router
+│   ├── 2.1.3 API for LLM Router
 │   │   ├── get_enabled_tools() → List[ToolDefinition]
 │   │   ├── get_tools_for_llm() → List[dict] (OpenAI format)
 │   │   └── get_tool(name) → ToolDefinition | None
 │   │
-│   ├── 2.1.4 API для управления
+│   ├── 2.1.4 Management API
 │   │   ├── enable_tool(name)
 │   │   ├── disable_tool(name)
 │   │   ├── get_tool_status(name) → ToolStatus
@@ -154,37 +154,37 @@
 │   ├── Dependencies: Plugin Loader
 │   │
 │   └── Done when:
-│       └── Registry хранит tools и формирует список для LLM
+│       └── Registry stores tools and builds list for LLM
 │
 ├── 2.2 Plugin Loader [NEW]
 │   │
-│   ├── 2.2.1 Сканирование
-│   │   ├── Обход папки plugins/
-│   │   ├── Поиск plugin.yaml в каждой подпапке
-│   │   └── Фильтрация (игнорировать __pycache__, .git и т.д.)
+│   ├── 2.2.1 Scanning
+│   │   ├── Walk plugins/ directory
+│   │   ├── Find plugin.yaml in each subfolder
+│   │   └── Filter (ignore __pycache__, .git, etc.)
 │   │
-│   ├── 2.2.2 Парсинг манифеста
-│   │   ├── Чтение plugin.yaml (PyYAML)
-│   │   ├── Валидация схемы (Pydantic)
-│   │   ├── Проверка обязательных полей
-│   │   └── Обработка ошибок парсинга
+│   ├── 2.2.2 Manifest parsing
+│   │   ├── Read plugin.yaml (PyYAML)
+│   │   ├── Schema validation (Pydantic)
+│   │   ├── Check required fields
+│   │   └── Parse error handling
 │   │
-│   ├── 2.2.3 Загрузка кода
-│   │   ├── importlib.util для handlers.py
-│   │   ├── Получение функций-handlers
-│   │   ├── Валидация сигнатур функций
-│   │   └── Обработка ошибок импорта
+│   ├── 2.2.3 Code loading
+│   │   ├── importlib.util for handlers.py
+│   │   ├── Get handler functions
+│   │   ├── Function signature validation
+│   │   └── Import error handling
 │   │
-│   ├── 2.2.4 Регистрация
-│   │   ├── Создание ToolDefinition для каждого tool
-│   │   ├── Регистрация в Registry
-│   │   └── Логирование загруженных плагинов
+│   ├── 2.2.4 Registration
+│   │   ├── Create ToolDefinition per tool
+│   │   ├── Register in Registry
+│   │   └── Log loaded plugins
 │   │
 │   ├── 2.2.5 Hot-reload
 │   │   ├── reload_plugin(plugin_id)
 │   │   ├── reload_all_plugins()
-│   │   ├── Удаление старых tools из Registry
-│   │   └── Загрузка обновлённых
+│   │   ├── Remove old tools from Registry
+│   │   └── Load updated ones
 │   │
 │   ├── Files:
 │   │   └── tools/loader.py [NEW]
@@ -192,36 +192,36 @@
 │   ├── Dependencies: None
 │   │
 │   └── Done when:
-│       └── Плагины загружаются из папки при старте и по команде
+│       └── Plugins load from folder on startup and on command
 │
 ├── 2.3 Tool Executor [NEW]
 │   │
-│   ├── 2.3.1 Маршрутизация
-│   │   ├── Получение handler из Registry по имени
-│   │   ├── Проверка что tool enabled
-│   │   └── Проверка что настройки заполнены
+│   ├── 2.3.1 Routing
+│   │   ├── Get handler from Registry by name
+│   │   ├── Check that tool is enabled
+│   │   └── Check that settings are filled
 │   │
-│   ├── 2.3.2 Выполнение
-│   │   ├── Парсинг arguments (JSON → dict)
-│   │   ├── Вызов async handler(**kwargs)
-│   │   ├── Сериализация результата (dict/str → str)
-│   │   └── Обработка возвращаемого значения
+│   ├── 2.3.2 Execution
+│   │   ├── Parse arguments (JSON → dict)
+│   │   ├── Call async handler(**kwargs)
+│   │   ├── Serialize result (dict/str → str)
+│   │   └── Handle return value
 │   │
-│   ├── 2.3.3 Таймауты
-│   │   ├── asyncio.wait_for с timeout из ToolDefinition
-│   │   ├── Дефолтный timeout (30 сек)
-│   │   └── Обработка asyncio.TimeoutError
+│   ├── 2.3.3 Timeouts
+│   │   ├── asyncio.wait_for with timeout from ToolDefinition
+│   │   ├── Default timeout (30 sec)
+│   │   └── Handle asyncio.TimeoutError
 │   │
-│   ├── 2.3.4 Обработка ошибок
+│   ├── 2.3.4 Error handling
 │   │   ├── Tool not found → ToolNotFoundError
 │   │   ├── Tool disabled → ToolDisabledError
 │   │   ├── Execution error → ToolExecutionError
-│   │   └── Формирование error message для LLM
+│   │   └── Build error message for LLM
 │   │
-│   ├── 2.3.5 Логирование
-│   │   ├── Лог: tool_name, params, duration, result/error
-│   │   ├── Опционально: запись в tool_call_log (БД)
-│   │   └── Метрики (счётчики вызовов)
+│   ├── 2.3.5 Logging
+│   │   ├── Log: tool_name, params, duration, result/error
+│   │   ├── Optional: write to tool_call_log (DB)
+│   │   └── Metrics (call counters)
 │   │
 │   ├── Files:
 │   │   └── tools/executor.py [NEW]
@@ -229,31 +229,31 @@
 │   ├── Dependencies: Tool Registry
 │   │
 │   └── Done when:
-│       └── Executor вызывает handlers и возвращает результат
+│       └── Executor calls handlers and returns result
 │
 ├── 2.4 Plugin Settings Manager [NEW]
 │   │
-│   ├── 2.4.1 Чтение настроек
+│   ├── 2.4.1 Read settings
 │   │   ├── get_plugin_settings(plugin_id) → dict
 │   │   ├── get_setting(plugin_id, key) → any
-│   │   └── Дешифрование секретов (Fernet)
+│   │   └── Decrypt secrets (Fernet)
 │   │
-│   ├── 2.4.2 Запись настроек
+│   ├── 2.4.2 Write settings
 │   │   ├── save_plugin_settings(plugin_id, settings: dict)
-│   │   ├── Валидация по схеме из plugin.yaml
-│   │   ├── Шифрование секретов (type: password)
-│   │   └── Обновление статуса (needs_config → enabled)
+│   │   ├── Validate against plugin.yaml schema
+│   │   ├── Encrypt secrets (type: password)
+│   │   └── Update status (needs_config → enabled)
 │   │
-│   ├── 2.4.3 Валидация
-│   │   ├── Проверка required полей
-│   │   ├── Проверка типов
-│   │   ├── Проверка options для select
-│   │   └── Возврат ошибок валидации
+│   ├── 2.4.3 Validation
+│   │   ├── Check required fields
+│   │   ├── Check types
+│   │   ├── Check options for select
+│   │   └── Return validation errors
 │   │
-│   ├── 2.4.4 Статус конфигурации
+│   ├── 2.4.4 Configuration status
 │   │   ├── is_configured(plugin_id) → bool
 │   │   ├── get_missing_settings(plugin_id) → List[str]
-│   │   └── Автоматическое определение needs_config
+│   │   └── Auto-detect needs_config
 │   │
 │   ├── Files:
 │   │   └── tools/settings_manager.py [NEW]
@@ -261,26 +261,26 @@
 │   ├── Dependencies: Tools Repository, Encryption
 │   │
 │   └── Done when:
-│       └── Настройки плагинов читаются/пишутся с шифрованием
+│       └── Plugin settings read/written with encryption
 │
-├── 2.5 Plugin Base (утилиты для плагинов) [NEW]
+├── 2.5 Plugin Base (utilities for plugins) [NEW]
 │   │
-│   ├── 2.5.1 Доступ к настройкам
-│   │   ├── get_setting(key) — для использования в handlers
-│   │   └── require_setting(key) — с исключением если нет
+│   ├── 2.5.1 Access to settings
+│   │   ├── get_setting(key) — for use in handlers
+│   │   └── require_setting(key) — raise if missing
 │   │
-│   ├── 2.5.2 Доступ к LLM (для плагинов с uses_llm)
+│   ├── 2.5.2 Access to LLM (for plugins with uses_llm)
 │   │   ├── get_llm_client() → LLMClient
 │   │   ├── generate(prompt) → str
-│   │   └── Использование главного LLM или отдельного
+│   │   └── Use main LLM or separate one
 │   │
-│   ├── 2.5.3 HTTP клиент
+│   ├── 2.5.3 HTTP client
 │   │   ├── get_http_client() → httpx.AsyncClient
-│   │   └── Преднастроенный с таймаутами
+│   │   └── Preconfigured with timeouts
 │   │
-│   ├── 2.5.4 Логирование
+│   ├── 2.5.4 Logging
 │   │   ├── get_logger(plugin_id) → Logger
-│   │   └── Префикс [plugin_id] в логах
+│   │   └── Prefix [plugin_id] in logs
 │   │
 │   ├── Files:
 │   │   └── tools/base.py [NEW]
@@ -288,7 +288,7 @@
 │   ├── Dependencies: Settings Manager, LLM Engine
 │   │
 │   └── Done when:
-│       └── Плагины могут использовать утилиты через import
+│       └── Plugins can use utilities via import
 ```
 
 ---
@@ -298,7 +298,7 @@
 ```
 3. STORAGE
 │
-├── 3.1 Модели данных [NEW]
+├── 3.1 Data models [NEW]
 │   │
 │   ├── 3.1.1 ToolSettingsModel
 │   │   ├── tool_name: str (PK)
@@ -325,26 +325,26 @@
 │   ├── Dependencies: SQLAlchemy
 │   │
 │   └── Done when:
-│       └── Таблицы создаются при старте, миграция не ломает существующие
+│       └── Tables created on startup, migration does not break existing
 │
 ├── 3.2 Tools Repository [NEW]
 │   │
-│   ├── 3.2.1 CRUD операции
+│   ├── 3.2.1 CRUD operations
 │   │   ├── get_tool_settings(tool_name) → ToolSettingsModel | None
 │   │   ├── get_all_tool_settings() → List[ToolSettingsModel]
 │   │   ├── save_tool_settings(tool_name, plugin_id, enabled, settings)
 │   │   ├── update_tool_enabled(tool_name, enabled)
 │   │   └── delete_tool_settings(tool_name)
 │   │
-│   ├── 3.2.2 Шифрование
+│   ├── 3.2.2 Encryption
 │   │   ├── encrypt_settings(settings: dict) → str
 │   │   ├── decrypt_settings(encrypted: str) → dict
-│   │   └── Использование существующего encryption.py
+│   │   └── Use existing encryption.py
 │   │
-│   ├── 3.2.3 Маскирование для API
+│   ├── 3.2.3 Masking for API
 │   │   ├── mask_settings(settings: dict, schema: List) → dict
-│   │   ├── Маскирование полей type: password
-│   │   └── Формат: "***{last_5_chars}"
+│   │   ├── Mask fields type: password
+│   │   └── Format: "***{last_5_chars}"
 │   │
 │   ├── Files:
 │   │   └── api/tools_repository.py [NEW]
@@ -352,7 +352,7 @@
 │   ├── Dependencies: db.py, encryption.py
 │   │
 │   └── Done when:
-│       └── CRUD работает, секреты шифруются как TG/LLM
+│       └── CRUD works, secrets encrypted like TG/LLM
 ```
 
 ---
@@ -365,45 +365,45 @@
 ├── 4.1 Tools Router [NEW]
 │   │
 │   ├── 4.1.1 GET /api/tools
-│   │   ├── Список всех инструментов
-│   │   ├── Данные из Registry + статусы из БД
+│   │   ├── List all tools
+│   │   ├── Data from Registry + statuses from DB
 │   │   ├── Response: [{name, description, plugin_id, enabled, needs_config}]
-│   │   └── Авторизация: X-Admin-Key
+│   │   └── Auth: X-Admin-Key
 │   │
 │   ├── 4.1.2 GET /api/tools/{name}
-│   │   ├── Детали инструмента
-│   │   ├── Включает: description, parameters, settings schema
+│   │   ├── Tool details
+│   │   ├── Includes: description, parameters, settings schema
 │   │   ├── Response: {name, description, parameters, settings_schema, current_settings (masked)}
-│   │   └── 404 если не найден
+│   │   └── 404 if not found
 │   │
 │   ├── 4.1.3 POST /api/tools/{name}/enable
-│   │   ├── Включить инструмент
-│   │   ├── Проверка: настройки заполнены (если required)
+│   │   ├── Enable tool
+│   │   ├── Check: settings filled (if required)
 │   │   ├── Response: {success, message}
-│   │   └── 400 если needs_config
+│   │   └── 400 if needs_config
 │   │
 │   ├── 4.1.4 POST /api/tools/{name}/disable
-│   │   ├── Выключить инструмент
+│   │   ├── Disable tool
 │   │   ├── Response: {success}
-│   │   └── Всегда успешно
+│   │   └── Always success
 │   │
 │   ├── 4.1.5 GET /api/tools/{name}/settings
-│   │   ├── Получить настройки (masked)
+│   │   ├── Get settings (masked)
 │   │   ├── Response: {settings: {...}, schema: [...]}
-│   │   └── Пароли маскированы
+│   │   └── Passwords masked
 │   │
 │   ├── 4.1.6 PUT /api/tools/{name}/settings
-│   │   ├── Сохранить настройки
+│   │   ├── Save settings
 │   │   ├── Body: {settings: {...}}
-│   │   ├── Валидация по схеме
+│   │   ├── Schema validation
 │   │   ├── Response: {success, errors?}
-│   │   └── 400 при ошибках валидации
+│   │   └── 400 on validation errors
 │   │
 │   ├── 4.1.7 POST /api/tools/{name}/test
-│   │   ├── Проверить подключение (если есть внешний API)
-│   │   ├── Вызов специального test handler (optional)
+│   │   ├── Test connection (if external API exists)
+│   │   ├── Call special test handler (optional)
 │   │   ├── Response: {success, message, details?}
-│   │   └── 400/500 при ошибке
+│   │   └── 400/500 on error
 │   │
 │   ├── Files:
 │   │   └── api/tools_router.py [NEW]
@@ -411,25 +411,25 @@
 │   ├── Dependencies: Tool Registry, Tools Repository, Settings Manager
 │   │
 │   └── Done when:
-│       └── Все эндпоинты работают, Swagger документация
+│       └── All endpoints work, Swagger docs
 │
 ├── 4.2 Plugins Router [NEW]
 │   │
 │   ├── 4.2.1 POST /api/plugins/reload
-│   │   ├── Перезагрузить все плагины
-│   │   ├── Вызов Plugin Loader.reload_all()
+│   │   ├── Reload all plugins
+│   │   ├── Call Plugin Loader.reload_all()
 │   │   ├── Response: {success, loaded: [...], errors: [...]}
-│   │   └── Partial success возможен
+│   │   └── Partial success possible
 │   │
 │   ├── 4.2.2 POST /api/plugins/{id}/reload
-│   │   ├── Перезагрузить конкретный плагин
+│   │   ├── Reload specific plugin
 │   │   ├── Response: {success, message}
-│   │   └── 404 если не найден
+│   │   └── 404 if not found
 │   │
 │   ├── 4.2.3 GET /api/plugins
-│   │   ├── Список плагинов
+│   │   ├── List plugins
 │   │   ├── Response: [{id, name, version, tools_count, enabled_count}]
-│   │   └── Группировка по плагинам
+│   │   └── Group by plugin
 │   │
 │   ├── Files:
 │   │   └── api/plugins_router.py [NEW]
@@ -437,24 +437,24 @@
 │   ├── Dependencies: Plugin Loader
 │   │
 │   └── Done when:
-│       └── Hot-reload работает через API
+│       └── Hot-reload works via API
 │
-├── 4.3 Интеграция в app.py [EXTENSION]
+├── 4.3 Integration in app.py [EXTENSION]
 │   │
-│   ├── 4.3.1 Подключение роутеров
+│   ├── 4.3.1 Mount routers
 │   │   ├── app.include_router(tools_router)
 │   │   └── app.include_router(plugins_router)
 │   │
 │   ├── 4.3.2 Startup event
-│   │   ├── Инициализация Plugin Loader
-│   │   ├── Загрузка плагинов
-│   │   └── Синхронизация Registry с БД
+│   │   ├── Initialize Plugin Loader
+│   │   ├── Load plugins
+│   │   └── Sync Registry with DB
 │   │
 │   ├── Files:
 │   │   └── api/app.py [EXTENSION]
 │   │
 │   └── Done when:
-│       └── Плагины загружаются при старте приложения
+│       └── Plugins load on application startup
 ```
 
 ---
@@ -464,106 +464,106 @@
 ```
 5. ADMIN PANEL
 │
-├── 5.1 Навигация [EXTENSION]
+├── 5.1 Navigation [EXTENSION]
 │   │
-│   ├── 5.1.1 Структура меню
-│   │   ├── Настройки (существующий)
-│   │   ├── Инструменты (новый)
-│   │   └── Администраторы (новый)
+│   ├── 5.1.1 Menu structure
+│   │   ├── Settings (existing)
+│   │   ├── Tools (new)
+│   │   └── Administrators (new)
 │   │
-│   ├── 5.1.2 Роутинг
-│   │   ├── #settings (существующий)
-│   │   ├── #tools (новый)
-│   │   └── #admins (новый)
+│   ├── 5.1.2 Routing
+│   │   ├── #settings (existing)
+│   │   ├── #tools (new)
+│   │   └── #admins (new)
 │   │
-│   ├── 5.1.3 Активный пункт меню
-│   │   └── Подсветка текущего раздела
+│   ├── 5.1.3 Active menu item
+│   │   └── Highlight current section
 │   │
 │   ├── Files:
 │   │   ├── admin/index.html [EXTENSION]
 │   │   └── admin/app.js [EXTENSION]
 │   │
 │   └── Done when:
-│       └── Меню с 3 пунктами, переключение разделов
+│       └── Menu with 3 items, section switching
 │
-├── 5.2 Страница "Инструменты" [NEW]
+├── 5.2 "Tools" page [NEW]
 │   │
-│   ├── 5.2.1 Список инструментов
-│   │   ├── Загрузка GET /api/tools
-│   │   ├── Отображение карточек/таблицы
-│   │   ├── Группировка по плагинам (optional)
-│   │   └── Фильтр: все / включённые / выключенные
+│   ├── 5.2.1 Tool list
+│   │   ├── Load GET /api/tools
+│   │   ├── Display cards/table
+│   │   ├── Group by plugin (optional)
+│   │   └── Filter: all / enabled / disabled
 │   │
-│   ├── 5.2.2 Карточка инструмента
-│   │   ├── Название
-│   │   ├── Описание
-│   │   ├── Плагин (откуда)
-│   │   ├── Статус (badge): Включён / Выключен / Требует настройки
-│   │   └── Кнопки действий
+│   ├── 5.2.2 Tool card
+│   │   ├── Name
+│   │   ├── Description
+│   │   ├── Plugin (source)
+│   │   ├── Status (badge): Enabled / Disabled / Needs config
+│   │   └── Action buttons
 │   │
-│   ├── 5.2.3 Действия с инструментом
-│   │   ├── Кнопка "Включить" → POST /api/tools/{name}/enable
-│   │   ├── Кнопка "Выключить" → POST /api/tools/{name}/disable
-│   │   ├── Кнопка "Настройки" → открыть модалку/страницу
-│   │   └── Toast уведомления об успехе/ошибке
+│   ├── 5.2.3 Tool actions
+│   │   ├── "Enable" button → POST /api/tools/{name}/enable
+│   │   ├── "Disable" button → POST /api/tools/{name}/disable
+│   │   ├── "Settings" button → open modal/page
+│   │   └── Toast on success/error
 │   │
-│   ├── 5.2.4 Форма настроек инструмента
-│   │   ├── Заголовок с названием инструмента
-│   │   ├── Динамическая форма из settings schema
-│   │   ├── Типы полей: text, password, number, select, checkbox
-│   │   ├── Маскирование паролей (показать/скрыть)
-│   │   ├── Валидация на клиенте
-│   │   ├── Кнопка "Проверить подключение" (если есть test)
-│   │   └── Кнопки: Сохранить, Отмена
+│   ├── 5.2.4 Tool settings form
+│   │   ├── Header with tool name
+│   │   ├── Dynamic form from settings schema
+│   │   ├── Field types: text, password, number, select, checkbox
+│   │   ├── Password masking (show/hide)
+│   │   ├── Client-side validation
+│   │   ├── "Test connection" button (if test exists)
+│   │   └── Buttons: Save, Cancel
 │   │
-│   ├── 5.2.5 Кнопка "Перезагрузить плагины"
+│   ├── 5.2.5 "Reload plugins" button
 │   │   ├── POST /api/plugins/reload
-│   │   ├── Индикатор загрузки
-│   │   └── Toast с результатом
+│   │   ├── Loading indicator
+│   │   └── Toast with result
 │   │
 │   ├── Files:
-│   │   ├── admin/index.html [EXTENSION] или admin/tools.html [NEW]
+│   │   ├── admin/index.html [EXTENSION] or admin/tools.html [NEW]
 │   │   ├── admin/tools.js [NEW]
 │   │   └── admin/styles.css [EXTENSION]
 │   │
-│   ├── Dependencies: Tools API готов
+│   ├── Dependencies: Tools API ready
 │   │
 │   └── Done when:
-│       └── Полное управление инструментами через UI
+│       └── Full tool management via UI
 │
-├── 5.3 Страница "Администраторы" [NEW]
+├── 5.3 "Administrators" page [NEW]
 │   │
-│   ├── 5.3.1 Список администраторов
-│   │   ├── Загрузка GET /api/service-admins
-│   │   ├── Таблица: ID, Имя, Username, Дата добавления
-│   │   └── Пустое состояние: "Нет администраторов"
+│   ├── 5.3.1 Administrator list
+│   │   ├── Load GET /api/service-admins
+│   │   ├── Table: ID, Name, Username, Date added
+│   │   └── Empty state: "No administrators"
 │   │
-│   ├── 5.3.2 Добавление администратора
-│   │   ├── Кнопка "+ Добавить"
-│   │   ├── Модалка с формой
-│   │   ├── Поле: Telegram ID (number, required)
-│   │   ├── Подсказка про @userinfobot
+│   ├── 5.3.2 Add administrator
+│   │   ├── "+ Add" button
+│   │   ├── Modal with form
+│   │   ├── Field: Telegram ID (number, required)
+│   │   ├── Hint about @userinfobot
 │   │   ├── POST /api/service-admins
-│   │   └── Toast с результатом
+│   │   └── Toast with result
 │   │
-│   ├── 5.3.3 Действия с администратором
-│   │   ├── Кнопка "Обновить" → POST /api/service-admins/{id}/refresh
-│   │   ├── Кнопка "Удалить" → модалка подтверждения
+│   ├── 5.3.3 Administrator actions
+│   │   ├── "Refresh" button → POST /api/service-admins/{id}/refresh
+│   │   ├── "Remove" button → confirmation modal
 │   │   └── DELETE /api/service-admins/{id}
 │   │
-│   ├── 5.3.4 Модалка подтверждения удаления
-│   │   ├── Текст: "Удалить администратора {имя}?"
-│   │   └── Кнопки: Удалить (danger), Отмена
+│   ├── 5.3.4 Delete confirmation modal
+│   │   ├── Text: "Remove administrator {name}?"
+│   │   └── Buttons: Remove (danger), Cancel
 │   │
 │   ├── Files:
-│   │   ├── admin/index.html [EXTENSION] или admin/admins.html [NEW]
+│   │   ├── admin/index.html [EXTENSION] or admin/admins.html [NEW]
 │   │   ├── admin/admins.js [NEW]
 │   │   └── admin/styles.css [EXTENSION]
 │   │
 │   ├── Dependencies: API already exists!
 │   │
 │   └── Done when:
-│       └── Полное управление админами через UI
+│       └── Full admin management via UI
 ```
 
 ---
@@ -579,7 +579,7 @@
 │   │   ├── id: calculator
 │   │   ├── name: "Calculator"
 │   │   ├── version: "1.0.0"
-│   │   ├── enabled: true (по умолчанию)
+│   │   ├── enabled: true (default)
 │   │   └── tools:
 │   │       └── calculate
 │   │           ├── description: "Evaluates mathematical expression"
@@ -587,9 +587,9 @@
 │   │
 │   ├── 6.1.2 handlers.py
 │   │   ├── async def calculate(expression: str) → str
-│   │   ├── Безопасный eval (без __builtins__)
-│   │   ├── Поддержка: +, -, *, /, **, sqrt, sin, cos, etc.
-│   │   └── Обработка ошибок (деление на 0, синтаксис)
+│   │   ├── Safe eval (no __builtins__)
+│   │   ├── Support: +, -, *, /, **, sqrt, sin, cos, etc.
+│   │   └── Error handling (division by zero, syntax)
 │   │
 │   ├── Files:
 │   │   ├── plugins/builtin/calculator/plugin.yaml
@@ -598,7 +598,7 @@
 │   ├── Settings: None
 │   │
 │   └── Done when:
-│       └── "Посчитай 2+2*3" → "8"
+│       └── "Calculate 2+2*3" → "8"
 │
 ├── 6.2 DateTime Tools [NEW]
 │   │
@@ -618,18 +618,18 @@
 │   │   ├── async def get_current_datetime() → str
 │   │   │   └── Return: "2024-01-15 14:30:00 (Monday)"
 │   │   └── async def get_weekday(date: str) → str
-│   │       ├── Парсинг даты (разные форматы)
-│   │       └── Return: "Monday" / "Понедельник"
+│   │       ├── Date parsing (various formats)
+│   │       └── Return: "Monday" or localized weekday
 │   │
 │   ├── Files:
 │   │   ├── plugins/builtin/datetime_tools/plugin.yaml
 │   │   └── plugins/builtin/datetime_tools/handlers.py
 │   │
-│   ├── Настройки:
-│   │   └── timezone (опционально, default: UTC)
+│   ├── Settings:
+│   │   └── timezone (optional, default: UTC)
 │   │
 │   └── Done when:
-│       └── "Сколько времени?" → текущее время
+│       └── "What time is it?" → current time
 ```
 
 ---
@@ -643,9 +643,9 @@
 │   │
 │   ├── 7.1.1 plugin.yaml
 │   │   ├── id: worklog-checker
-│   │   ├── name: "Проверка ворклогов"
+│   │   ├── name: "Worklog checker"
 │   │   ├── version: "1.0.0"
-│   │   ├── enabled: false (требует настройки)
+│   │   ├── enabled: false (requires config)
 │   │   ├── tools:
 │   │   │   ├── check_worklogs
 │   │   │   │   ├── description: "Checks employee worklogs..."
@@ -664,28 +664,28 @@
 │   │
 │   ├── 7.1.2 handlers.py
 │   │   ├── async def check_worklogs(employee, period) → dict
-│   │   │   ├── Получение настроек
-│   │   │   ├── Поиск сотрудника в Jira
-│   │   │   ├── Запрос ворклогов из Tempo
-│   │   │   ├── Расчёт нормы и дефицита
+│   │   │   ├── Get settings
+│   │   │   ├── Find employee in Jira
+│   │   │   ├── Fetch worklogs from Tempo
+│   │   │   ├── Compute required hours and deficit
 │   │   │   └── Return: {employee, period, logged, required, deficit, tasks}
 │   │   └── async def get_worklog_summary(team, period) → dict
 │   │
-│   ├── 7.1.3 jira_client.py (вспомогательный)
+│   ├── 7.1.3 jira_client.py (helper)
 │   │   ├── class JiraClient
 │   │   ├── search_user(query) → User
 │   │   ├── get_issues(user, period) → List[Issue]
-│   │   └── Обработка ошибок API
+│   │   └── API error handling
 │   │
-│   ├── 7.1.4 tempo_client.py (вспомогательный)
+│   ├── 7.1.4 tempo_client.py (helper)
 │   │   ├── class TempoClient
 │   │   ├── get_worklogs(user_key, date_from, date_to) → List[Worklog]
-│   │   └── Обработка ошибок API
+│   │   └── API error handling
 │   │
 │   ├── 7.1.5 test handler (optional)
 │   │   ├── async def test_connection() → dict
-│   │   ├── Проверка подключения к Jira
-│   │   ├── Проверка подключения к Tempo
+│   │   ├── Test Jira connection
+│   │   ├── Test Tempo connection
 │   │   └── Return: {jira_ok, tempo_ok, errors}
 │   │
 │   ├── Files:
@@ -697,46 +697,46 @@
 │   ├── Dependencies: httpx, Jira API, Tempo API
 │   │
 │   └── Done when:
-│       └── "Проверь ворклоги Иванова" → реальные данные
+│       └── "Check Ivanov's worklogs" → real data
 │
 ├── 7.2 HR Service [FUTURE]
 │   │
-│   ├── 7.2.1 Инструменты
-│   │   ├── get_employee — получить данные сотрудника
-│   │   ├── list_employees — список с фильтрами
-│   │   ├── search_employees — поиск по имени/отделу
-│   │   └── update_employee — обновить данные
+│   ├── 7.2.1 Tools
+│   │   ├── get_employee — get employee data
+│   │   ├── list_employees — list with filters
+│   │   ├── search_employees — search by name/department
+│   │   └── update_employee — update data
 │   │
-│   ├── 7.2.2 Хранение
-│   │   ├── Отдельная таблица employees в SQLite
-│   │   └── Или интеграция с внешней HR-системой
+│   ├── 7.2.2 Storage
+│   │   ├── Separate employees table in SQLite
+│   │   └── Or integration with external HR system
 │   │
-│   ├── 7.2.3 Импорт
-│   │   ├── import_from_excel — загрузка из Excel
-│   │   └── import_from_csv — загрузка из CSV
+│   ├── 7.2.3 Import
+│   │   ├── import_from_excel — load from Excel
+│   │   └── import_from_csv — load from CSV
 │   │
 │   └── Done when:
-│       └── "Кто руководитель Иванова?" → ответ из базы
+│       └── "Who is Ivanov's manager?" → answer from DB
 │
 ├── 7.3 Reminder [FUTURE]
 │   │
-│   ├── 7.3.1 Инструменты
-│   │   ├── find_violators — найти нарушителей за период
-│   │   ├── send_reminder — отправить напоминание (uses_llm: true)
-│   │   └── escalate_to_manager — эскалация руководителю
+│   ├── 7.3.1 Tools
+│   │   ├── find_violators — find violators for period
+│   │   ├── send_reminder — send reminder (uses_llm: true)
+│   │   └── escalate_to_manager — escalate to manager
 │   │
-│   ├── 7.3.2 LLM интеграция
-│   │   ├── Генерация персонализированного текста
-│   │   ├── Настраиваемый тон (friendly/formal/strict)
-│   │   └── Промпты в templates.py
+│   ├── 7.3.2 LLM integration
+│   │   ├── Generate personalized text
+│   │   ├── Configurable tone (friendly/formal/strict)
+│   │   └── Prompts in templates.py
 │   │
-│   ├── 7.3.3 Scheduler интеграция
-│   │   ├── Крон-задача: проверка нарушителей
-│   │   ├── Автоматическая отправка напоминаний
-│   │   └── Эскалация по таймауту
+│   ├── 7.3.3 Scheduler integration
+│   │   ├── Cron job: check violators
+│   │   ├── Auto-send reminders
+│   │   └── Escalation on timeout
 │   │
 │   └── Done when:
-│       └── Автоматические напоминания с персонализацией
+│       └── Automated reminders with personalization
 ```
 
 ---
