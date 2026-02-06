@@ -1,92 +1,92 @@
 # ARCHITECTURE BLUEPRINT — LO_TG_BOT
 
-> **Основной архитектурный документ для разработки**  
-> Используется как референс при работе над каждым блоком/фазой
+> **Primary architecture document for development**  
+> Used as a reference when working on each block/phase
 
-**Версия:** 1.1  
-**Дата:** 2026-02-06  
-**Подход:** Умный монолит с плагинами (один процесс)
-
----
-
-## Связанные документы
-
-| Документ | Описание | Статус |
-|----------|----------|--------|
-| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Целевая архитектура (этот документ) | ✅ Актуален (не завершено) |
-| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Декомпозиция задач на 3-4 уровня | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Детальный план Фазы 0-1 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Детальный план Фазы 2 (Plugin System) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Детальный план Фазы 3 (Storage + API) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Детальный план Фазы 4 (Админка Инструменты) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Детальный план Фазы 5 (Админка Администраторы) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Детальный план Фазы 6 (Worklog Checker) | ✅ Актуален (не завершено) |
-
-### Текущее состояние (v1.0) — реализовано
-
-| Документ | Описание |
-|----------|----------|
-| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Полная спецификация текущей реализации: архитектура, API, установка |
-| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
-
-Планы фаз (0–6) опираются на эту базу и добавляют tool-calling, плагины, админку инструментов/админов, Worklog Checker.
+**Version:** 1.1  
+**Date:** 2026-02-06  
+**Approach:** Smart monolith with plugins (single process)
 
 ---
 
-## Как использовать этот документ
+## Related documents
 
-1. **При старте работы над блоком** — сверяйся с разделом "Блоки для независимой разработки"
-2. **При создании плагина** — следуй стандарту из раздела "Структура плагина"
-3. **При вопросах по flow** — смотри раздел "Flow обработки запроса"
-4. **При оптимизации** — учитывай раздел "Ресурсы и ограничения"
-5. **При планировании работ** — смотри [UPGRADE_TASKS.md](UPGRADE_TASKS.md)
-6. **При реализации конкретной фазы** — смотри соответствующий PLAN_PHASE_X.md
+| Document | Description | Status |
+|----------|-------------|--------|
+| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Target architecture (this document) | ✅ Current (in progress) |
+| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Task breakdown to 3–4 levels | ✅ Current (in progress) |
+| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Detailed plan for Phase 0–1 | ✅ Current (in progress) |
+| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Detailed plan for Phase 2 (Plugin System) | ✅ Current (in progress) |
+| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Detailed plan for Phase 3 (Storage + API) | ✅ Current (in progress) |
+| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Detailed plan for Phase 4 (Admin Tools) | ✅ Current (in progress) |
+| [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Detailed plan for Phase 5 (Admin Administrators) | ✅ Current (in progress) |
+| [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Detailed plan for Phase 6 (Worklog Checker) | ✅ Current (in progress) |
+
+### Current state (v1.0) — implemented
+
+| Document | Description |
+|----------|-------------|
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Full specification of current implementation: architecture, API, installation |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Quick start and FAQ |
+
+Phase plans (0–6) build on this base and add tool-calling, plugins, tools/administrators admin UI, and Worklog Checker.
 
 ---
 
-## 1. Общая схема
+## How to use this document
+
+1. **When starting work on a block** — refer to the "Blocks for independent development" section
+2. **When creating a plugin** — follow the standard in the "Plugin structure" section
+3. **For flow questions** — see the "Request processing flow" section
+4. **For optimization** — consider the "Resources and constraints" section
+5. **When planning work** — see [UPGRADE_TASKS.md](UPGRADE_TASKS.md)
+6. **When implementing a specific phase** — see the corresponding PLAN_PHASE_X.md
+
+---
+
+## 1. High-level diagram
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
-│                        LO_TG_BOT (Один Python-процесс)                           │
+│                        LO_TG_BOT (Single Python process)                         │
 │                                                                                  │
 │  ┌────────────────────────────────────────────────────────────────────────────┐ │
 │  │                                                                            │ │
-│  │                    ВХОДНАЯ ТОЧКА (Telegram Bot)                            │ │
+│  │                    ENTRY POINT (Telegram Bot)                              │ │
 │  │                                                                            │ │
 │  │   • Long polling (python-telegram-bot)                                     │ │
-│  │   • Приём сообщений от пользователей                                       │ │
-│  │   • Отправка ответов                                                       │ │
+│  │   • Receiving messages from users                                          │ │
+│  │   • Sending replies                                                        │ │
 │  │   • Single instance (.bot.pid)                                             │ │
-│  │   • Подпроцесс управляется через bot_runner                                │ │
+│  │   • Subprocess managed via bot_runner                                      │ │
 │  │                                                                            │ │
-│  │   [БЕЗ ИЗМЕНЕНИЙ — блок стабилен]                                          │ │
+│  │   [NO CHANGES — block stable]                                              │ │
 │  │                                                                            │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
 │                                        │                                         │
 │                                        ▼                                         │
 │  ┌────────────────────────────────────────────────────────────────────────────┐ │
 │  │                                                                            │ │
-│  │                      ОРКЕСТРАТОР (LLM Engine)                              │ │
+│  │                      ORCHESTRATOR (LLM Engine)                             │ │
 │  │                                                                            │ │
 │  │   ┌──────────────────────────────────────────────────────────────────┐    │ │
 │  │   │  Conversation Manager                                             │    │ │
-│  │   │  • История диалогов (20 пар user/assistant)                       │    │ │
-│  │   │  • Контекст по chat_id                                            │    │ │
-│  │   │  [УЖЕ ЕСТЬ в telegram_bot.py]                                     │    │ │
+│  │   │  • Conversation history (20 user/assistant pairs)                 │    │ │
+│  │   │  • Context by chat_id                                             │    │ │
+│  │   │  [ALREADY in telegram_bot.py]                                     │    │ │
 │  │   └──────────────────────────────────────────────────────────────────┘    │ │
 │  │                                        │                                   │ │
 │  │                                        ▼                                   │ │
 │  │   ┌──────────────────────────────────────────────────────────────────┐    │ │
-│  │   │  LLM Router                                               [НОВОЕ] │    │ │
+│  │   │  LLM Router                                               [NEW]   │    │ │
 │  │   │                                                                   │    │ │
-│  │   │  • Формирует запрос: system_prompt + tools + history + message   │    │ │
-│  │   │  • System prompt на английском (экономия токенов)                │    │ │
-│  │   │  • Tool descriptions из Registry                                  │    │ │
-│  │   │  • Отправляет в LLM Provider                                      │    │ │
-│  │   │  • Обрабатывает tool_calls                                        │    │ │
-│  │   │  • Возвращает финальный ответ на русском                         │    │ │
+│  │   │  • Builds request: system_prompt + tools + history + message     │    │ │
+│  │   │  • System prompt in English (token savings)                      │    │ │
+│  │   │  • Tool descriptions from Registry                               │    │ │
+│  │   │  • Sends to LLM Provider                                          │    │ │
+│  │   │  • Handles tool_calls                                             │    │ │
+│  │   │  • Returns final reply in user language                           │    │ │
 │  │   └──────────────────────────────────────────────────────────────────┘    │ │
 │  │                                        │                                   │ │
 │  │                                        ▼                                   │ │
@@ -96,10 +96,10 @@
 │  │   │  • OpenAI (GPT-4o-mini, GPT-4o)        ✅ tool-calling            │    │ │
 │  │   │  • Anthropic (Claude)                  ✅ tool-calling            │    │ │
 │  │   │  • Google (Gemini)                     ✅ tool-calling            │    │ │
-│  │   │  • Groq, OpenRouter, Ollama            ⚠️ базовый tool-calling    │    │ │
-│  │   │  • Azure, YandexGPT, etc.              ⚠️ зависит от модели       │    │ │
+│  │   │  • Groq, OpenRouter, Ollama            ⚠️ basic tool-calling     │    │ │
+│  │   │  • Azure, YandexGPT, etc.              ⚠️ model-dependent          │    │ │
 │  │   │                                                                   │    │ │
-│  │   │  [РАСШИРЕНИЕ существующего bot/llm.py]                            │    │ │
+│  │   │  [EXTENSION of existing bot/llm.py]                               │    │ │
 │  │   └──────────────────────────────────────────────────────────────────┘    │ │
 │  │                                                                            │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
@@ -108,47 +108,47 @@
 │                          ▼                           ▼                          │
 │  ┌─────────────────────────────────┐  ┌─────────────────────────────────────┐  │
 │  │                                 │  │                                     │  │
-│  │     TOOL REGISTRY     [НОВОЕ]   │  │    TOOL EXECUTOR          [НОВОЕ]   │  │
+│  │     TOOL REGISTRY     [NEW]     │  │    TOOL EXECUTOR          [NEW]     │  │
 │  │                                 │  │                                     │  │
-│  │  • Список инструментов          │  │  • Маршрутизация вызова             │  │
-│  │  • Описания (английский)        │  │  • Вызов handler из плагина         │  │
-│  │  • Параметры (JSON Schema)      │  │  • Обработка ошибок                 │  │
-│  │  • Статусы (enabled/disabled)   │  │  • Таймауты                         │  │
-│  │  • Формирование tools для LLM   │  │  • Логирование вызовов              │  │
+│  │  • List of tools                │  │  • Call routing                     │  │
+│  │  • Descriptions (English)       │  │  • Invoke plugin handler            │  │
+│  │  • Parameters (JSON Schema)      │  │  • Error handling                  │  │
+│  │  • Status (enabled/disabled)    │  │  • Timeouts                         │  │
+│  │  • Build tools for LLM          │  │  • Call logging                     │  │
 │  │                                 │  │                                     │  │
 │  └─────────────────────────────────┘  └─────────────────────────────────────┘  │
 │                 ▲                                      │                        │
 │                 │                                      ▼                        │
 │  ┌────────────────────────────────────────────────────────────────────────────┐ │
 │  │                                                                            │ │
-│  │                         PLUGIN SYSTEM                            [НОВОЕ]   │ │
+│  │                         PLUGIN SYSTEM                            [NEW]      │ │
 │  │                                                                            │ │
 │  │   ┌──────────────────────────────────────────────────────────────────┐    │ │
 │  │   │  Plugin Loader                                                    │    │ │
 │  │   │                                                                   │    │ │
-│  │   │  • Сканирует папку plugins/                                       │    │ │
-│  │   │  • Читает plugin.yaml (манифесты)                                 │    │ │
-│  │   │  • Загружает handlers.py (код)                                    │    │ │
-│  │   │  • Регистрирует tools в Registry                                  │    │ │
-│  │   │  • Hot-reload плагинов (без перезапуска)                          │    │ │
+│  │   │  • Scans plugins/ directory                                       │    │ │
+│  │   │  • Reads plugin.yaml (manifests)                                  │    │ │
+│  │   │  • Loads handlers.py (code)                                       │    │ │
+│  │   │  • Registers tools in Registry                                    │    │ │
+│  │   │  • Hot-reload plugins (no restart)                                 │    │ │
 │  │   └──────────────────────────────────────────────────────────────────┘    │ │
 │  │                                        │                                   │ │
 │  │                                        ▼                                   │ │
 │  │   ┌──────────────────────────────────────────────────────────────────┐    │ │
 │  │   │  Plugin Settings Manager                                          │    │ │
 │  │   │                                                                   │    │ │
-│  │   │  • Читает/пишет настройки плагинов из БД                         │    │ │
-│  │   │  • Шифрование секретов (Fernet)                                   │    │ │
-│  │   │  • Валидация по схеме из plugin.yaml                              │    │ │
+│  │   │  • Read/write plugin settings from DB                             │    │ │
+│  │   │  • Secret encryption (Fernet)                                    │    │ │
+│  │   │  • Validation against plugin.yaml schema                         │    │ │
 │  │   └──────────────────────────────────────────────────────────────────┘    │ │
 │  │                                        │                                   │ │
 │  │                                        ▼                                   │ │
 │  │   ┌──────────────────────────────────────────────────────────────────┐    │ │
-│  │   │  Plugin LLM Client (опционально)                                  │    │ │
+│  │   │  Plugin LLM Client (optional)                                      │    │ │
 │  │   │                                                                   │    │ │
-│  │   │  • Общий клиент для плагинов, которым нужен LLM                   │    │ │
-│  │   │  • Может использовать главный LLM или отдельный                   │    │ │
-│  │   │  • Специализированные промпты для каждого плагина                 │    │ │
+│  │   │  • Shared client for plugins that need LLM                        │    │ │
+│  │   │  • Can use main LLM or separate one                               │    │ │
+│  │   │  • Per-plugin prompts                                              │    │ │
 │  │   └──────────────────────────────────────────────────────────────────┘    │ │
 │  │                                                                            │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
@@ -160,28 +160,28 @@
 │  │                                                                            │ │
 │  │   plugins/                                                                 │ │
 │  │   │                                                                        │ │
-│  │   ├── builtin/                          [НОВОЕ — вместе с ядром]           │ │
+│  │   ├── builtin/                          [NEW — with core]                  │ │
 │  │   │   ├── calculator/                                                      │ │
-│  │   │   │   ├── plugin.yaml               # описание инструмента             │ │
+│  │   │   │   ├── plugin.yaml               # tool description                  │ │
 │  │   │   │   └── handlers.py               # calculate()                      │ │
 │  │   │   │                                                                    │ │
 │  │   │   └── datetime_tools/                                                  │ │
 │  │   │       ├── plugin.yaml                                                  │ │
 │  │   │       └── handlers.py               # get_datetime(), get_weekday()    │ │
 │  │   │                                                                        │ │
-│  │   ├── worklog_checker/                  [ФАЗА 6 — первый бизнес-плагин]    │ │
+│  │   ├── worklog_checker/                  [PHASE 6 — first business plugin] │ │
 │  │   │   ├── plugin.yaml                   # tools + settings (jira, tempo)   │ │
 │  │   │   └── handlers.py                   # check_worklogs()                 │ │
 │  │   │                                                                        │ │
-│  │   ├── hr_service/                       [БУДУЩЕЕ]                          │ │
+│  │   ├── hr_service/                       [FUTURE]                           │ │
 │  │   │   ├── plugin.yaml                                                      │ │
 │  │   │   └── handlers.py                   # get_employee(), update_employee()│ │
 │  │   │                                                                        │ │
-│  │   ├── reminder/                         [БУДУЩЕЕ — использует LLM]         │ │
+│  │   ├── reminder/                         [FUTURE — uses LLM]                │ │
 │  │   │   ├── plugin.yaml                   # uses_llm: true                   │ │
-│  │   │   └── handlers.py                   # send_reminder() → генерация LLM  │ │
+│  │   │   └── handlers.py                   # send_reminder() → LLM generation │ │
 │  │   │                                                                        │ │
-│  │   └── (другие плагины...)                                                  │ │
+│  │   └── (other plugins...)                                                   │ │
 │  │                                                                            │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
 │                                                                                  │
@@ -189,42 +189,42 @@
 │  │                                                                            │ │
 │  │                            ADMIN API (FastAPI)                             │ │
 │  │                                                                            │ │
-│  │   Существующие эндпоинты [БЕЗ ИЗМЕНЕНИЙ]:                                  │ │
+│  │   Existing endpoints [NO CHANGES]:                                         │ │
 │  │   ├── /api/settings/telegram/*          # CRUD + test + activate          │ │
 │  │   ├── /api/settings/llm/*               # CRUD + test + activate          │ │
-│  │   └── /api/service-admins/*             # CRUD администраторов             │ │
+│  │   └── /api/service-admins/*             # CRUD administrators                │ │
 │  │                                                                            │ │
-│  │   Новые эндпоинты [НОВОЕ]:                                                 │ │
-│  │   ├── /api/tools                        # GET список инструментов          │ │
-│  │   ├── /api/tools/{name}                 # GET детали инструмента           │ │
-│  │   ├── /api/tools/{name}/enable          # POST включить                    │ │
-│  │   ├── /api/tools/{name}/disable         # POST выключить                   │ │
-│  │   ├── /api/tools/{name}/settings        # GET/PUT настройки                │ │
-│  │   ├── /api/tools/{name}/test            # POST проверить (если есть)       │ │
-│  │   └── /api/plugins/reload               # POST перезагрузить плагины       │ │
+│  │   New endpoints [NEW]:                                                    │ │
+│  │   ├── /api/tools                        # GET list of tools                 │ │
+│  │   ├── /api/tools/{name}                 # GET tool details                  │ │
+│  │   ├── /api/tools/{name}/enable          # POST enable                       │ │
+│  │   ├── /api/tools/{name}/disable         # POST disable                      │ │
+│  │   ├── /api/tools/{name}/settings        # GET/PUT settings                  │ │
+│  │   ├── /api/tools/{name}/test            # POST test (if available)          │ │
+│  │   └── /api/plugins/reload               # POST reload plugins               │ │
 │  │                                                                            │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
 │                                                                                  │
 │  ┌────────────────────────────────────────────────────────────────────────────┐ │
 │  │                                                                            │ │
-│  │                          ADMIN PANEL (Статика)                             │ │
+│  │                          ADMIN PANEL (Static)                             │ │
 │  │                                                                            │ │
-│  │   Меню:                                                                    │ │
+│  │   Menu:                                                                   │ │
 │  │   │                                                                        │ │
-│  │   ├── Настройки                         [БЕЗ ИЗМЕНЕНИЙ]                    │ │
-│  │   │   ├── Блок "Телеграм бот"                                              │ │
-│  │   │   └── Блок "LLM"                                                       │ │
+│  │   ├── Settings                          [NO CHANGES]                       │ │
+│  │   │   ├── "Telegram bot" block                                             │ │
+│  │   │   └── "LLM" block                                                      │ │
 │  │   │                                                                        │ │
-│  │   ├── Инструменты                       [НОВОЕ — Фаза 4]                   │ │
-│  │   │   ├── Список инструментов                                              │ │
-│  │   │   ├── Включение/выключение                                             │ │
-│  │   │   ├── Настройки инструмента                                            │ │
-│  │   │   └── Проверка подключения                                             │ │
+│  │   ├── Tools                             [NEW — Phase 4]                    │ │
+│  │   │   ├── List of tools                                                    │ │
+│  │   │   ├── Enable/disable                                                   │ │
+│  │   │   ├── Tool settings                                                    │ │
+│  │   │   └── Connection test                                                  │ │
 │  │   │                                                                        │ │
-│  │   └── Администраторы                    [НОВОЕ — Фаза 5]                   │ │
-│  │       ├── Список админов                                                   │ │
-│  │       ├── Добавление по Telegram ID                                        │ │
-│  │       └── Удаление                                                         │ │
+│  │   └── Administrators                   [NEW — Phase 5]                    │ │
+│  │       ├── List of admins                                                   │ │
+│  │       ├── Add by Telegram ID                                               │ │
+│  │       └── Remove                                                           │ │
 │  │                                                                            │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
 │                                                                                  │
@@ -232,19 +232,19 @@
 │  │                                                                            │ │
 │  │                              STORAGE (SQLite)                              │ │
 │  │                                                                            │ │
-│  │   Существующие таблицы [БЕЗ ИЗМЕНЕНИЙ]:                                    │ │
-│  │   ├── telegram_settings                 # токен, base_url, статус         │ │
-│  │   ├── llm_settings                      # провайдер, ключ, модель, промпт │ │
-│  │   └── service_admins                    # telegram_id, данные профиля     │ │
+│  │   Existing tables [NO CHANGES]:                                            │ │
+│  │   ├── telegram_settings                 # token, base_url, status          │ │
+│  │   ├── llm_settings                      # provider, key, model, prompt     │ │
+│  │   └── service_admins                    # telegram_id, profile data       │ │
 │  │                                                                            │ │
-│  │   Новые таблицы [НОВОЕ]:                                                   │ │
-│  │   ├── tool_settings                     # настройки инструментов          │ │
+│  │   New tables [NEW]:                                                       │ │
+│  │   ├── tool_settings                     # tool settings                     │ │
 │  │   │   ├── tool_name (PK)                                                   │ │
 │  │   │   ├── enabled (bool)                                                   │ │
-│  │   │   ├── settings_json (encrypted)     # JSON с настройками               │ │
+│  │   │   ├── settings_json (encrypted)     # JSON settings                     │ │
 │  │   │   └── updated_at                                                       │ │
 │  │   │                                                                        │ │
-│  │   └── tool_call_log                     # лог вызовов (опционально)        │ │
+│  │   └── tool_call_log                     # call log (optional)               │ │
 │  │       ├── id                                                               │ │
 │  │       ├── tool_name                                                        │ │
 │  │       ├── user_id                                                          │ │
@@ -253,7 +253,7 @@
 │  │       ├── duration_ms                                                      │ │
 │  │       └── created_at                                                       │ │
 │  │                                                                            │ │
-│  │   Шифрование: Fernet (как сейчас)                                          │ │
+│  │   Encryption: Fernet (as now)                                              │ │
 │  │                                                                            │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
 │                                                                                  │
@@ -262,205 +262,205 @@
                                         ▼
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
-│                              ВНЕШНИЕ СИСТЕМЫ                                     │
+│                              EXTERNAL SYSTEMS                                    │
 │                                                                                  │
 │   ┌────────────────┐  ┌────────────────┐  ┌────────────────┐  ┌──────────────┐  │
 │   │  Telegram API  │  │  LLM Providers │  │  Jira / Tempo  │  │  Mattermost  │  │
-│   │                │  │                │  │                │  │  (будущее)   │  │
+│   │                │  │                │  │                │  │  (future)    │  │
 │   │  • getUpdates  │  │  • OpenAI      │  │  • REST API    │  │              │  │
 │   │  • sendMessage │  │  • Anthropic   │  │  • Worklogs    │  │  • Webhook   │  │
 │   │  • getMe       │  │  • Google      │  │  • Issues      │  │  • Messages  │  │
 │   │                │  │  • Groq, etc.  │  │                │  │              │  │
 │   └────────────────┘  └────────────────┘  └────────────────┘  └──────────────┘  │
 │                                                                                  │
-│   Все вызовы ИСХОДЯЩИЕ (приложение инициирует)                                  │
+│   All calls OUTBOUND (application initiates)                                     │
 │                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Блоки для независимой разработки
+## 2. Blocks for independent development
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
-│                        КАРТА НЕЗАВИСИМЫХ БЛОКОВ                                  │
+│                        MAP OF INDEPENDENT BLOCKS                                  │
 │                                                                                  │
 │  ═══════════════════════════════════════════════════════════════════════════    │
-│  ЯДРО (Core) — делается один раз, потом стабильно                               │
+│  CORE — done once, then stable                                                   │
 │  ═══════════════════════════════════════════════════════════════════════════    │
 │                                                                                  │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  БЛОК A: Tool-calling в LLM Engine                         [Фаза 1]     │   │
+│   │  BLOCK A: Tool-calling in LLM Engine                      [Phase 1]     │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
-│   │  • bot/llm.py                    — расширение get_reply()              │   │
-│   │  • bot/tool_calling.py           — новый, логика tool-calling          │   │
+│   │  Files:                                                                 │   │
+│   │  • bot/llm.py                    — extend get_reply()                    │   │
+│   │  • bot/tool_calling.py           — new, tool-calling logic               │   │
 │   │                                                                         │   │
-│   │  Зависимости: Нет (самодостаточный)                                    │   │
-│   │  Тесты: tests/test_tool_calling.py                                     │   │
+│   │  Dependencies: None (self-contained)                                    │   │
+│   │  Tests: tests/test_tool_calling.py                                      │   │
 │   │                                                                         │   │
-│   │  Критерий готовности:                                                   │   │
-│   │  • LLM вызывает захардкоженные tools                                   │   │
-│   │  • Обычный чат работает как раньше                                     │   │
+│   │  Done when:                                                             │   │
+│   │  • LLM invokes hardcoded tools                                          │   │
+│   │  • Regular chat works as before                                         │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                        │                                         │
 │                                        ▼                                         │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  БЛОК B: Tool Registry + Plugin Loader                     [Фаза 2]     │   │
+│   │  BLOCK B: Tool Registry + Plugin Loader                    [Phase 2]     │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
+│   │  Files:                                                                 │   │
 │   │  • tools/__init__.py                                                    │   │
-│   │  • tools/registry.py             — реестр инструментов                 │   │
-│   │  • tools/loader.py               — загрузчик плагинов                  │   │
-│   │  • tools/base.py                 — базовые функции для плагинов        │   │
+│   │  • tools/registry.py             — tool registry                        │   │
+│   │  • tools/loader.py               — plugin loader                        │   │
+│   │  • tools/base.py                 — base utilities for plugins           │   │
 │   │                                                                         │   │
-│   │  Зависимости: Блок A                                                   │   │
-│   │  Тесты: tests/test_tools_registry.py                                   │   │
+│   │  Dependencies: Block A                                                  │   │
+│   │  Tests: tests/test_tools_registry.py                                    │   │
 │   │                                                                         │   │
-│   │  Критерий готовности:                                                   │   │
-│   │  • Инструменты загружаются из YAML                                     │   │
-│   │  • Registry формирует tools для LLM                                    │   │
+│   │  Done when:                                                             │   │
+│   │  • Tools load from YAML                                                 │   │
+│   │  • Registry builds tools for LLM                                        │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                        │                                         │
 │                                        ▼                                         │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  БЛОК C: Настройки инструментов в БД                       [Фаза 3]     │   │
+│   │  BLOCK C: Tool settings in DB                             [Phase 3]     │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
-│   │  • api/db.py                     — добавить ToolSettingsModel          │   │
-│   │  • api/tools_repository.py       — CRUD настроек                       │   │
-│   │  • api/tools_router.py           — API эндпоинты                       │   │
-│   │  • api/app.py                    — подключить роутер                   │   │
+│   │  Files:                                                                 │   │
+│   │  • api/db.py                     — add ToolSettingsModel                │   │
+│   │  • api/tools_repository.py       — CRUD for settings                     │   │
+│   │  • api/tools_router.py           — API endpoints                         │   │
+│   │  • api/app.py                    — mount router                          │   │
 │   │                                                                         │   │
-│   │  Зависимости: Блок B                                                   │   │
-│   │  Тесты: tests/test_tools_api.py                                        │   │
+│   │  Dependencies: Block B                                                  │   │
+│   │  Tests: tests/test_tools_api.py                                         │   │
 │   │                                                                         │   │
-│   │  Критерий готовности:                                                   │   │
-│   │  • API для управления инструментами                                    │   │
-│   │  • Настройки шифруются как TG/LLM                                      │   │
+│   │  Done when:                                                             │   │
+│   │  • API for managing tools                                               │   │
+│   │  • Settings encrypted like TG/LLM                                       │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                        │                                         │
 │                                        ▼                                         │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  БЛОК D: Builtin-плагины (calculator, datetime)            [Фаза 2]     │   │
+│   │  BLOCK D: Builtin plugins (calculator, datetime)            [Phase 2]     │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
+│   │  Files:                                                                 │   │
 │   │  • plugins/builtin/calculator/plugin.yaml                               │   │
 │   │  • plugins/builtin/calculator/handlers.py                               │   │
 │   │  • plugins/builtin/datetime_tools/plugin.yaml                           │   │
 │   │  • plugins/builtin/datetime_tools/handlers.py                           │   │
 │   │                                                                         │   │
-│   │  Зависимости: Блок B                                                   │   │
-│   │  Тесты: tests/test_builtin_plugins.py                                  │   │
+│   │  Dependencies: Block B                                                  │   │
+│   │  Tests: tests/test_builtin_plugins.py                                   │   │
 │   │                                                                         │   │
-│   │  Критерий готовности:                                                   │   │
-│   │  • "Сколько времени?" → ответ через tool                               │   │
-│   │  • "Посчитай 2+2*3" → ответ через tool                                 │   │
+│   │  Done when:                                                             │   │
+│   │  • "What time is it?" → reply via tool                                 │   │
+│   │  • "Calculate 2+2*3" → reply via tool                                  │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 │  ═══════════════════════════════════════════════════════════════════════════    │
-│  АДМИНКА — независимые UI-блоки                                                 │
+│  ADMIN UI — independent UI blocks                                                │
 │  ═══════════════════════════════════════════════════════════════════════════    │
 │                                                                                  │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  БЛОК E: Админка "Инструменты"                             [Фаза 4]     │   │
+│   │  BLOCK E: Admin "Tools"                                   [Phase 4]     │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
-│   │  • admin/index.html              — новый пункт меню                    │   │
-│   │  • admin/tools.js                — логика страницы инструментов        │   │
-│   │  • admin/styles.css              — стили                               │   │
+│   │  Files:                                                                 │   │
+│   │  • admin/index.html              — new menu item                         │   │
+│   │  • admin/tools.js                — tools page logic                      │   │
+│   │  • admin/styles.css             — styles                                │   │
 │   │                                                                         │   │
-│   │  Зависимости: Блок C (API готов)                                       │   │
-│   │  Тесты: ручное тестирование UI                                         │   │
+│   │  Dependencies: Block C (API ready)                                      │   │
+│   │  Tests: manual UI testing                                               │   │
 │   │                                                                         │   │
-│   │  Критерий готовности:                                                   │   │
-│   │  • Список инструментов в UI                                            │   │
-│   │  • Включение/выключение                                                │   │
-│   │  • Форма настроек                                                      │   │
+│   │  Done when:                                                             │   │
+│   │  • Tool list in UI                                                      │   │
+│   │  • Enable/disable                                                       │   │
+│   │  • Settings form                                                        │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  БЛОК F: Админка "Администраторы"                          [Фаза 5]     │   │
+│   │  BLOCK F: Admin "Administrators"                           [Phase 5]     │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
-│   │  • admin/index.html              — новый пункт меню                    │   │
-│   │  • admin/admins.js               — логика страницы админов             │   │
+│   │  Files:                                                                 │   │
+│   │  • admin/index.html              — new menu item                         │   │
+│   │  • admin/admins.js              — admins page logic                     │   │
 │   │                                                                         │   │
-│   │  Зависимости: Нет (API уже есть!)                                      │   │
-│   │  Тесты: ручное тестирование UI                                         │   │
+│   │  Dependencies: None (API already exists!)                               │   │
+│   │  Tests: manual UI testing                                                │   │
 │   │                                                                         │   │
-│   │  Критерий готовности:                                                   │   │
-│   │  • Список админов в UI                                                 │   │
-│   │  • Добавление/удаление                                                 │   │
+│   │  Done when:                                                             │   │
+│   │  • Admin list in UI                                                     │   │
+│   │  • Add/remove                                                            │   │
 │   │                                                                         │   │
-│   │  ПРИМЕЧАНИЕ: Можно делать параллельно с другими фазами!                │   │
+│   │  NOTE: Can be done in parallel with other phases!                       │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 │  ═══════════════════════════════════════════════════════════════════════════    │
-│  ПЛАГИНЫ — каждый разрабатывается независимо                                    │
+│  PLUGINS — each developed independently                                         │
 │  ═══════════════════════════════════════════════════════════════════════════    │
 │                                                                                  │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  ПЛАГИН: Worklog Checker                                   [Фаза 6]     │   │
+│   │  PLUGIN: Worklog Checker                                  [Phase 6]     │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
+│   │  Files:                                                                 │   │
 │   │  • plugins/worklog_checker/plugin.yaml                                  │   │
 │   │  • plugins/worklog_checker/handlers.py                                  │   │
-│   │  • plugins/worklog_checker/jira_client.py  (опционально)                │   │
-│   │  • plugins/worklog_checker/tempo_client.py (опционально)                │   │
+│   │  • plugins/worklog_checker/jira_client.py  (optional)                   │   │
+│   │  • plugins/worklog_checker/tempo_client.py (optional)                   │   │
 │   │                                                                         │   │
-│   │  Зависимости: Ядро готово (Блоки A-D)                                  │   │
-│   │  Внешние API: Jira REST API, Tempo API                                 │   │
-│   │  Настройки: jira_url, jira_token, tempo_token                          │   │
+│   │  Dependencies: Core ready (Blocks A–D)                                  │   │
+│   │  External APIs: Jira REST API, Tempo API                               │   │
+│   │  Settings: jira_url, jira_token, tempo_token                            │   │
 │   │                                                                         │   │
-│   │  Критерий готовности:                                                   │   │
-│   │  • "Проверь ворклоги Иванова" → реальные данные из Jira                │   │
+│   │  Done when:                                                             │   │
+│   │  • "Check Ivanov's worklogs" → real data from Jira                      │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  ПЛАГИН: HR Service                                        [Будущее]    │   │
+│   │  PLUGIN: HR Service                                       [Future]      │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
+│   │  Files:                                                                 │   │
 │   │  • plugins/hr_service/plugin.yaml                                       │   │
 │   │  • plugins/hr_service/handlers.py                                       │   │
 │   │                                                                         │   │
-│   │  Инструменты:                                                           │   │
-│   │  • get_employee — получить данные сотрудника                           │   │
-│   │  • list_employees — список сотрудников                                 │   │
-│   │  • update_employee — обновить данные                                   │   │
-│   │  • import_employees — импорт из Excel/CSV                              │   │
+│   │  Tools:                                                                 │   │
+│   │  • get_employee — get employee data                                     │   │
+│   │  • list_employees — list employees                                     │   │
+│   │  • update_employee — update data                                       │   │
+│   │  • import_employees — import from Excel/CSV                             │   │
 │   │                                                                         │   │
-│   │  Зависимости: Ядро                                                     │   │
+│   │  Dependencies: Core                                                     │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  ПЛАГИН: Reminder (с LLM)                                  [Будущее]    │   │
+│   │  PLUGIN: Reminder (with LLM)                               [Future]     │   │
 │   │                                                                         │   │
-│   │  Файлы:                                                                 │   │
-│   │  • plugins/reminder/plugin.yaml        # uses_llm: true                 │   │
+│   │  Files:                                                                 │   │
+│   │  • plugins/reminder/plugin.yaml        # uses_llm: true                  │   │
 │   │  • plugins/reminder/handlers.py                                         │   │
-│   │  • plugins/reminder/templates.py       # промпты для генерации          │   │
+│   │  • plugins/reminder/templates.py       # prompts for generation          │   │
 │   │                                                                         │   │
-│   │  Инструменты:                                                           │   │
-│   │  • find_violators — найти нарушителей                                  │   │
-│   │  • send_reminder — сгенерировать и отправить напоминание               │   │
-│   │  • escalate — эскалация на руководителя                                │   │
+│   │  Tools:                                                                 │   │
+│   │  • find_violators — find violators                                      │   │
+│   │  • send_reminder — generate and send reminder                           │   │
+│   │  • escalate — escalate to manager                                       │   │
 │   │                                                                         │   │
-│   │  Особенность: Использует LLM для генерации текста                      │   │
-│   │  Зависимости: Ядро + worklog_checker + hr_service                      │   │
+│   │  Note: Uses LLM for text generation                                     │   │
+│   │  Dependencies: Core + worklog_checker + hr_service                      │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
-│   │  ПЛАГИН: Calculator (пример внешнего API)                  [Будущее]    │   │
+│   │  PLUGIN: Calculator (external API example)                 [Future]      │   │
 │   │                                                                         │   │
 │   │  plugin.yaml:                                                           │   │
-│   │    type: external                      # внешний HTTP endpoint          │   │
-│   │    endpoint: http://calc-service:8001                                   │   │
+│   │    type: external                      # external HTTP endpoint         │   │
+│   │    endpoint: http://calc-service:8001                                    │   │
 │   │                                                                         │   │
-│   │  Это показывает как подключить внешний сервис                          │   │
-│   │  (когда переедете в корп. контур и понадобится масштабирование)        │   │
+│   │  Shows how to connect an external service                               │   │
+│   │  (when moving to corporate environment and scaling is needed)           │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
@@ -468,136 +468,136 @@
 
 ---
 
-## 3. Порядок разработки и зависимости
+## 3. Development order and dependencies
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
-│                         ГРАФ ЗАВИСИМОСТЕЙ                                        │
+│                         DEPENDENCY GRAPH                                          │
 │                                                                                  │
 │                                                                                  │
 │   ┌─────────────┐                                                                │
-│   │   Фаза 0    │  Стабилизация, тесты, ветка                                   │
-│   │  (1-2 дня)  │                                                                │
+│   │  Phase 0    │  Stabilization, tests, branch                                 │
+│   │  (1-2 days) │                                                                │
 │   └──────┬──────┘                                                                │
 │          │                                                                       │
 │          ▼                                                                       │
 │   ┌─────────────┐                                                                │
-│   │   Фаза 1    │  Tool-calling в LLM (Блок A)                                  │
-│   │  (3-5 дней) │  • Захардкоженные tools                                       │
-│   └──────┬──────┘  • get_reply() с tool-calling                                 │
+│   │  Phase 1    │  Tool-calling in LLM (Block A)                                 │
+│   │  (3-5 days) │  • Hardcoded tools                                            │
+│   └──────┬──────┘  • get_reply() with tool-calling                              │
 │          │                                                                       │
 │          ▼                                                                       │
 │   ┌─────────────┐                                                                │
-│   │   Фаза 2    │  Registry + Loader + Builtin (Блоки B, D)                     │
-│   │  (3-5 дней) │  • Загрузка из YAML                                           │
+│   │  Phase 2    │  Registry + Loader + Builtin (Blocks B, D)                     │
+│   │  (3-5 days) │  • Load from YAML                                             │
 │   └──────┬──────┘  • calculator, datetime                                       │
 │          │                                                                       │
 │          ▼                                                                       │
 │   ┌─────────────┐                                                                │
-│   │   Фаза 3    │  Настройки в БД + API (Блок C)                                │
-│   │  (3-5 дней) │  • ToolSettingsModel                                          │
-│   └──────┬──────┘  • /api/tools/* эндпоинты                                     │
+│   │  Phase 3    │  Settings in DB + API (Block C)                               │
+│   │  (3-5 days) │  • ToolSettingsModel                                          │
+│   └──────┬──────┘  • /api/tools/* endpoints                                     │
 │          │                                                                       │
 │          ├─────────────────────────────────┐                                    │
 │          │                                 │                                    │
 │          ▼                                 ▼                                    │
 │   ┌─────────────┐                   ┌─────────────┐                             │
-│   │   Фаза 4    │                   │   Фаза 5    │  ← можно параллельно!       │
-│   │  (1 неделя) │                   │  (3-5 дней) │                             │
+│   │  Phase 4    │                   │  Phase 5    │  ← can run in parallel!      │
+│   │  (1 week)   │                   │  (3-5 days) │                             │
 │   │             │                   │             │                             │
-│   │ Админка     │                   │ Админка     │                             │
-│   │ Инструменты │                   │ Админы      │                             │
-│   │ (Блок E)    │                   │ (Блок F)    │                             │
+│   │ Admin       │                   │ Admin       │                             │
+│   │ Tools       │                   │ Admins      │                             │
+│   │ (Block E)   │                   │ (Block F)   │                             │
 │   └──────┬──────┘                   └─────────────┘                             │
 │          │                                                                       │
 │          ▼                                                                       │
 │   ┌─────────────┐                                                                │
-│   │   Фаза 6    │  Первый бизнес-плагин: Worklog Checker                        │
-│   │ (1-2 недели)│  • Интеграция Jira/Tempo                                      │
-│   └──────┬──────┘  • E2E тест                                                   │
+│   │  Phase 6    │  First business plugin: Worklog Checker                        │
+│   │ (1-2 weeks) │  • Jira/Tempo integration                                      │
+│   └──────┬──────┘  • E2E test                                                   │
 │          │                                                                       │
 │          ▼                                                                       │
 │   ┌─────────────┐                                                                │
-│   │  Фаза 7+    │  Новые плагины по мере необходимости                          │
+│   │  Phase 7+   │  New plugins as needed                                        │
 │   │             │  • HR Service                                                 │
-│   │             │  • Reminder (с LLM)                                           │
+│   │             │  • Reminder (with LLM)                                        │
 │   │             │  • ...                                                        │
 │   └─────────────┘                                                                │
 │                                                                                  │
 │                                                                                  │
-│   ПРИМЕЧАНИЕ: Фаза 5 (Админка Администраторы) может выполняться                 │
-│   параллельно с Фазами 4 и 6, так как API уже существует.                       │
+│   NOTE: Phase 5 (Admin Administrators) can run in parallel with Phases 4 and 6,  │
+│   since the API already exists.                                                  │
 │                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Структура плагина (стандарт)
+## 4. Plugin structure (standard)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
-│                    АНАТОМИЯ ПЛАГИНА                                              │
+│                    PLUGIN ANATOMY                                                │
 │                                                                                  │
 │   plugins/                                                                       │
 │   └── {plugin_name}/                                                             │
 │       │                                                                          │
-│       ├── plugin.yaml              # Манифест (обязательно)                      │
+│       ├── plugin.yaml              # Manifest (required)                         │
 │       │   │                                                                      │
-│       │   ├── id: string           # Уникальный идентификатор                   │
-│       │   ├── name: string         # Название для UI                            │
-│       │   ├── version: string      # Версия плагина                             │
-│       │   ├── description: string  # Описание для UI                            │
-│       │   ├── enabled: bool        # Включён по умолчанию                       │
+│       │   ├── id: string           # Unique identifier                           │
+│       │   ├── name: string         # Name for UI                                 │
+│       │   ├── version: string      # Plugin version                             │
+│       │   ├── description: string  # Description for UI                          │
+│       │   ├── enabled: bool        # Enabled by default                           │
 │       │   │                                                                      │
-│       │   ├── tools:               # Список инструментов                        │
+│       │   ├── tools:               # List of tools                              │
 │       │   │   └── - name: string                                                │
 │       │   │       description: string (ENGLISH!)                                │
-│       │   │       handler: string  # Путь к функции                             │
+│       │   │       handler: string  # Path to function                           │
 │       │   │       parameters:      # JSON Schema                                │
-│       │   │       uses_llm: bool   # Использует LLM (опционально)               │
-│       │   │       timeout: int     # Таймаут в секундах                         │
+│       │   │       uses_llm: bool   # Uses LLM (optional)                        │
+│       │   │       timeout: int     # Timeout in seconds                         │
 │       │   │                                                                      │
-│       │   └── settings:            # Настройки плагина (опционально)            │
+│       │   └── settings:            # Plugin settings (optional)                  │
 │       │       └── - key: string                                                 │
 │       │           label: string                                                 │
 │       │           type: string|password|number|select|bool                      │
 │       │           required: bool                                                │
 │       │           default: any                                                  │
-│       │           options: []      # Для select                                 │
+│       │           options: []      # For select                                 │
 │       │                                                                          │
-│       ├── handlers.py              # Код инструментов (обязательно)             │
+│       ├── handlers.py              # Tool code (required)                        │
 │       │   │                                                                      │
 │       │   ├── async def tool_name(param1, param2) -> str | dict                 │
-│       │   │   """Docstring — описание для логов"""                              │
+│       │   │   """Docstring — description for logs"""                            │
 │       │   │   ...                                                               │
 │       │   │   return result                                                     │
 │       │   │                                                                      │
-│       │   └── # Может использовать:                                             │
-│       │       # from tools.base import get_setting, get_llm_client              │
+│       │   └── # Can use:                                                         │
+│       │       # from tools.base import get_setting, get_llm_client               │
 │       │                                                                          │
-│       └── (дополнительные файлы)   # По необходимости                           │
-│           ├── client.py            # Клиенты для внешних API                    │
-│           ├── models.py            # Pydantic модели                            │
-│           └── templates.py         # Промпты для LLM                            │
+│       └── (additional files)      # As needed                                   │
+│           ├── client.py            # Clients for external APIs                   │
+│           ├── models.py            # Pydantic models                             │
+│           └── templates.py         # Prompts for LLM                             │
 │                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 5. Пример plugin.yaml (Worklog Checker)
+## 5. Example plugin.yaml (Worklog Checker)
 
 ```yaml
 # plugins/worklog_checker/plugin.yaml
 
 id: worklog-checker
-name: "Проверка ворклогов"
+name: "Worklog checker"
 version: "1.0.0"
-description: "Проверяет списание времени сотрудников в Jira/Tempo"
-enabled: false  # Требует настройки перед включением
+description: "Checks employee time logging in Jira/Tempo"
+enabled: false  # Requires configuration before enabling
 
 tools:
   - name: check_worklogs
@@ -656,24 +656,24 @@ settings:
     required: true
   
   - key: required_hours_per_day
-    label: "Норма часов в день"
+    label: "Required hours per day"
     type: number
     default: 8
   
   - key: working_days
-    label: "Рабочие дни"
+    label: "Working days"
     type: string
     default: "mon,tue,wed,thu,fri"
 ```
 
 ---
 
-## 6. Flow обработки запроса (целевой)
+## 6. Request processing flow (target)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
-│  ПОЛЬЗОВАТЕЛЬ: "Проверь ворклоги Иванова за эту неделю"                         │
+│  USER: "Check Ivanov's worklogs for this week"                                   │
 │                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
                                         │
@@ -681,27 +681,27 @@ settings:
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  1. TELEGRAM BOT                                                                 │
 │                                                                                  │
-│     • Получает сообщение через long polling                                      │
-│     • Извлекает chat_id, user_id, text                                           │
-│     • Передаёт в Conversation Manager                                            │
+│     • Receives message via long polling                                          │
+│     • Extracts chat_id, user_id, text                                             │
+│     • Passes to Conversation Manager                                             │
 └──────────────────────────────────────────────────────────────────────────────────┘
                                         │
                                         ▼
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  2. CONVERSATION MANAGER                                                         │
 │                                                                                  │
-│     • Достаёт историю диалога для chat_id                                        │
-│     • Формирует messages: [system, ...history, user_message]                     │
-│     • System prompt: АНГЛИЙСКИЙ                                                  │
+│     • Retrieves conversation history for chat_id                                 │
+│     • Builds messages: [system, ...history, user_message]                         │
+│     • System prompt: ENGLISH                                                     │
 └──────────────────────────────────────────────────────────────────────────────────┘
                                         │
                                         ▼
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  3. LLM ROUTER                                                                   │
 │                                                                                  │
-│     • Получает tools из Registry (enabled только)                               │
-│     • Tool descriptions: АНГЛИЙСКИЙ                                              │
-│     • Отправляет запрос в LLM Provider                                           │
+│     • Gets tools from Registry (enabled only)                                    │
+│     • Tool descriptions: ENGLISH                                                 │
+│     • Sends request to LLM Provider                                              │
 │                                                                                  │
 │     Request:                                                                     │
 │     {                                                                            │
@@ -731,7 +731,7 @@ settings:
 │           "id": "call_123",                                                      │
 │           "function": {                                                          │
 │             "name": "check_worklogs",                                            │
-│             "arguments": "{\"employee\": \"Иванов\", \"period\": \"this_week\"}"      │
+│             "arguments": "{\"employee\": \"Ivanov\", \"period\": \"this_week\"}"      │
 │           }                                                                      │
 │         }                                                                        │
 │       ]                                                                          │
@@ -742,10 +742,10 @@ settings:
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  5. TOOL EXECUTOR                                                                │
 │                                                                                  │
-│     • Находит handler в Registry                                                 │
-│     • Вызывает: check_worklogs(employee="Иванов", period="this_week")             │
-│     • Логирует вызов                                                             │
-│     • Обрабатывает таймаут/ошибки                                                │
+│     • Finds handler in Registry                                                  │
+│     • Calls: check_worklogs(employee="Ivanov", period="this_week")                │
+│     • Logs the call                                                               │
+│     • Handles timeout/errors                                                      │
 └──────────────────────────────────────────────────────────────────────────────────┘
                                         │
                                         ▼
@@ -759,8 +759,8 @@ settings:
 │                                                                                  │
 │         worklogs = await tempo.get_worklogs(employee, period)                    │
 │         return {                                                                 │
-│             "employee": "Иванов Пётр",                                           │
-│             "period": "2024-01-08 — 2024-01-12",                                 │
+│             "employee": "Ivanov Petr",                                            │
+│             "period": "2024-01-08 — 2024-01-12",                                  │
 │             "logged_hours": 32,                                                  │
 │             "required_hours": 40,                                                │
 │             "deficit": 8,                                                        │
@@ -770,121 +770,121 @@ settings:
                                         │
                                         ▼
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│  7. LLM ROUTER (продолжение)                                                     │
+│  7. LLM ROUTER (continued)                                                       │
 │                                                                                  │
-│     • Добавляет tool_result в messages                                           │
-│     • Отправляет повторный запрос в LLM                                          │
-│     • LLM формулирует ответ НА РУССКОМ                                           │
+│     • Appends tool_result to messages                                            │
+│     • Sends follow-up request to LLM                                             │
+│     • LLM formulates reply in user language                                       │
 └──────────────────────────────────────────────────────────────────────────────────┘
                                         │
                                         ▼
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  8. TELEGRAM BOT                                                                 │
 │                                                                                  │
-│     • Отправляет ответ пользователю                                              │
-│     • Сохраняет в историю                                                        │
+│     • Sends reply to user                                                         │
+│     • Saves to history                                                           │
 │                                                                                  │
-│     "Иванов Пётр за эту неделю (08.01 — 12.01):                                  │
-│      • Списано: 32 часа                                                          │
-│      • Норма: 40 часов                                                           │
-│      • Недостача: 8 часов                                                        │
+│     "Ivanov Petr this week (08.01 — 12.01):                                      │
+│      • Logged: 32 hours                                                          │
+│      • Required: 40 hours                                                        │
+│      • Deficit: 8 hours                                                          │
 │                                                                                  │
-│      Задачи без списаний: PROJ-123, PROJ-456"                                    │
+│      Tasks without logs: PROJ-123, PROJ-456"                                     │
 │                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 7. Ресурсы и ограничения
+## 7. Resources and constraints
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
-│                    РЕСУРСЫ (Mac Mini)                                            │
+│                    RESOURCES (Mac Mini)                                           │
 │                                                                                  │
-│   Что используем:                                                                │
-│   ├── 1 Python-процесс (uvicorn + бот-подпроцесс)                               │
-│   ├── SQLite (файл ~1-10 MB)                                                    │
+│   What we use:                                                                   │
+│   ├── 1 Python process (uvicorn + bot subprocess)                               │
+│   ├── SQLite (file ~1-10 MB)                                                    │
 │   ├── RAM: ~100-300 MB                                                          │
-│   └── CPU: минимальная нагрузка (long polling, периодические запросы)           │
+│   └── CPU: minimal load (long polling, periodic requests)                      │
 │                                                                                  │
-│   Что НЕ используем:                                                             │
+│   What we do NOT use:                                                            │
 │   ├── ❌ PostgreSQL                                                              │
 │   ├── ❌ Redis                                                                   │
 │   ├── ❌ Message Broker                                                          │
-│   ├── ❌ Отдельные контейнеры для каждого сервиса                               │
+│   ├── ❌ Separate containers per service                                        │
 │   └── ❌ Kubernetes                                                              │
 │                                                                                  │
-│   Оптимизация токенов:                                                           │
-│   ├── System prompt: английский                                                  │
-│   ├── Tool descriptions: английский                                              │
-│   ├── Короткие описания                                                          │
-│   ├── Модель: GPT-4o-mini или Gemini Flash                                      │
-│   └── Экономия: ~20-25%                                                          │
+│   Token optimization:                                                            │
+│   ├── System prompt: English                                                     │
+│   ├── Tool descriptions: English                                                 │
+│   ├── Short descriptions                                                        │
+│   ├── Model: GPT-4o-mini or Gemini Flash                                        │
+│   └── Savings: ~20-25%                                                          │
 │                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 8. Путь масштабирования (на будущее)
+## 8. Scaling path (future)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
-│   Mac Mini (сейчас)                      Корп. контур (потом)                   │
-│   ─────────────────                      ───────────────────                    │
+│   Mac Mini (now)                         Corporate environment (later)           │
+│   ─────────────────                     ─────────────────────────               │
 │                                                                                  │
-│   Один процесс          ───────────►     Можно так же оставить                  │
-│                                          ИЛИ                                    │
-│                                          Тяжёлые плагины → отдельные сервисы   │
+│   Single process       ───────────►      Can keep the same                       │
+│                                         OR                                       │
+│                                         Heavy plugins → separate services        │
 │                                                                                  │
-│   SQLite                ───────────►     PostgreSQL (если нужно)                │
+│   SQLite               ───────────►     PostgreSQL (if needed)                  │
 │                                                                                  │
-│   Плагины как модули    ───────────►     type: external в plugin.yaml          │
-│                                          (HTTP endpoint вместо локального)      │
+│   Plugins as modules   ───────────►      type: external in plugin.yaml           │
+│                                         (HTTP endpoint instead of local)         │
 │                                                                                  │
 │   ─────────────────────────────────────────────────────────────────────────────  │
 │                                                                                  │
-│   Пример миграции плагина:                                                       │
+│   Example plugin migration:                                                      │
 │                                                                                  │
-│   # Было (локальный)                    # Стало (внешний)                       │
+│   # Before (local)                     # After (external)                      │
 │   type: local                           type: external                          │
-│   handler: check_worklogs               endpoint: http://worklog-svc:8001       │
-│                                         path: /api/check                        │
+│   handler: check_worklogs               endpoint: http://worklog-svc:8001         │
+│                                         path: /api/check                         │
 │                                                                                  │
-│   Код ядра не меняется!                                                         │
+│   Core code does not change!                                                    │
 │                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 9. Итоговая сводка
+## 9. Summary
 
-| Компонент | Статус | Фаза |
-|-----------|--------|------|
-| Telegram Bot | Без изменений | — |
-| LLM Provider Adapter | Без изменений | — |
-| Admin API (TG, LLM, Admins) | Без изменений | — |
-| Админка (Настройки) | Без изменений | — |
-| **Tool-calling в LLM** | **НОВОЕ** | 1 |
-| **Tool Registry** | **НОВОЕ** | 2 |
-| **Plugin Loader** | **НОВОЕ** | 2 |
-| **Builtin плагины** | **НОВОЕ** | 2 |
-| **Tool Settings в БД** | **НОВОЕ** | 3 |
-| **Tools API** | **НОВОЕ** | 3 |
-| **Админка (Инструменты)** | **НОВОЕ** | 4 |
-| **Админка (Администраторы)** | **НОВОЕ** | 5 |
-| **Worklog Checker плагин** | **НОВОЕ** | 6 |
+| Component | Status | Phase |
+|-----------|--------|-------|
+| Telegram Bot | No changes | — |
+| LLM Provider Adapter | No changes | — |
+| Admin API (TG, LLM, Admins) | No changes | — |
+| Admin panel (Settings) | No changes | — |
+| **Tool-calling in LLM** | **NEW** | 1 |
+| **Tool Registry** | **NEW** | 2 |
+| **Plugin Loader** | **NEW** | 2 |
+| **Builtin plugins** | **NEW** | 2 |
+| **Tool settings in DB** | **NEW** | 3 |
+| **Tools API** | **NEW** | 3 |
+| **Admin panel (Tools)** | **NEW** | 4 |
+| **Admin panel (Administrators)** | **NEW** | 5 |
+| **Worklog Checker plugin** | **NEW** | 6 |
 
-**Общее время:** 6-8 недель до полностью рабочей системы с первым бизнес-плагином.
+**Total time:** 6–8 weeks to a fully working system with the first business plugin.
 
 ---
 
-## Версионирование
+## Versioning
 
-| Версия | Дата | Описание |
-|--------|------|----------|
-| 1.0 | 2026-02-06 | Первая версия целевой архитектуры |
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0 | 2026-02-06 | First version of target architecture |

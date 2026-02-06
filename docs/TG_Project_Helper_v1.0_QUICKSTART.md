@@ -1,16 +1,16 @@
-# TG Project Helper v1.0 — Быстрый старт
+# TG Project Helper v1.0 — Quick start
 
-**Версия:** 1.0  
-**Дата:** Февраль 2026  
-**Описание:** Краткое руководство по быстрому запуску и часто задаваемые вопросы.
+**Version:** 1.0  
+**Date:** February 2026  
+**Description:** Short guide for quick setup and frequently asked questions.
 
-> 📖 **Полная документация:** [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md)
+> 📖 **Full documentation:** [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md)
 
 ---
 
-## Быстрый старт
+## Quick start
 
-### 1. Установка зависимостей
+### 1. Install dependencies
 
 ```bash
 git clone <repo_url>
@@ -20,50 +20,50 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Настройка
+### 2. Configuration
 
 ```bash
 cp .env.example .env
 ```
 
-Отредактируй `.env` и укажи:
-- `BOT_TOKEN` — токен бота из [@BotFather](https://t.me/BotFather)
-- `OPENAI_API_KEY` — ключ OpenAI (или другой провайдер)
+Edit `.env` and set:
+- `BOT_TOKEN` — bot token from [@BotFather](https://t.me/BotFather)
+- `OPENAI_API_KEY` — OpenAI key (or another provider)
 
-### 3. Запуск
+### 3. Run
 
-**Режим «только бот» (настройки из .env):**
+**Bot-only mode (settings from .env):**
 ```bash
 python main.py
 ```
 
-**Режим API + админ-панель (настройки в БД):**
+**API + admin panel mode (settings in DB):**
 ```bash
-# В .env добавь SETTINGS_ENCRYPTION_KEY (или оставь пустым — создастся автоматически)
+# In .env add SETTINGS_ENCRYPTION_KEY (or leave empty — it will be created automatically)
 uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
-Админ-панель: **http://localhost:8000/admin/**
+Admin panel: **http://localhost:8000/admin/**
 
 **Docker:**
 ```bash
 docker compose up --build
 ```
 
-Админ-панель: **http://localhost:8000/admin/**
+Admin panel: **http://localhost:8000/admin/**
 
 ---
 
 ## FAQ
 
-### Как проверить, какая модель используется ботом?
+### How do I check which model the bot is using?
 
-**Через API:**
+**Via API:**
 ```bash
 curl http://localhost:8000/api/settings | python3 -m json.tool
 ```
 
-**Через Docker:**
+**Via Docker:**
 ```bash
 docker compose exec bot python3 -c "
 import sys
@@ -71,92 +71,92 @@ sys.path.insert(0, '.')
 from api.settings_repository import get_llm_settings_decrypted
 settings = get_llm_settings_decrypted()
 if settings:
-    print(f'Модель: {settings.get(\"model_type\")}')
-    print(f'Провайдер: {settings.get(\"llm_type\")}')
+    print(f'Model: {settings.get(\"model_type\")}')
+    print(f'Provider: {settings.get(\"llm_type\")}')
 "
 ```
 
-### Почему бот отвечает, что он GPT-3.5, хотя в настройках указана другая модель?
+### Why does the bot say it is GPT-3.5 when a different model is set?
 
-Это может быть из-за истории диалога. Модель может придерживаться своего первого ответа в контексте. Попробуй:
-1. Очистить историю диалога с ботом
-2. Задать вопрос заново
+This can be due to conversation history. The model may stick to its first reply in context. Try:
+1. Clear the conversation history with the bot
+2. Ask the question again
 
-Проверь реальную модель через API (см. выше) — она должна соответствовать настройкам.
+Check the actual model via the API (see above) — it should match the settings.
 
-### Ошибка "Неверный запрос к модели" при выборе GPT-5
+### "Invalid request to model" error when selecting GPT-5
 
-**Причины:**
-1. **Тариф OpenAI Free** — GPT-5 недоступен на бесплатном тарифе
-2. **Неправильное имя модели** — используй список моделей из кнопки "Загрузить список моделей" в админ-панели
-3. **Лимиты** — проверь [Account limits](https://platform.openai.com/account/limits)
+**Causes:**
+1. **OpenAI Free tier** — GPT-5 is not available on the free tier
+2. **Wrong model name** — use the model list from the "Load model list" button in the admin panel
+3. **Limits** — check [Account limits](https://platform.openai.com/account/limits)
 
-**Решение:**
-1. Проверь тариф: [https://platform.openai.com/account/limits](https://platform.openai.com/account/limits)
-2. Если Free — пополни баланс для доступа к GPT-5
-3. В админ-панели нажми "Загрузить список моделей" и выбери модель из списка
+**Solution:**
+1. Check your tier: [https://platform.openai.com/account/limits](https://platform.openai.com/account/limits)
+2. If on Free — add credits for GPT-5 access
+3. In the admin panel click "Load model list" and choose a model from the list
 
-### Как работает ключ шифрования?
+### How does the encryption key work?
 
-**В Docker:**  
-Ключ создаётся автоматически при первом запуске в `data/.encryption_key` и сохраняется между перезапусками. Ничего настраивать не нужно.
+**In Docker:**  
+The key is created automatically on first run in `data/.encryption_key` and persists across restarts. No configuration needed.
 
-**Локально (без Docker):**  
-Либо оставь `SETTINGS_ENCRYPTION_KEY` пустым — ключ создастся в `data/.encryption_key`. Либо сгенерируй вручную:
+**Locally (without Docker):**  
+Either leave `SETTINGS_ENCRYPTION_KEY` empty — the key will be created in `data/.encryption_key`. Or generate it manually:
 
 ```bash
 source .venv/bin/activate
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Добавь вывод в `.env`: `SETTINGS_ENCRYPTION_KEY=<ключ>`
+Add the output to `.env`: `SETTINGS_ENCRYPTION_KEY=<key>`
 
-**Важно:** не теряй ключ после сохранения настроек в БД — иначе расшифровать их будет нельзя.
+**Important:** do not lose the key after saving settings to the DB — otherwise they cannot be decrypted.
 
-### Как переключить модель или провайдера без перезапуска?
+### How do I switch model or provider without restarting?
 
-1. Открой админ-панель: **http://localhost:8000/admin/**
-2. В блоке "LLM" выбери провайдера и модель
-3. Нажми "Сохранить"
-4. После успешной проверки соединения настройки применяются автоматически
+1. Open the admin panel: **http://localhost:8000/admin/**
+2. In the "LLM" section select provider and model
+3. Click "Save"
+4. After a successful connection test, settings are applied automatically
 
-Переключение происходит "на лету" без перезапуска приложения.
+Switching happens on the fly without restarting the application.
 
-### Какие провайдеры поддерживаются?
+### Which providers are supported?
 
-- OpenAI (gpt-4o, gpt-5, o3, o4 и др.)
+- OpenAI (gpt-4o, gpt-5, o3, o4, etc.)
 - Anthropic (Claude)
 - Google Gemini
 - Groq
 - OpenRouter
-- Ollama (локальные модели)
+- Ollama (local models)
 - Azure OpenAI
 - Yandex GPT
 - Perplexity
 - xAI (Grok)
 - DeepSeek
-- Custom (OpenAI-совместимый)
+- Custom (OpenAI-compatible)
 
-### Как проверить соединение с Telegram/LLM?
+### How do I test Telegram/LLM connection?
 
-**В админ-панели:**
-- Нажми кнопку "Retry" в блоке Telegram или LLM
-- Статус обновляется автоматически каждые 10 секунд
+**In the admin panel:**
+- Click the "Retry" button in the Telegram or LLM section
+- Status is refreshed automatically every 10 seconds
 
-**Через API:**
+**Via API:**
 ```bash
-# Проверка Telegram
+# Test Telegram
 curl -X POST http://localhost:8000/api/settings/telegram/test \
   -H "X-Admin-Key: YOUR_ADMIN_API_KEY"
 
-# Проверка LLM
+# Test LLM
 curl -X POST http://localhost:8000/api/settings/llm/test \
   -H "X-Admin-Key: YOUR_ADMIN_API_KEY"
 ```
 
-### Как добавить администратора сервиса?
+### How do I add a service administrator?
 
-**Через API:**
+**Via API:**
 ```bash
 curl -X POST http://localhost:8000/api/service-admins \
   -H "Content-Type: application/json" \
@@ -164,33 +164,33 @@ curl -X POST http://localhost:8000/api/service-admins \
   -d '{"telegram_id": 123456789}'
 ```
 
-**Через админ-панель:**  
-Раздел «Администраторы» в админке планируется в Фазе 5 (см. [PLAN_PHASE_5.md](PLAN_PHASE_5.md)). Пока — только через API или Swagger (http://localhost:8000/docs).
+**Via admin panel:**  
+The "Administrators" section in the admin panel is planned for Phase 5 (see [PLAN_PHASE_5.md](PLAN_PHASE_5.md)). For now — only via API or Swagger (http://localhost:8000/docs).
 
-### Где хранятся настройки?
+### Where are settings stored?
 
-- **Режим «только бот»:** настройки в `.env`
-- **Режим API + админ-панель:** настройки в SQLite БД (`data/settings.db`)
-  - Токены и API-ключи хранятся в зашифрованном виде
-  - Ключ шифрования в `data/.encryption_key` или в `.env` (`SETTINGS_ENCRYPTION_KEY`)
+- **Bot-only mode:** settings in `.env`
+- **API + admin panel mode:** settings in SQLite DB (`data/settings.db`)
+  - Tokens and API keys are stored encrypted
+  - Encryption key in `data/.encryption_key` or in `.env` (`SETTINGS_ENCRYPTION_KEY`)
 
-### Как посмотреть логи?
+### How do I view logs?
 
-**Локально:**
+**Locally:**
 ```bash
-# Логи в консоли при запуске uvicorn или python main.py
-# Или в файле, если задан LOG_FILE в .env
+# Logs in console when running uvicorn or python main.py
+# Or in a file if LOG_FILE is set in .env
 ```
 
 **Docker:**
 ```bash
 docker compose logs bot
-docker compose logs -f bot  # с follow
+docker compose logs -f bot  # follow
 ```
 
-### Как запустить тесты?
+### How do I run tests?
 
-**Локально:**
+**Locally:**
 ```bash
 pytest tests/ -v
 ```
@@ -202,18 +202,18 @@ docker compose run --rm bot pytest tests/ -v
 
 ---
 
-## Полезные ссылки
+## Useful links
 
-- **Полная документация:** [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md)
+- **Full documentation:** [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md)
 - **OpenAI Account Limits:** [https://platform.openai.com/account/limits](https://platform.openai.com/account/limits)
 - **OpenAI Usage:** [https://platform.openai.com/usage](https://platform.openai.com/usage)
 - **Telegram BotFather:** [@BotFather](https://t.me/BotFather)
-- **Swagger UI (при запущенном приложении):** http://localhost:8000/docs
+- **Swagger UI (when app is running):** http://localhost:8000/docs
 
 ---
 
-## Версионирование документа
+## Document versioning
 
-| Версия | Дата | Описание |
-|--------|------|----------|
-| 1.0 | 2026-02-06 | Первая версия быстрого старта |
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0 | 2026-02-06 | First version of quick start |

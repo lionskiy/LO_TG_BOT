@@ -1,83 +1,83 @@
-# PHASE 0-1: Стабилизация и Tool-Calling
+# PHASE 0-1: Stabilization and Tool-Calling
 
-> **Детальная постановка задач для Фаз 0 и 1**  
-> Подготовка базы и внедрение tool-calling в LLM Engine
+> **Detailed task specification for Phases 0 and 1**  
+> Prepare the base and add tool-calling to the LLM Engine
 
-**Версия:** 1.1  
-**Дата:** 2026-02-06  
-**Ориентировочный срок:** 5-7 дней
-
----
-
-## Связанные документы
-
-| Документ | Описание | Статус |
-|----------|----------|--------|
-| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Целевая архитектура системы | ✅ Актуален (не завершено) |
-| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Декомпозиция всех задач | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Детальный план Фазы 0-1 (этот документ) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Детальный план Фазы 2 (следующая фаза) | ✅ Актуален (не завершено) |
-
-### Текущая реализация (v1.0)
-
-| Документ | Описание |
-|----------|----------|
-| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Спецификация текущей реализации |
-| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
+**Version:** 1.1  
+**Date:** 2026-02-06  
+**Estimated duration:** 5–7 days
 
 ---
 
-## Навигация по фазам
+## Related documents
 
-| Фаза | Документ | Описание | Статус |
-|------|----------|----------|--------|
-| 0-1 | **[PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md)** | Стабилизация + Tool-Calling | ✅ Актуален (не завершено) |
-| 2 | [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Plugin System | ✅ Актуален (не завершено) |
-| 3 | [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Storage + API | ✅ Актуален (не завершено) |
-| 4 | [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Админка Инструменты | ✅ Актуален (не завершено) |
-| 5 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Админка Администраторы | ✅ Актуален (не завершено) |
-| 6 | [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Worklog Checker | ✅ Актуален (не завершено) |
+| Document | Description | Status |
+|----------|-------------|--------|
+| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Target system architecture | ✅ Current (in progress) |
+| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Full task breakdown | ✅ Current (in progress) |
+| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Detailed plan for Phase 0–1 (this document) | ✅ Current (in progress) |
+| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Detailed plan for Phase 2 (next phase) | ✅ Current (in progress) |
 
----
+### Current implementation (v1.0)
 
-## Общая цель фаз 0-1
-
-**Было:** Бот получает сообщение → отправляет в LLM → возвращает текстовый ответ.
-
-**Стало:** Бот получает сообщение → отправляет в LLM с описанием tools → LLM может вызвать инструмент → результат инструмента возвращается в LLM → финальный ответ пользователю.
-
-**Важно:** Текущая функциональность должна работать без изменений. Tool-calling — дополнение, не замена.
+| Document | Description |
+|----------|-------------|
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Current implementation specification |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Quick start and FAQ |
 
 ---
 
-# ФАЗА 0: Стабилизация
+## Phase navigation
 
-**Цель:** Зафиксировать рабочее состояние, убедиться в наличии тестов, подготовить ветку для работ.
-
-**Срок:** 1-2 дня
+| Phase | Document | Description | Status |
+|-------|----------|-------------|--------|
+| 0-1 | **[PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md)** | Stabilization + Tool-Calling | ✅ Current (in progress) |
+| 2 | [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Plugin System | ✅ Current (in progress) |
+| 3 | [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Storage + API | ✅ Current (in progress) |
+| 4 | [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Admin Tools | ✅ Current (in progress) |
+| 5 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Admin Administrators | ✅ Current (in progress) |
+| 6 | [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Worklog Checker | ✅ Current (in progress) |
 
 ---
 
-## Задача 0.1: Ревью текущего состояния
+## Overall goal of Phases 0–1
 
-### Описание
-Проверить что текущая реализация работает корректно, все тесты проходят, документация актуальна.
+**Before:** Bot receives message → sends to LLM → returns text reply.
 
-### Шаги
-1. Запустить все существующие тесты: `pytest tests/`
-2. Проверить что бот запускается в обоих режимах:
-   - `python main.py` (настройки из .env)
-   - `uvicorn api.app:app` (настройки из БД)
-3. Проверить работу админки:
-   - Настройки Telegram (сохранение, проверка, активация)
-   - Настройки LLM (сохранение, проверка, активация)
-   - Hot-swap работает
-4. Проверить что бот отвечает на сообщения через настроенный LLM
+**After:** Bot receives message → sends to LLM with tool descriptions → LLM may call a tool → tool result is sent back to LLM → final reply to user.
 
-### Критерий готовности
-- [ ] Все тесты проходят (`pytest tests/` — green)
-- [ ] Бот работает в режиме main.py
-- [ ] Бот работает в режиме uvicorn + подпроцесс
+**Important:** Current behaviour must remain unchanged. Tool-calling is an addition, not a replacement.
+
+---
+
+# PHASE 0: Stabilization
+
+**Goal:** Freeze working state, ensure tests exist, prepare branch for work.
+
+**Duration:** 1–2 days
+
+---
+
+## Task 0.1: Review current state
+
+### Description
+Verify that the current implementation works correctly, all tests pass, and documentation is up to date.
+
+### Steps
+1. Run all existing tests: `pytest tests/`
+2. Verify the bot starts in both modes:
+   - `python main.py` (settings from .env)
+   - `uvicorn api.app:app` (settings from DB)
+3. Verify admin panel:
+   - Telegram settings (save, test, activate)
+   - LLM settings (save, test, activate)
+   - Hot-swap works
+4. Verify the bot replies to messages via the configured LLM
+
+### Done when
+- [ ] All tests pass (`pytest tests/` — green)
+- [ ] Bot works in main.py mode
+- [ ] Bot works in uvicorn + subprocess mode
 - [ ] Админка функциональна
 - [ ] Документация соответствует реальности
 

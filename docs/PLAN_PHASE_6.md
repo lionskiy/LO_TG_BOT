@@ -1,61 +1,61 @@
-# PHASE 6: Worklog Checker (бизнес-плагин)
+# PHASE 6: Worklog Checker (business plugin)
 
-> **Детальная постановка задач для Фазы 6**  
-> Первый бизнес-плагин: проверка ворклогов сотрудников через Jira и Tempo
+> **Detailed task specification for Phase 6**  
+> First business plugin: check employee worklogs via Jira and Tempo
 
-**Версия:** 1.0  
-**Дата:** 2026-02-06  
-**Ориентировочный срок:** 1–2 недели  
-**Предусловие:** Фазы 0–4 завершены (Plugin System, Storage, API, админка «Инструменты» работают)
-
----
-
-## Связанные документы
-
-| Документ | Описание | Статус |
-|----------|----------|--------|
-| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Целевая архитектура системы | ✅ Актуален (не завершено) |
-| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Декомпозиция всех задач (блок 7.1) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Детальный план Фазы 0-1 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Детальный план Фазы 2 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Детальный план Фазы 3 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Детальный план Фазы 4 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Детальный план Фазы 5 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Детальный план Фазы 6 (этот документ) | ✅ Актуален (не завершено) |
+**Version:** 1.0  
+**Date:** 2026-02-06  
+**Estimated duration:** 1–2 weeks  
+**Prerequisite:** Phases 0–4 completed (Plugin System, Storage, API, Admin "Tools" are working)
 
 ---
 
-## Навигация по фазам
+## Related documents
 
-| Фаза | Документ | Описание | Статус |
-|------|----------|----------|--------|
-| 0-1 | [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Стабилизация + Tool-Calling | ✅ Актуален (не завершено) |
-| 2 | [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Plugin System | ✅ Актуален (не завершено) |
-| 3 | [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Storage + API | ✅ Актуален (не завершено) |
-| 4 | [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Админка Инструменты | ✅ Актуален (не завершено) |
-| 5 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Админка Администраторы | ✅ Актуален (не завершено) |
-| 6 | **[PLAN_PHASE_6.md](PLAN_PHASE_6.md)** | Worklog Checker | ✅ Актуален (не завершено) |
-
-### Текущая реализация (v1.0)
-
-| Документ | Описание |
-|----------|----------|
-| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Спецификация текущей реализации |
-| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
+| Document | Description | Status |
+|----------|-------------|--------|
+| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Target system architecture | ✅ Current (in progress) |
+| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Full task breakdown (block 7.1) | ✅ Current (in progress) |
+| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Detailed plan for Phase 0–1 | ✅ Current (in progress) |
+| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Detailed plan for Phase 2 | ✅ Current (in progress) |
+| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Detailed plan for Phase 3 | ✅ Current (in progress) |
+| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Detailed plan for Phase 4 | ✅ Current (in progress) |
+| [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Detailed plan for Phase 5 | ✅ Current (in progress) |
+| [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Detailed plan for Phase 6 (this document) | ✅ Current (in progress) |
 
 ---
 
-## Общая цель Фазы 6
+## Phase navigation
 
-**Было:** В системе есть плагины (calculator, datetime_tools), инструменты настраиваются через админку, но нет бизнес-интеграций.
+| Phase | Document | Description | Status |
+|-------|----------|-------------|--------|
+| 0-1 | [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Stabilization + Tool-Calling | ✅ Current (in progress) |
+| 2 | [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Plugin System | ✅ Current (in progress) |
+| 3 | [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Storage + API | ✅ Current (in progress) |
+| 4 | [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Admin Tools | ✅ Current (in progress) |
+| 5 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Admin Administrators | ✅ Current (in progress) |
+| 6 | **[PLAN_PHASE_6.md](PLAN_PHASE_6.md)** | Worklog Checker | ✅ Current (in progress) |
 
-**Стало:** Появляется плагин **Worklog Checker**, который по запросу пользователя (через бота) проверяет ворклоги сотрудников за период: получает данные из Jira (пользователь, задачи) и из Tempo (фактические часы), сравнивает с нормой и возвращает сводку (дефицит/переработка, список задач).
+### Current implementation (v1.0)
 
-**Важно:**
+| Document | Description |
+|----------|-------------|
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Current implementation specification |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Quick start and FAQ |
 
-- Плагин оформлен по стандарту (plugin.yaml, handlers.py), настройки хранятся в БД через общий механизм (Фаза 3).
-- Внешние вызовы — только к Jira REST API и Tempo API (или Tempo Reports API в зависимости от выбранной версии API).
-- Документ задаёт **только спецификации и постановки задач**, без реализации кода.
+---
+
+## Overall goal of Phase 6
+
+**Before:** The system has plugins (calculator, datetime_tools), tools are configured via the admin panel, but there are no business integrations.
+
+**After:** The **Worklog Checker** plugin is added. On user request (via the bot) it checks employee worklogs for a period: fetches data from Jira (user, issues) and Tempo (actual hours), compares with the required norm, and returns a summary (deficit/overtime, task list).
+
+**Important:**
+
+- The plugin follows the standard (plugin.yaml, handlers.py); settings are stored in the DB via the shared mechanism (Phase 3).
+- External calls are only to Jira REST API and Tempo API (or Tempo Reports API depending on the chosen API version).
+- This document defines **specifications and task descriptions only**, with no code implementation.
 
 ---
 

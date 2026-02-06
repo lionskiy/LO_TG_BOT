@@ -1,129 +1,129 @@
 # UPGRADE TASKS — LO_TG_BOT
 
-> **Декомпозиция задач по развитию проекта**  
-> Детализация на 3-4 уровня для планирования и трекинга
+> **Task breakdown for project evolution**  
+> Detailed to 3–4 levels for planning and tracking
 
-**Версия:** 1.1  
-**Дата:** 2026-02-06
-
----
-
-## Связанные документы
-
-| Документ | Описание | Статус |
-|----------|----------|--------|
-| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Целевая архитектура системы | ✅ Актуален (не завершено) |
-| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Декомпозиция задач (этот документ) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Детальный план Фазы 0-1 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Детальный план Фазы 2 (Plugin System) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Детальный план Фазы 3 (Storage + API) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Детальный план Фазы 4 (Админка Инструменты) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Детальный план Фазы 5 (Админка Администраторы) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Детальный план Фазы 6 (Worklog Checker) | ✅ Актуален (не завершено) |
-
-### Текущее состояние (v1.0) — реализовано
-
-| Документ | Описание |
-|----------|----------|
-| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Полная спецификация текущей реализации |
-| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
+**Version:** 1.1  
+**Date:** 2026-02-06
 
 ---
 
-## Как использовать этот документ
+## Related documents
 
-1. **При планировании спринта** — выбираешь блок/подблок из нужной фазы
-2. **При разработке** — сверяешься с критериями готовности
-3. **При code review** — проверяешь что все подпункты выполнены
-4. **При тестировании** — используешь критерии готовности как чеклист
-5. **Детальный план фазы** — смотри соответствующий PLAN_PHASE_X.md
-6. **Архитектурные вопросы** — смотри [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md)
+| Document | Description | Status |
+|----------|-------------|--------|
+| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Target system architecture | ✅ Current (in progress) |
+| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Task breakdown (this document) | ✅ Current (in progress) |
+| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Detailed plan for Phase 0–1 | ✅ Current (in progress) |
+| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Detailed plan for Phase 2 (Plugin System) | ✅ Current (in progress) |
+| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Detailed plan for Phase 3 (Storage + API) | ✅ Current (in progress) |
+| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Detailed plan for Phase 4 (Admin Tools) | ✅ Current (in progress) |
+| [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Detailed plan for Phase 5 (Admin Administrators) | ✅ Current (in progress) |
+| [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Detailed plan for Phase 6 (Worklog Checker) | ✅ Current (in progress) |
+
+### Current state (v1.0) — implemented
+
+| Document | Description |
+|----------|-------------|
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Full specification of current implementation |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Quick start and FAQ |
 
 ---
 
-## Функциональные блоки (полная декомпозиция)
+## How to use this document
+
+1. **When planning a sprint** — pick a block/subblock from the required phase
+2. **When developing** — check against the done criteria
+3. **When doing code review** — verify all sub-items are done
+4. **When testing** — use the done criteria as a checklist
+5. **Detailed phase plan** — see the corresponding PLAN_PHASE_X.md
+6. **Architecture questions** — see [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md)
 
 ---
 
-## 1. LLM ENGINE (Оркестратор) — ДОРАБОТКА
+## Functional blocks (full breakdown)
+
+---
+
+## 1. LLM ENGINE (Orchestrator) — EXTENSION
 
 ```
 1. LLM ENGINE
 │
-├── 1.1 LLM Router [НОВОЕ]
+├── 1.1 LLM Router [NEW]
 │   │
-│   ├── 1.1.1 Формирование запроса
-│   │   ├── Сборка system_prompt (английский)
-│   │   ├── Получение tools из Registry
-│   │   ├── Добавление истории диалога
-│   │   └── Добавление сообщения пользователя
+│   ├── 1.1.1 Request building
+│   │   ├── Build system_prompt (English)
+│   │   ├── Get tools from Registry
+│   │   ├── Add conversation history
+│   │   └── Add user message
 │   │
-│   ├── 1.1.2 Обработка ответа LLM
-│   │   ├── Проверка наличия tool_calls
-│   │   ├── Парсинг function name и arguments
-│   │   ├── Вызов Tool Executor
-│   │   └── Формирование tool_result message
+│   ├── 1.1.2 LLM response handling
+│   │   ├── Check for tool_calls
+│   │   ├── Parse function name and arguments
+│   │   ├── Call Tool Executor
+│   │   └── Build tool_result message
 │   │
-│   ├── 1.1.3 Цикл tool-calling
-│   │   ├── Повторный запрос к LLM с результатом
-│   │   ├── Поддержка multiple tool calls
-│   │   ├── Ограничение глубины (max iterations)
-│   │   └── Получение финального текстового ответа
+│   ├── 1.1.3 Tool-calling loop
+│   │   ├── Follow-up request to LLM with result
+│   │   ├── Support multiple tool calls
+│   │   ├── Depth limit (max iterations)
+│   │   └── Get final text reply
 │   │
-│   ├── 1.1.4 Обработка ошибок
+│   ├── 1.1.4 Error handling
 │   │   ├── Tool not found
 │   │   ├── Tool execution error
 │   │   ├── LLM timeout/error
-│   │   └── Fallback к обычному ответу
+│   │   └── Fallback to normal reply
 │   │
-│   ├── Файлы:
-│   │   └── bot/tool_calling.py [НОВЫЙ]
+│   ├── Files:
+│   │   └── bot/tool_calling.py [NEW]
 │   │
-│   ├── Зависимости: Tool Registry, Tool Executor
+│   ├── Dependencies: Tool Registry, Tool Executor
 │   │
-│   └── Критерий готовности:
-│       └── LLM выбирает и вызывает инструменты, возвращает ответ
+│   └── Done when:
+│       └── LLM selects and calls tools, returns reply
 │
-├── 1.2 LLM Provider Adapter [РАСШИРЕНИЕ]
+├── 1.2 LLM Provider Adapter [EXTENSION]
 │   │
 │   ├── 1.2.1 OpenAI / OpenAI-compatible
-│   │   ├── Добавить параметр tools в запрос
-│   │   ├── Добавить параметр tool_choice
-│   │   ├── Обработка response.tool_calls
-│   │   └── Формирование tool result message
+│   │   ├── Add tools parameter to request
+│   │   ├── Add tool_choice parameter
+│   │   ├── Handle response.tool_calls
+│   │   └── Build tool result message
 │   │
 │   ├── 1.2.2 Anthropic (Claude)
-│   │   ├── Конвертация tools в формат Anthropic
-│   │   ├── Обработка tool_use blocks
-│   │   └── Формирование tool_result content
+│   │   ├── Convert tools to Anthropic format
+│   │   ├── Handle tool_use blocks
+│   │   └── Build tool_result content
 │   │
 │   ├── 1.2.3 Google (Gemini)
-│   │   ├── Конвертация tools в формат Gemini
-│   │   ├── Обработка function_call response
-│   │   └── Формирование function_response
+│   │   ├── Convert tools to Gemini format
+│   │   ├── Handle function_call response
+│   │   └── Build function_response
 │   │
-│   ├── 1.2.4 Универсальный интерфейс
-│   │   ├── Абстракция ToolCall (name, arguments, id)
-│   │   ├── Абстракция ToolResult (id, content)
-│   │   └── Конвертеры для каждого провайдера
+│   ├── 1.2.4 Universal interface
+│   │   ├── ToolCall abstraction (name, arguments, id)
+│   │   ├── ToolResult abstraction (id, content)
+│   │   └── Converters per provider
 │   │
-│   ├── Файлы:
-│   │   └── bot/llm.py [РАСШИРЕНИЕ]
+│   ├── Files:
+│   │   └── bot/llm.py [EXTENSION]
 │   │
-│   ├── Зависимости: Нет
+│   ├── Dependencies: None
 │   │
-│   └── Критерий готовности:
-│       └── Tool-calling работает для OpenAI, Anthropic, Google
+│   └── Done when:
+│       └── Tool-calling works for OpenAI, Anthropic, Google
 ```
 
 ---
 
-## 2. PLUGIN SYSTEM — НОВОЕ
+## 2. PLUGIN SYSTEM — NEW
 
 ```
 2. PLUGIN SYSTEM
 │
-├── 2.1 Tool Registry [НОВОЕ]
+├── 2.1 Tool Registry [NEW]
 │   │
 │   ├── 2.1.1 Структуры данных
 │   │   ├── ToolDefinition (name, description, parameters, handler, timeout)
@@ -146,17 +146,17 @@
 │   │   ├── get_tool_status(name) → ToolStatus
 │   │   └── list_all_tools() → List[ToolDefinition]
 │   │
-│   ├── Файлы:
+│   ├── Files:
 │   │   ├── tools/__init__.py
-│   │   ├── tools/registry.py [НОВЫЙ]
-│   │   └── tools/models.py [НОВЫЙ]
+│   │   ├── tools/registry.py [NEW]
+│   │   └── tools/models.py [NEW]
 │   │
-│   ├── Зависимости: Plugin Loader
+│   ├── Dependencies: Plugin Loader
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Registry хранит tools и формирует список для LLM
 │
-├── 2.2 Plugin Loader [НОВОЕ]
+├── 2.2 Plugin Loader [NEW]
 │   │
 │   ├── 2.2.1 Сканирование
 │   │   ├── Обход папки plugins/
@@ -186,15 +186,15 @@
 │   │   ├── Удаление старых tools из Registry
 │   │   └── Загрузка обновлённых
 │   │
-│   ├── Файлы:
-│   │   └── tools/loader.py [НОВЫЙ]
+│   ├── Files:
+│   │   └── tools/loader.py [NEW]
 │   │
-│   ├── Зависимости: Нет
+│   ├── Dependencies: None
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Плагины загружаются из папки при старте и по команде
 │
-├── 2.3 Tool Executor [НОВОЕ]
+├── 2.3 Tool Executor [NEW]
 │   │
 │   ├── 2.3.1 Маршрутизация
 │   │   ├── Получение handler из Registry по имени
@@ -223,15 +223,15 @@
 │   │   ├── Опционально: запись в tool_call_log (БД)
 │   │   └── Метрики (счётчики вызовов)
 │   │
-│   ├── Файлы:
-│   │   └── tools/executor.py [НОВЫЙ]
+│   ├── Files:
+│   │   └── tools/executor.py [NEW]
 │   │
-│   ├── Зависимости: Tool Registry
+│   ├── Dependencies: Tool Registry
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Executor вызывает handlers и возвращает результат
 │
-├── 2.4 Plugin Settings Manager [НОВОЕ]
+├── 2.4 Plugin Settings Manager [NEW]
 │   │
 │   ├── 2.4.1 Чтение настроек
 │   │   ├── get_plugin_settings(plugin_id) → dict
@@ -255,15 +255,15 @@
 │   │   ├── get_missing_settings(plugin_id) → List[str]
 │   │   └── Автоматическое определение needs_config
 │   │
-│   ├── Файлы:
-│   │   └── tools/settings_manager.py [НОВЫЙ]
+│   ├── Files:
+│   │   └── tools/settings_manager.py [NEW]
 │   │
-│   ├── Зависимости: Tools Repository, Encryption
+│   ├── Dependencies: Tools Repository, Encryption
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Настройки плагинов читаются/пишутся с шифрованием
 │
-├── 2.5 Plugin Base (утилиты для плагинов) [НОВОЕ]
+├── 2.5 Plugin Base (утилиты для плагинов) [NEW]
 │   │
 │   ├── 2.5.1 Доступ к настройкам
 │   │   ├── get_setting(key) — для использования в handlers
@@ -282,23 +282,23 @@
 │   │   ├── get_logger(plugin_id) → Logger
 │   │   └── Префикс [plugin_id] в логах
 │   │
-│   ├── Файлы:
-│   │   └── tools/base.py [НОВЫЙ]
+│   ├── Files:
+│   │   └── tools/base.py [NEW]
 │   │
-│   ├── Зависимости: Settings Manager, LLM Engine
+│   ├── Dependencies: Settings Manager, LLM Engine
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Плагины могут использовать утилиты через import
 ```
 
 ---
 
-## 3. STORAGE — РАСШИРЕНИЕ
+## 3. STORAGE — EXTENSION
 
 ```
 3. STORAGE
 │
-├── 3.1 Модели данных [НОВОЕ]
+├── 3.1 Модели данных [NEW]
 │   │
 │   ├── 3.1.1 ToolSettingsModel
 │   │   ├── tool_name: str (PK)
@@ -308,7 +308,7 @@
 │   │   ├── created_at: datetime
 │   │   └── updated_at: datetime
 │   │
-│   ├── 3.1.2 ToolCallLogModel (опционально)
+│   ├── 3.1.2 ToolCallLogModel (optional)
 │   │   ├── id: int (PK, autoincrement)
 │   │   ├── tool_name: str
 │   │   ├── user_id: str (telegram user id)
@@ -319,15 +319,15 @@
 │   │   ├── duration_ms: int
 │   │   └── created_at: datetime
 │   │
-│   ├── Файлы:
-│   │   └── api/db.py [РАСШИРЕНИЕ]
+│   ├── Files:
+│   │   └── api/db.py [EXTENSION]
 │   │
-│   ├── Зависимости: SQLAlchemy
+│   ├── Dependencies: SQLAlchemy
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Таблицы создаются при старте, миграция не ломает существующие
 │
-├── 3.2 Tools Repository [НОВОЕ]
+├── 3.2 Tools Repository [NEW]
 │   │
 │   ├── 3.2.1 CRUD операции
 │   │   ├── get_tool_settings(tool_name) → ToolSettingsModel | None
@@ -346,23 +346,23 @@
 │   │   ├── Маскирование полей type: password
 │   │   └── Формат: "***{last_5_chars}"
 │   │
-│   ├── Файлы:
-│   │   └── api/tools_repository.py [НОВЫЙ]
+│   ├── Files:
+│   │   └── api/tools_repository.py [NEW]
 │   │
-│   ├── Зависимости: db.py, encryption.py
+│   ├── Dependencies: db.py, encryption.py
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── CRUD работает, секреты шифруются как TG/LLM
 ```
 
 ---
 
-## 4. ADMIN API — РАСШИРЕНИЕ
+## 4. ADMIN API — EXTENSION
 
 ```
 4. ADMIN API
 │
-├── 4.1 Tools Router [НОВОЕ]
+├── 4.1 Tools Router [NEW]
 │   │
 │   ├── 4.1.1 GET /api/tools
 │   │   ├── Список всех инструментов
@@ -401,19 +401,19 @@
 │   │
 │   ├── 4.1.7 POST /api/tools/{name}/test
 │   │   ├── Проверить подключение (если есть внешний API)
-│   │   ├── Вызов специального test handler (опционально)
+│   │   ├── Вызов специального test handler (optional)
 │   │   ├── Response: {success, message, details?}
 │   │   └── 400/500 при ошибке
 │   │
-│   ├── Файлы:
-│   │   └── api/tools_router.py [НОВЫЙ]
+│   ├── Files:
+│   │   └── api/tools_router.py [NEW]
 │   │
-│   ├── Зависимости: Tool Registry, Tools Repository, Settings Manager
+│   ├── Dependencies: Tool Registry, Tools Repository, Settings Manager
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Все эндпоинты работают, Swagger документация
 │
-├── 4.2 Plugins Router [НОВОЕ]
+├── 4.2 Plugins Router [NEW]
 │   │
 │   ├── 4.2.1 POST /api/plugins/reload
 │   │   ├── Перезагрузить все плагины
@@ -431,15 +431,15 @@
 │   │   ├── Response: [{id, name, version, tools_count, enabled_count}]
 │   │   └── Группировка по плагинам
 │   │
-│   ├── Файлы:
-│   │   └── api/plugins_router.py [НОВЫЙ]
+│   ├── Files:
+│   │   └── api/plugins_router.py [NEW]
 │   │
-│   ├── Зависимости: Plugin Loader
+│   ├── Dependencies: Plugin Loader
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Hot-reload работает через API
 │
-├── 4.3 Интеграция в app.py [РАСШИРЕНИЕ]
+├── 4.3 Интеграция в app.py [EXTENSION]
 │   │
 │   ├── 4.3.1 Подключение роутеров
 │   │   ├── app.include_router(tools_router)
@@ -450,21 +450,21 @@
 │   │   ├── Загрузка плагинов
 │   │   └── Синхронизация Registry с БД
 │   │
-│   ├── Файлы:
-│   │   └── api/app.py [РАСШИРЕНИЕ]
+│   ├── Files:
+│   │   └── api/app.py [EXTENSION]
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Плагины загружаются при старте приложения
 ```
 
 ---
 
-## 5. ADMIN PANEL (UI) — РАСШИРЕНИЕ
+## 5. ADMIN PANEL (UI) — EXTENSION
 
 ```
 5. ADMIN PANEL
 │
-├── 5.1 Навигация [ДОРАБОТКА]
+├── 5.1 Навигация [EXTENSION]
 │   │
 │   ├── 5.1.1 Структура меню
 │   │   ├── Настройки (существующий)
@@ -479,19 +479,19 @@
 │   ├── 5.1.3 Активный пункт меню
 │   │   └── Подсветка текущего раздела
 │   │
-│   ├── Файлы:
-│   │   ├── admin/index.html [РАСШИРЕНИЕ]
-│   │   └── admin/app.js [РАСШИРЕНИЕ]
+│   ├── Files:
+│   │   ├── admin/index.html [EXTENSION]
+│   │   └── admin/app.js [EXTENSION]
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Меню с 3 пунктами, переключение разделов
 │
-├── 5.2 Страница "Инструменты" [НОВОЕ]
+├── 5.2 Страница "Инструменты" [NEW]
 │   │
 │   ├── 5.2.1 Список инструментов
 │   │   ├── Загрузка GET /api/tools
 │   │   ├── Отображение карточек/таблицы
-│   │   ├── Группировка по плагинам (опционально)
+│   │   ├── Группировка по плагинам (optional)
 │   │   └── Фильтр: все / включённые / выключенные
 │   │
 │   ├── 5.2.2 Карточка инструмента
@@ -521,17 +521,17 @@
 │   │   ├── Индикатор загрузки
 │   │   └── Toast с результатом
 │   │
-│   ├── Файлы:
-│   │   ├── admin/index.html [РАСШИРЕНИЕ] или admin/tools.html [НОВЫЙ]
-│   │   ├── admin/tools.js [НОВЫЙ]
-│   │   └── admin/styles.css [РАСШИРЕНИЕ]
+│   ├── Files:
+│   │   ├── admin/index.html [EXTENSION] или admin/tools.html [NEW]
+│   │   ├── admin/tools.js [NEW]
+│   │   └── admin/styles.css [EXTENSION]
 │   │
-│   ├── Зависимости: Tools API готов
+│   ├── Dependencies: Tools API готов
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Полное управление инструментами через UI
 │
-├── 5.3 Страница "Администраторы" [НОВОЕ]
+├── 5.3 Страница "Администраторы" [NEW]
 │   │
 │   ├── 5.3.1 Список администраторов
 │   │   ├── Загрузка GET /api/service-admins
@@ -555,25 +555,25 @@
 │   │   ├── Текст: "Удалить администратора {имя}?"
 │   │   └── Кнопки: Удалить (danger), Отмена
 │   │
-│   ├── Файлы:
-│   │   ├── admin/index.html [РАСШИРЕНИЕ] или admin/admins.html [НОВЫЙ]
-│   │   ├── admin/admins.js [НОВЫЙ]
-│   │   └── admin/styles.css [РАСШИРЕНИЕ]
+│   ├── Files:
+│   │   ├── admin/index.html [EXTENSION] или admin/admins.html [NEW]
+│   │   ├── admin/admins.js [NEW]
+│   │   └── admin/styles.css [EXTENSION]
 │   │
-│   ├── Зависимости: API уже существует!
+│   ├── Dependencies: API already exists!
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Полное управление админами через UI
 ```
 
 ---
 
-## 6. BUILTIN PLUGINS — НОВОЕ
+## 6. BUILTIN PLUGINS — NEW
 
 ```
 6. BUILTIN PLUGINS
 │
-├── 6.1 Calculator [НОВОЕ]
+├── 6.1 Calculator [NEW]
 │   │
 │   ├── 6.1.1 plugin.yaml
 │   │   ├── id: calculator
@@ -591,16 +591,16 @@
 │   │   ├── Поддержка: +, -, *, /, **, sqrt, sin, cos, etc.
 │   │   └── Обработка ошибок (деление на 0, синтаксис)
 │   │
-│   ├── Файлы:
+│   ├── Files:
 │   │   ├── plugins/builtin/calculator/plugin.yaml
 │   │   └── plugins/builtin/calculator/handlers.py
 │   │
-│   ├── Настройки: Нет
+│   ├── Settings: None
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── "Посчитай 2+2*3" → "8"
 │
-├── 6.2 DateTime Tools [НОВОЕ]
+├── 6.2 DateTime Tools [NEW]
 │   │
 │   ├── 6.2.1 plugin.yaml
 │   │   ├── id: datetime-tools
@@ -621,25 +621,25 @@
 │   │       ├── Парсинг даты (разные форматы)
 │   │       └── Return: "Monday" / "Понедельник"
 │   │
-│   ├── Файлы:
+│   ├── Files:
 │   │   ├── plugins/builtin/datetime_tools/plugin.yaml
 │   │   └── plugins/builtin/datetime_tools/handlers.py
 │   │
 │   ├── Настройки:
 │   │   └── timezone (опционально, default: UTC)
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── "Сколько времени?" → текущее время
 ```
 
 ---
 
-## 7. BUSINESS PLUGINS — НОВОЕ (Фаза 6+)
+## 7. BUSINESS PLUGINS — NEW (Phase 6+)
 
 ```
 7. BUSINESS PLUGINS
 │
-├── 7.1 Worklog Checker [ФАЗА 6]
+├── 7.1 Worklog Checker [PHASE 6]
 │   │
 │   ├── 7.1.1 plugin.yaml
 │   │   ├── id: worklog-checker
@@ -682,24 +682,24 @@
 │   │   ├── get_worklogs(user_key, date_from, date_to) → List[Worklog]
 │   │   └── Обработка ошибок API
 │   │
-│   ├── 7.1.5 test handler (опционально)
+│   ├── 7.1.5 test handler (optional)
 │   │   ├── async def test_connection() → dict
 │   │   ├── Проверка подключения к Jira
 │   │   ├── Проверка подключения к Tempo
 │   │   └── Return: {jira_ok, tempo_ok, errors}
 │   │
-│   ├── Файлы:
+│   ├── Files:
 │   │   ├── plugins/worklog_checker/plugin.yaml
 │   │   ├── plugins/worklog_checker/handlers.py
 │   │   ├── plugins/worklog_checker/jira_client.py
 │   │   └── plugins/worklog_checker/tempo_client.py
 │   │
-│   ├── Зависимости: httpx, Jira API, Tempo API
+│   ├── Dependencies: httpx, Jira API, Tempo API
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── "Проверь ворклоги Иванова" → реальные данные
 │
-├── 7.2 HR Service [БУДУЩЕЕ]
+├── 7.2 HR Service [FUTURE]
 │   │
 │   ├── 7.2.1 Инструменты
 │   │   ├── get_employee — получить данные сотрудника
@@ -715,10 +715,10 @@
 │   │   ├── import_from_excel — загрузка из Excel
 │   │   └── import_from_csv — загрузка из CSV
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── "Кто руководитель Иванова?" → ответ из базы
 │
-├── 7.3 Reminder [БУДУЩЕЕ]
+├── 7.3 Reminder [FUTURE]
 │   │
 │   ├── 7.3.1 Инструменты
 │   │   ├── find_violators — найти нарушителей за период
@@ -735,110 +735,110 @@
 │   │   ├── Автоматическая отправка напоминаний
 │   │   └── Эскалация по таймауту
 │   │
-│   └── Критерий готовности:
+│   └── Done when:
 │       └── Автоматические напоминания с персонализацией
 ```
 
 ---
 
-## Сводная таблица всех компонентов
+## Summary table of all components
 
-| # | Блок | Подблок | Тип | Фаза | Файлы |
-|---|------|---------|-----|------|-------|
-| 1.1 | LLM Engine | LLM Router | Новое | 1 | bot/tool_calling.py |
-| 1.2 | LLM Engine | Provider Adapter | Расширение | 1 | bot/llm.py |
-| 2.1 | Plugin System | Tool Registry | Новое | 2 | tools/registry.py, models.py |
-| 2.2 | Plugin System | Plugin Loader | Новое | 2 | tools/loader.py |
-| 2.3 | Plugin System | Tool Executor | Новое | 2 | tools/executor.py |
-| 2.4 | Plugin System | Settings Manager | Новое | 3 | tools/settings_manager.py |
-| 2.5 | Plugin System | Plugin Base | Новое | 2 | tools/base.py |
-| 3.1 | Storage | Модели данных | Новое | 3 | api/db.py |
-| 3.2 | Storage | Tools Repository | Новое | 3 | api/tools_repository.py |
-| 4.1 | Admin API | Tools Router | Новое | 3 | api/tools_router.py |
-| 4.2 | Admin API | Plugins Router | Новое | 3 | api/plugins_router.py |
-| 4.3 | Admin API | Интеграция | Расширение | 3 | api/app.py |
-| 5.1 | Admin Panel | Навигация | Доработка | 4 | admin/index.html, app.js |
-| 5.2 | Admin Panel | Инструменты | Новое | 4 | admin/tools.js |
-| 5.3 | Admin Panel | Администраторы | Новое | 5 | admin/admins.js |
-| 6.1 | Builtin Plugins | Calculator | Новое | 2 | plugins/builtin/calculator/* |
-| 6.2 | Builtin Plugins | DateTime | Новое | 2 | plugins/builtin/datetime_tools/* |
-| 7.1 | Business Plugins | Worklog Checker | Новое | 6 | plugins/worklog_checker/* |
-| 7.2 | Business Plugins | HR Service | Новое | 7+ | plugins/hr_service/* |
-| 7.3 | Business Plugins | Reminder | Новое | 7+ | plugins/reminder/* |
+| # | Block | Subblock | Type | Phase | Files |
+|---|-------|----------|------|-------|-------|
+| 1.1 | LLM Engine | LLM Router | New | 1 | bot/tool_calling.py |
+| 1.2 | LLM Engine | Provider Adapter | Extension | 1 | bot/llm.py |
+| 2.1 | Plugin System | Tool Registry | New | 2 | tools/registry.py, models.py |
+| 2.2 | Plugin System | Plugin Loader | New | 2 | tools/loader.py |
+| 2.3 | Plugin System | Tool Executor | New | 2 | tools/executor.py |
+| 2.4 | Plugin System | Settings Manager | New | 3 | tools/settings_manager.py |
+| 2.5 | Plugin System | Plugin Base | New | 2 | tools/base.py |
+| 3.1 | Storage | Data models | New | 3 | api/db.py |
+| 3.2 | Storage | Tools Repository | New | 3 | api/tools_repository.py |
+| 4.1 | Admin API | Tools Router | New | 3 | api/tools_router.py |
+| 4.2 | Admin API | Plugins Router | New | 3 | api/plugins_router.py |
+| 4.3 | Admin API | Integration | Extension | 3 | api/app.py |
+| 5.1 | Admin Panel | Navigation | Extension | 4 | admin/index.html, app.js |
+| 5.2 | Admin Panel | Tools | New | 4 | admin/tools.js |
+| 5.3 | Admin Panel | Administrators | New | 5 | admin/admins.js |
+| 6.1 | Builtin Plugins | Calculator | New | 2 | plugins/builtin/calculator/* |
+| 6.2 | Builtin Plugins | DateTime | New | 2 | plugins/builtin/datetime_tools/* |
+| 7.1 | Business Plugins | Worklog Checker | New | 6 | plugins/worklog_checker/* |
+| 7.2 | Business Plugins | HR Service | New | 7+ | plugins/hr_service/* |
+| 7.3 | Business Plugins | Reminder | New | 7+ | plugins/reminder/* |
 
 ---
 
-## Распределение по фазам
+## Phase breakdown
 
-### Фаза 0: Стабилизация (1-2 дня)
-- [ ] Ревью текущих тестов
-- [ ] Фиксация рабочего состояния (tag)
-- [ ] Создание ветки для работ
+### Phase 0: Stabilization (1–2 days)
+- [ ] Review current tests
+- [ ] Tag working state
+- [ ] Create branch for work
 
-### Фаза 1: Tool-calling в LLM (3-5 дней)
+### Phase 1: Tool-calling in LLM (3–5 days)
 - [ ] 1.1 LLM Router
-- [ ] 1.2 LLM Provider Adapter (расширение)
-- [ ] Тесты tool-calling
+- [ ] 1.2 LLM Provider Adapter (extension)
+- [ ] Tool-calling tests
 
-### Фаза 2: Plugin System (5-7 дней)
+### Phase 2: Plugin System (5–7 days)
 - [ ] 2.1 Tool Registry
 - [ ] 2.2 Plugin Loader
 - [ ] 2.3 Tool Executor
 - [ ] 2.5 Plugin Base
 - [ ] 6.1 Calculator plugin
 - [ ] 6.2 DateTime plugin
-- [ ] Тесты plugin system
+- [ ] Plugin system tests
 
-### Фаза 3: Storage + API (3-5 дней)
-- [ ] 3.1 Модели данных
+### Phase 3: Storage + API (3–5 days)
+- [ ] 3.1 Data models
 - [ ] 3.2 Tools Repository
 - [ ] 2.4 Settings Manager
 - [ ] 4.1 Tools Router
 - [ ] 4.2 Plugins Router
-- [ ] 4.3 Интеграция в app.py
-- [ ] Тесты API
+- [ ] 4.3 Integration in app.py
+- [ ] API tests
 
-### Фаза 4: Админка "Инструменты" (5-7 дней)
-- [ ] 5.1 Навигация (доработка)
-- [ ] 5.2 Страница "Инструменты"
-- [ ] Ручное тестирование UI
+### Phase 4: Admin "Tools" (5–7 days)
+- [ ] 5.1 Navigation (extension)
+- [ ] 5.2 "Tools" page
+- [ ] Manual UI testing
 
-### Фаза 5: Админка "Администраторы" (3-5 дней)
-- [ ] 5.3 Страница "Администраторы"
-- [ ] Ручное тестирование UI
+### Phase 5: Admin "Administrators" (3–5 days)
+- [ ] 5.3 "Administrators" page
+- [ ] Manual UI testing
 
-**Примечание:** Фаза 5 может выполняться параллельно с Фазами 3-4
+**Note:** Phase 5 can run in parallel with Phases 3–4
 
-### Фаза 6: Worklog Checker (1-2 недели)
+### Phase 6: Worklog Checker (1–2 weeks)
 - [ ] 7.1 Worklog Checker plugin
-- [ ] Интеграция Jira API
-- [ ] Интеграция Tempo API
-- [ ] E2E тестирование
+- [ ] Jira API integration
+- [ ] Tempo API integration
+- [ ] E2E testing
 
-### Фаза 7+: Будущие плагины
+### Phase 7+: Future plugins
 - [ ] 7.2 HR Service
 - [ ] 7.3 Reminder
-- [ ] Другие по необходимости
+- [ ] Others as needed
 
 ---
 
-## Оценка трудозатрат
+## Effort estimate
 
-| Фаза | Описание | Оценка |
-|------|----------|--------|
-| 0 | Стабилизация | 1-2 дня |
-| 1 | Tool-calling | 3-5 дней |
-| 2 | Plugin System | 5-7 дней |
-| 3 | Storage + API | 3-5 дней |
-| 4 | Админка "Инструменты" | 5-7 дней |
-| 5 | Админка "Администраторы" | 3-5 дней |
-| 6 | Worklog Checker | 1-2 недели |
-| **Итого до MVP** | Фазы 0-6 | **6-8 недель** |
+| Phase | Description | Estimate |
+|-------|-------------|----------|
+| 0 | Stabilization | 1–2 days |
+| 1 | Tool-calling | 3–5 days |
+| 2 | Plugin System | 5–7 days |
+| 3 | Storage + API | 3–5 days |
+| 4 | Admin "Tools" | 5–7 days |
+| 5 | Admin "Administrators" | 3–5 days |
+| 6 | Worklog Checker | 1–2 weeks |
+| **Total to MVP** | Phases 0–6 | **6–8 weeks** |
 
 ---
 
-## Версионирование документа
+## Document versioning
 
-| Версия | Дата | Описание |
-|--------|------|----------|
-| 1.0 | 2026-02-06 | Первая версия декомпозиции задач |
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0 | 2026-02-06 | First version of task breakdown |

@@ -1,142 +1,142 @@
 # TG Project Helper v1.0
 
-**Версия:** 1.0  
-**Дата:** Февраль 2026  
-**Описание:** Полная документация проекта Telegram-бота с поддержкой множества LLM-провайдеров и веб-админ-панелью для управления настройками.
+**Version:** 1.0  
+**Date:** February 2026  
+**Description:** Full documentation of the Telegram bot project with support for multiple LLM providers and a web admin panel for managing settings.
 
 ---
 
-## Содержание
+## Table of contents
 
-1. [Обзор проекта](#1-обзор-проекта)
-2. [Архитектура и поток данных](#2-архитектура-и-поток-данных)
-3. [Поддерживаемые провайдеры LLM](#3-поддерживаемые-провайдеры-llm)
-4. [Установка и запуск](#4-установка-и-запуск)
+1. [Project overview](#1-project-overview)
+2. [Architecture and data flow](#2-architecture-and-data-flow)
+3. [Supported LLM providers](#3-supported-llm-providers)
+4. [Installation and running](#4-installation-and-running)
 5. [Admin API](#5-admin-api)
-6. [Структура проекта](#6-структура-проекта)
-7. [Технические детали](#7-технические-детали)
-8. [Рефакторинг и оптимизация](#8-рефакторинг-и-оптимизация)
-9. [Решение проблем](#9-решение-проблем)
+6. [Project structure](#6-project-structure)
+7. [Technical details](#7-technical-details)
+8. [Refactoring and optimization](#8-refactoring-and-optimization)
+9. [Troubleshooting](#9-troubleshooting)
 
 ---
 
-## 1. Обзор проекта
+## 1. Project overview
 
-**TG Project Helper** — Telegram-бот с подключённым LLM (большая языковая модель) для общения в чате. Пользователь общается с ботом в Telegram; бот отправляет сообщения выбранному LLM-провайдеру и возвращает ответ в тот же чат.
+**TG Project Helper** is a Telegram bot with an integrated LLM (large language model) for chat. The user talks to the bot in Telegram; the bot sends messages to the selected LLM provider and returns the reply in the same chat.
 
-### Основные возможности
+### Main features
 
-- ✅ Поддержка **12+ LLM-провайдеров**: OpenAI, Anthropic, Google Gemini, Groq, OpenRouter, Ollama, Azure OpenAI, Yandex GPT, Perplexity, xAI, DeepSeek, Custom
-- ✅ **Веб-админ-панель** для управления настройками Telegram и LLM через браузер
-- ✅ **Hot-swap**: смена бота и LLM без перезапуска приложения
-- ✅ **Два режима работы**: только бот (настройки из `.env`) или API + админ-панель (настройки в БД)
-- ✅ **Шифрование секретов** в базе данных (Fernet)
-- ✅ **История диалога**: последние 20 сообщений для контекста
-- ✅ **Управление администраторами** сервиса через Telegram ID
+- ✅ Support for **12+ LLM providers**: OpenAI, Anthropic, Google Gemini, Groq, OpenRouter, Ollama, Azure OpenAI, Yandex GPT, Perplexity, xAI, DeepSeek, Custom
+- ✅ **Web admin panel** for managing Telegram and LLM settings in the browser
+- ✅ **Hot-swap**: change bot and LLM without restarting the application
+- ✅ **Two operation modes**: bot only (settings from `.env`) or API + admin panel (settings in DB)
+- ✅ **Secret encryption** in the database (Fernet)
+- ✅ **Conversation history**: last 20 messages for context
+- ✅ **Service administrator management** by Telegram ID
 
-### Режимы работы
+### Operation modes
 
-| Режим | Как запускается | Откуда настройки |
-|-------|------------------|-------------------|
-| **Только бот** | `python main.py` | Только `.env` (BOT_TOKEN, ключи LLM) |
-| **API + админка** | `uvicorn api.app:app` или Docker | БД (при старте поднимается подпроцесс бота, который читает настройки из БД) |
+| Mode | How to run | Where settings come from |
+|------|------------|---------------------------|
+| **Bot only** | `python main.py` | `.env` only (BOT_TOKEN, LLM keys) |
+| **API + admin** | `uvicorn api.app:app` or Docker | DB (on startup the bot subprocess is started and reads settings from DB) |
 
 ---
 
-## 2. Архитектура и поток данных
+## 2. Architecture and data flow
 
-### 2.1 Общая схема
+### 2.1 High-level diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         TG Project Helper                                │
 │                                                                          │
 │  ┌──────────────────┐     ┌──────────────────┐     ┌────────────────┐ │
-│  │  Telegram Bot     │     │  Admin FastAPI    │     │  SQLite (БД)    │ │
+│  │  Telegram Bot     │     │  Admin FastAPI    │     │  SQLite (DB)    │ │
 │  │  (long polling)   │     │  :8000            │     │  settings.db    │ │
-│  │  run_bot_*.py     │     │  /api/settings*   │     │  (секреты       │ │
-│  │  или main.py      │     │  /admin/          │     │   шифруются)    │ │
+│  │  run_bot_*.py     │     │  /api/settings*   │     │  (secrets       │ │
+│  │  or main.py       │     │  /admin/          │     │   encrypted)    │ │
 │  └────────┬─────────┘     └────────┬──────────┘     └────────┬────────┘ │
 │           │                        │                          │          │
 │           │                        └──────────────────────────┘          │
-│           │                                     чтение/запись настроек    │
+│           │                                     read/write settings       │
 │           │                                                                 │
 │           ▼                                                                 │
 │  ┌──────────────────┐                                                      │
-│  │  bot/llm.py      │  get_reply(messages) → вызов активного LLM           │
-│  │  (приоритет: БД  │                                                      │
-│  │   затем .env)    │                                                      │
+│  │  bot/llm.py      │  get_reply(messages) → call active LLM               │
+│  │  (priority: DB   │                                                      │
+│  │   then .env)     │                                                      │
 │  └────────┬─────────┘                                                      │
 └───────────┼───────────────────────────────────────────────────────────────┘
             │
-            │ Исходящие запросы
+            │ Outgoing requests
             ▼
 ┌───────────────────────────────────────────────────────────────────────────┐
-│  Внешний мир                                                               │
-│  • Telegram Bot API (api.telegram.org или свой base_url)                   │
-│  • LLM-провайдеры: OpenAI, Anthropic, Google, Groq, OpenRouter,           │
+│  External world                                                            │
+│  • Telegram Bot API (api.telegram.org or custom base_url)                   │
+│  • LLM providers: OpenAI, Anthropic, Google, Groq, OpenRouter,             │
 │    Ollama, Azure, Yandex GPT, Perplexity, xAI, DeepSeek, custom            │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 Как обрабатывается сообщение пользователя
+### 2.2 How a user message is processed
 
-1. Пользователь отправляет боту текстовое сообщение в Telegram
-2. Бот (библиотека `python-telegram-bot`) получает обновление через **long polling** — процесс сам периодически опрашивает Telegram API (`getUpdates`)
-3. Обработчик собирает контекст: системный промпт (из БД или дефолтный), последние 20 пар user/assistant по этому чату, новое сообщение пользователя
-4. Вызывается `get_reply(messages)` в `bot/llm.py`:
-   - Сначала проверяется наличие активных настроек LLM в БД (`api.settings_repository.get_llm_settings_decrypted`)
-   - Если есть — используются провайдер, модель, API-ключ и системный промпт из БД
-   - Если нет — используется конфиг из `.env` (`bot.config.get_active_llm`)
-5. Выполняется HTTP-запрос к выбранному LLM-провайдеру
-6. Ответ LLM отправляется пользователю в тот же чат через Telegram Bot API; история диалога обновляется
+1. The user sends a text message to the bot in Telegram
+2. The bot (library `python-telegram-bot`) receives updates via **long polling** — the process periodically polls the Telegram API (`getUpdates`)
+3. The handler builds context: system prompt (from DB or default), last 20 user/assistant pairs for this chat, and the new user message
+4. `get_reply(messages)` is called in `bot/llm.py`:
+   - First it checks for active LLM settings in the DB (`api.settings_repository.get_llm_settings_decrypted`)
+   - If present — provider, model, API key, and system prompt from DB are used
+   - If not — config from `.env` is used (`bot.config.get_active_llm`)
+5. An HTTP request is sent to the selected LLM provider
+6. The LLM reply is sent to the user in the same chat via the Telegram Bot API; conversation history is updated
 
-### 2.3 Внешние API (исходящие)
+### 2.3 External APIs (outgoing)
 
-Приложение **само инициирует** запросы к внешним сервисам. Входящих вызовов от внешнего мира к боту (кроме Admin API) нет.
+The application **initiates** requests to external services. There are no incoming calls from the outside to the bot (except the Admin API).
 
 - **Telegram Bot API**: `getUpdates` (long polling), `sendMessage`, `getMe`
-- **LLM-провайдеры**: POST-запросы к API провайдеров (Chat Completions, Messages API и т.д.)
+- **LLM providers**: POST requests to provider APIs (Chat Completions, Messages API, etc.)
 
 ---
 
-## 3. Поддерживаемые провайдеры LLM
+## 3. Supported LLM providers
 
-### 3.1 Список провайдеров
+### 3.1 Provider list
 
-| Провайдер | Base URL по умолчанию | Параметр токенов | Особенности |
-|-----------|----------------------|------------------|-------------|
-| **OpenAI** | `https://api.openai.com/v1` | `max_tokens` / `max_completion_tokens`* | Новые модели (gpt-5, o3, o4) требуют `max_completion_tokens` |
-| **Anthropic** | `https://api.anthropic.com/v1` | `max_tokens` | Нативный API Claude |
-| **Google Gemini** | `https://generativelanguage.googleapis.com/v1beta/` | `max_output_tokens` | В `generation_config` |
-| **Groq** | `https://api.groq.com/openai/v1` | `max_tokens` / `max_completion_tokens`* | OpenAI-совместимый |
-| **OpenRouter** | `https://openrouter.ai/api/v1` | `max_tokens` / `max_completion_tokens`* | Поддерживает оба параметра |
-| **Ollama** | `http://localhost:11434/v1` | `max_tokens` | OpenAI-совместимый endpoint |
-| **Azure OpenAI** | Зависит от деплоя | `max_tokens` / `max_completion_tokens`* | OpenAI-совместимый |
-| **Yandex GPT** | `https://llm.api.cloud.yandex.net` | `maxTokens` | В `completionOptions` |
-| **Perplexity** | `https://api.perplexity.ai` | `max_tokens` / `max_completion_tokens`* | OpenAI-совместимый |
-| **xAI (Grok)** | `https://api.x.ai/v1` | `max_tokens` / `max_completion_tokens`* | OpenAI-совместимый |
-| **DeepSeek** | `https://api.deepseek.com` | `max_tokens` / `max_completion_tokens`* | OpenAI-совместимый |
-| **Custom** | Ручной ввод | `max_tokens` / `max_completion_tokens`* | OpenAI-совместимый |
+| Provider | Default Base URL | Token parameter | Notes |
+|----------|------------------|-----------------|-------|
+| **OpenAI** | `https://api.openai.com/v1` | `max_tokens` / `max_completion_tokens`* | New models (gpt-5, o3, o4) require `max_completion_tokens` |
+| **Anthropic** | `https://api.anthropic.com/v1` | `max_tokens` | Native Claude API |
+| **Google Gemini** | `https://generativelanguage.googleapis.com/v1beta/` | `max_output_tokens` | In `generation_config` |
+| **Groq** | `https://api.groq.com/openai/v1` | `max_tokens` / `max_completion_tokens`* | OpenAI-compatible |
+| **OpenRouter** | `https://openrouter.ai/api/v1` | `max_tokens` / `max_completion_tokens`* | Supports both parameters |
+| **Ollama** | `http://localhost:11434/v1` | `max_tokens` | OpenAI-compatible endpoint |
+| **Azure OpenAI** | Depends on deployment | `max_tokens` / `max_completion_tokens`* | OpenAI-compatible |
+| **Yandex GPT** | `https://llm.api.cloud.yandex.net` | `maxTokens` | In `completionOptions` |
+| **Perplexity** | `https://api.perplexity.ai` | `max_tokens` / `max_completion_tokens`* | OpenAI-compatible |
+| **xAI (Grok)** | `https://api.x.ai/v1` | `max_tokens` / `max_completion_tokens`* | OpenAI-compatible |
+| **DeepSeek** | `https://api.deepseek.com` | `max_tokens` / `max_completion_tokens`* | OpenAI-compatible |
+| **Custom** | Manual input | `max_tokens` / `max_completion_tokens`* | OpenAI-compatible |
 
-\* Для новых моделей OpenAI (gpt-5, o3, o4) используется `max_completion_tokens`; для старых — `max_tokens`
+\* For new OpenAI models (gpt-5, o3, o4) use `max_completion_tokens`; for older models use `max_tokens`
 
-### 3.2 Параметры токенов по провайдерам
+### 3.2 Token parameters by provider
 
-Каждый провайдер использует свой параметр для ограничения длины ответа:
+Each provider uses its own parameter to limit response length:
 
 - **OpenAI/Groq/OpenRouter/Ollama/Azure/Perplexity/xAI/DeepSeek/Custom**: 
-  - Старые модели: `max_tokens=1024`
-  - Новые модели (gpt-5, o3, o4): `max_completion_tokens=1024`
-- **Anthropic**: `max_tokens=1024` (нативный API)
-- **Google Gemini**: `max_output_tokens=1024` в `generation_config`
-- **Yandex GPT**: `maxTokens=1024` в `completionOptions`
+  - Older models: `max_tokens=1024`
+  - New models (gpt-5, o3, o4): `max_completion_tokens=1024`
+- **Anthropic**: `max_tokens=1024` (native API)
+- **Google Gemini**: `max_output_tokens=1024` in `generation_config`
+- **Yandex GPT**: `maxTokens=1024` in `completionOptions`
 
 ---
 
-## 4. Установка и запуск
+## 4. Installation and running
 
-### 4.1 Подготовка окружения
+### 4.1 Environment setup
 
 ```bash
 git clone <repo_url>
@@ -146,159 +146,159 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4.2 Файл настроек
+### 4.2 Configuration file
 
-Скопируй пример конфигурации и отредактируй `.env`:
+Copy the example config and edit `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-В `.env` обязательно укажи:
+In `.env` you must set:
 
-- **`BOT_TOKEN`** — токен бота из [@BotFather](https://t.me/BotFather) (для режима «только бот»)
-- Ключ и модель одного из LLM-провайдеров (OpenAI, Anthropic, Google и т.д.)
+- **`BOT_TOKEN`** — bot token from [@BotFather](https://t.me/BotFather) (for bot-only mode)
+- Key and model for one of the LLM providers (OpenAI, Anthropic, Google, etc.)
 
-### 4.3 Режим «только бот» (без админки)
+### 4.3 Bot-only mode (no admin panel)
 
-Настройки читаются из `.env`. Запуск:
+Settings are read from `.env`. Run:
 
 ```bash
 python main.py
 ```
 
-Бот отвечает в Telegram, LLM и токен заданы в `.env`. Админ-панель и API не используются.
+The bot replies in Telegram; LLM and token are set in `.env`. Admin panel and API are not used.
 
-### 4.4 Режим API + админ-панель (настройки в БД)
+### 4.4 API + admin panel mode (settings in DB)
 
-#### Ключ шифрования
+#### Encryption key
 
-Токены и API-ключи в БД хранятся в зашифрованном виде. Есть два варианта:
+Tokens and API keys in the DB are stored encrypted. Two options:
 
-**Вариант A — автоматически (рекомендуется при запуске в Docker):**  
-Не задавай `SETTINGS_ENCRYPTION_KEY` в `.env`. При первом запуске приложение само сгенерирует ключ и сохранит его в файл `data/.encryption_key`. В Docker каталог `data/` лежит в volume, поэтому ключ сохраняется между перезапусками.
+**Option A — automatic (recommended when running in Docker):**  
+Do not set `SETTINGS_ENCRYPTION_KEY` in `.env`. On first run the application generates the key and saves it to `data/.encryption_key`. In Docker the `data/` directory is in a volume, so the key persists across restarts.
 
-**Вариант B — вручную в `.env` (для локального запуска без Docker):**  
-Сгенерируй ключ:
+**Option B — manually in `.env` (for local run without Docker):**  
+Generate the key:
 
 ```bash
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Добавь вывод команды в `.env`: `SETTINGS_ENCRYPTION_KEY=<ключ>`
+Add the command output to `.env`: `SETTINGS_ENCRYPTION_KEY=<key>`
 
-**Важно:** не меняй и не теряй ключ после того, как в БД уже сохранены настройки — иначе расшифровать их будет нельзя.
+**Important:** do not change or lose the key after settings are saved to the DB — otherwise they cannot be decrypted.
 
-#### Остальные переменные (опционально)
+#### Other variables (optional)
 
-- **`DATABASE_URL`** — по умолчанию `sqlite:///./data/settings.db`. Можно не указывать
-- **`ADMIN_API_KEY`** — если задан, доступ к `/api/settings*` только с заголовком `X-Admin-Key: <значение>`. В админ-панели вводится в поле «Admin key»
+- **`DATABASE_URL`** — default `sqlite:///./data/settings.db`. Can be omitted
+- **`ADMIN_API_KEY`** — if set, access to `/api/settings*` requires the header `X-Admin-Key: <value>`. Enter it in the admin panel in the "Admin key" field
 
-#### Запуск API и админки
+#### Running API and admin panel
 
 ```bash
 uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
-- Админ-панель: **http://localhost:8000/admin/**
-- При старте поднимается подпроцесс бота, если в БД есть активные настройки Telegram
+- Admin panel: **http://localhost:8000/admin/**
+- On startup the bot subprocess is started if the DB has active Telegram settings
 
-### 4.5 Запуск в Docker
+### 4.5 Running in Docker
 
-#### Подготовка
+#### Preparation
 
-1. Файл `.env` в корне проекта (скопируй из `.env.example`)
-2. Ключ шифрования **не обязательно** задавать вручную: при первом запуске контейнера он создаётся автоматически в volume (`data/.encryption_key`) и сохраняется между перезапусками
-3. При необходимости задай `ADMIN_API_KEY` и `BOT_TOKEN`/ключи LLM в `.env`
+1. `.env` file in the project root (copy from `.env.example`)
+2. Encryption key **does not** need to be set manually: on first container run it is created automatically in the volume (`data/.encryption_key`) and persists across restarts
+3. If needed, set `ADMIN_API_KEY` and `BOT_TOKEN`/LLM keys in `.env`
 
-#### Сборка и запуск
+#### Build and run
 
 ```bash
 docker compose up --build
 ```
 
-Или в фоне:
+Or in background:
 
 ```bash
 docker compose up -d --build
 ```
 
-- В контейнере работает **API + админ-панель** на порту 8000
-- Админ-панель: **http://localhost:8000/admin/**
-- БД (SQLite) хранится в volume `bot_data` и сохраняется между перезапусками
+- The container runs **API + admin panel** on port 8000
+- Admin panel: **http://localhost:8000/admin/**
+- DB (SQLite) is stored in volume `bot_data` and persists across restarts
 
-#### Остановка
+#### Stopping
 
-- В foreground-режиме: `Ctrl+C`, затем при необходимости `docker compose down`
-- В фоне: `docker compose down`
+- Foreground: `Ctrl+C`, then if needed `docker compose down`
+- Background: `docker compose down`
 
 ---
 
 ## 5. Admin API
 
-### 5.1 Базовые сведения
+### 5.1 Basics
 
-- **Базовый URL:** например `http://localhost:8000` (порт задаётся при запуске uvicorn)
-- **Документация OpenAPI:** при запущенном приложении — `http://localhost:8000/docs` (Swagger UI)
-- **Защита:** если в `.env` задан `ADMIN_API_KEY`, все запросы к эндпоинтам ниже должны содержать заголовок:  
-  `X-Admin-Key: <значение ADMIN_API_KEY>`.  
-  Иначе возвращается 403
+- **Base URL:** e.g. `http://localhost:8000` (port is set when starting uvicorn)
+- **OpenAPI docs:** when the app is running — `http://localhost:8000/docs` (Swagger UI)
+- **Protection:** if `ADMIN_API_KEY` is set in `.env`, all requests to the endpoints below must include the header:  
+  `X-Admin-Key: <ADMIN_API_KEY value>`.  
+  Otherwise 403 is returned
 
-### 5.2 Эндпоинты Admin API
+### 5.2 Admin API endpoints
 
-Все пути ниже — относительно хоста и порта приложения (например `http://localhost:8000`).
+All paths below are relative to the app host and port (e.g. `http://localhost:8000`).
 
-#### Настройки Telegram
+#### Telegram settings
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| PUT | `/api/settings/telegram` | Сохранить настройки Telegram (accessToken, baseUrl). После сохранения — проверка соединения, при успехе активация и перезапуск бота |
-| DELETE | `/api/settings/telegram` | Удалить сохранённые настройки Telegram (остановка бота) |
-| DELETE | `/api/settings/telegram/token` | Отвязать токен (удалить токен, оставить base_url), остановка бота |
-| POST | `/api/settings/telegram/test` | Проверить соединение с Telegram (getMe) |
-| POST | `/api/settings/telegram/activate` | Запустить проверку; при успехе пометить настройки как активные и перезапустить бота |
+| Method | Path | Description |
+|--------|------|-------------|
+| PUT | `/api/settings/telegram` | Save Telegram settings (accessToken, baseUrl). After save — connection test; on success, activation and bot restart |
+| DELETE | `/api/settings/telegram` | Remove saved Telegram settings (stop the bot) |
+| DELETE | `/api/settings/telegram/token` | Unbind token (remove token, keep base_url); stop the bot |
+| POST | `/api/settings/telegram/test` | Test connection to Telegram (getMe) |
+| POST | `/api/settings/telegram/activate` | Run test; on success mark settings as active and restart the bot |
 
-#### Настройки LLM
+#### LLM settings
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| PUT | `/api/settings/llm` | Сохранить настройки LLM (провайдер, API key, base URL, модель, system prompt, при необходимости Azure). После сохранения — проверка соединения, при успехе активация |
-| PATCH | `/api/settings/llm` | Обновить только модель, system prompt и (для Azure) endpoint/version. Без проверки соединения |
-| DELETE | `/api/settings/llm` | Удалить сохранённые настройки LLM |
-| DELETE | `/api/settings/llm/token` | Отвязать API key (оставить провайдер, base_url, модель, system prompt) |
-| POST | `/api/settings/llm/test` | Проверить соединение с LLM |
-| POST | `/api/settings/llm/activate` | Запустить проверку LLM; при успехе пометить настройки как активные |
-| GET | `/api/settings/llm/providers` | Список провайдеров и моделей (без авторизации) |
-| POST | `/api/settings/llm/fetch-models` | Загрузить список моделей с API провайдера (опционально baseUrl, apiKey в body; иначе из сохранённых настроек) |
+| Method | Path | Description |
+|--------|------|-------------|
+| PUT | `/api/settings/llm` | Save LLM settings (provider, API key, base URL, model, system prompt, Azure if needed). After save — connection test; on success, activation |
+| PATCH | `/api/settings/llm` | Update only model, system prompt, and (for Azure) endpoint/version. No connection test |
+| DELETE | `/api/settings/llm` | Remove saved LLM settings |
+| DELETE | `/api/settings/llm/token` | Unbind API key (keep provider, base_url, model, system prompt) |
+| POST | `/api/settings/llm/test` | Test connection to LLM |
+| POST | `/api/settings/llm/activate` | Run LLM test; on success mark settings as active |
+| GET | `/api/settings/llm/providers` | List of providers and models (no auth) |
+| POST | `/api/settings/llm/fetch-models` | Fetch model list from provider API (optional baseUrl, apiKey in body; otherwise from saved settings) |
 
-#### Общие настройки
+#### General settings
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | `/api/settings` | Все настройки (Telegram + LLM). Секреты маскированы (последние 5 символов) |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/settings` | All settings (Telegram + LLM). Secrets masked (last 5 characters) |
 
-#### Администраторы сервиса
+#### Service administrators
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | `/api/service-admins` | Получить список администраторов сервиса (Telegram-пользователи с привилегиями) |
-| POST | `/api/service-admins` | Добавить администратора по Telegram ID (автоматически получает данные профиля из Telegram, если доступно) |
-| GET | `/api/service-admins/{telegram_id}` | Получить информацию об администраторе |
-| DELETE | `/api/service-admins/{telegram_id}` | Удалить администратора |
-| POST | `/api/service-admins/{telegram_id}/refresh` | Обновить данные профиля администратора из Telegram |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/service-admins` | Get list of service administrators (Telegram users with privileges) |
+| POST | `/api/service-admins` | Add administrator by Telegram ID (profile data fetched from Telegram if available) |
+| GET | `/api/service-admins/{telegram_id}` | Get administrator details |
+| DELETE | `/api/service-admins/{telegram_id}` | Remove administrator |
+| POST | `/api/service-admins/{telegram_id}/refresh` | Refresh administrator profile data from Telegram |
 
-Статика админ-панели отдаётся по пути `/admin/` (например `http://localhost:8000/admin/`).
+Admin panel static files are served at `/admin/` (e.g. `http://localhost:8000/admin/`).
 
-### 5.3 Примеры взаимодействия по API
+### 5.3 API usage examples
 
-**Получить настройки (с защитой по ключу):**
+**Get settings (with key protection):**
 
 ```bash
 curl -H "X-Admin-Key: YOUR_ADMIN_API_KEY" http://localhost:8000/api/settings
 ```
 
-**Сохранить настройки Telegram:**
+**Save Telegram settings:**
 
 ```bash
 curl -X PUT http://localhost:8000/api/settings/telegram \
@@ -307,7 +307,7 @@ curl -X PUT http://localhost:8000/api/settings/telegram \
   -d '{"accessToken": "123456:ABC-...", "baseUrl": "https://api.telegram.org"}'
 ```
 
-**Сохранить настройки LLM (OpenAI):**
+**Save LLM settings (OpenAI):**
 
 ```bash
 curl -X PUT http://localhost:8000/api/settings/llm \
@@ -318,45 +318,45 @@ curl -X PUT http://localhost:8000/api/settings/llm \
     "apiKey": "sk-...",
     "baseUrl": "https://api.openai.com/v1",
     "modelType": "gpt-4o-mini",
-    "systemPrompt": "Ты помощник."
+    "systemPrompt": "You are a helpful assistant."
   }'
 ```
 
 ---
 
-## 6. Структура проекта
+## 6. Project structure
 
 ```
 LO_TG_BOT/
-├── main.py                     # Точка входа: только бот, настройки из .env
-├── run_bot_from_settings.py    # Запуск бота из настроек БД (подпроцесс API)
+├── main.py                     # Entry point: bot only, settings from .env
+├── run_bot_from_settings.py    # Run bot from DB settings (API subprocess)
 ├── bot/
-│   ├── config.py               # .env, активный LLM (fallback при отсутствии БД)
-│   ├── llm.py                  # get_reply(): приоритет — БД, затем .env
-│   ├── single_instance.py      # .bot.pid, один экземпляр
-│   └── telegram_bot.py         # Обработчики, run_polling(), run_polling_with_token()
+│   ├── config.py               # .env, active LLM (fallback when no DB)
+│   ├── llm.py                  # get_reply(): priority — DB, then .env
+│   ├── single_instance.py      # .bot.pid, single instance
+│   └── telegram_bot.py         # Handlers, run_polling(), run_polling_with_token()
 ├── api/
-│   ├── app.py                  # FastAPI: /api/settings*, раздача admin/
-│   ├── db.py                   # SQLAlchemy, модели TelegramSettingsModel, LLMSettingsModel
-│   ├── encryption.py           # Fernet: шифрование токенов/ключей для БД
-│   ├── settings_repository.py  # CRUD настроек, маскирование для API
-│   ├── bot_runner.py           # Запуск/остановка подпроцесса run_bot_from_settings.py
-│   ├── telegram_test.py        # Проверка Telegram getMe
-│   ├── llm_test.py             # Проверка подключения к LLM
-│   ├── llm_providers.py        # Список провайдеров и моделей
-│   └── service_admins_repository.py  # CRUD администраторов сервиса
+│   ├── app.py                  # FastAPI: /api/settings*, serve admin/
+│   ├── db.py                   # SQLAlchemy, TelegramSettingsModel, LLMSettingsModel
+│   ├── encryption.py           # Fernet: encrypt tokens/keys for DB
+│   ├── settings_repository.py  # CRUD for settings, masking for API
+│   ├── bot_runner.py           # Start/stop subprocess run_bot_from_settings.py
+│   ├── telegram_test.py        # Telegram getMe test
+│   ├── llm_test.py             # LLM connection test
+│   ├── llm_providers.py        # List of providers and models
+│   └── service_admins_repository.py  # CRUD for service administrators
 ├── admin/
-│   ├── index.html              # Админ-панель: блоки Telegram и LLM
+│   ├── index.html              # Admin panel: Telegram and LLM sections
 │   ├── styles.css
-│   └── app.js                  # Загрузка/сохранение, Retry, тосты
+│   └── app.js                  # Load/save, Retry, toasts
 ├── tests/
 │   ├── test_config.py
 │   ├── test_llm.py
-│   └── test_api_settings.py   # Тесты API настроек
+│   └── test_api_settings.py   # API settings tests
 ├── docs/
-│   └── TG_Project_Helper_v1.0.md  # Эта документация
-├── Dockerfile                  # uvicorn api.app, порт 8000
-├── docker-compose.yml          # volume bot_data для data/settings.db
+│   └── TG_Project_Helper_v1.0.md  # This documentation
+├── Dockerfile                  # uvicorn api.app, port 8000
+├── docker-compose.yml          # volume bot_data for data/settings.db
 ├── .env.example
 ├── requirements.txt
 └── README.md
@@ -364,165 +364,165 @@ LO_TG_BOT/
 
 ---
 
-## 7. Технические детали
+## 7. Technical details
 
-### 7.1 Стек и зависимости
+### 7.1 Stack and dependencies
 
-- **Язык:** Python 3.11+
-- **Основные зависимости:**
+- **Language:** Python 3.11+
+- **Main dependencies:**
   - `python-telegram-bot==21.7` — Telegram Bot API (long polling)
-  - `openai==1.55.0`, `httpx>=0.27,<0.28` — OpenAI-совместимые клиенты
+  - `openai==1.55.0`, `httpx>=0.27,<0.28` — OpenAI-compatible clients
   - `anthropic`, `google-generativeai` — Anthropic, Google Gemini
   - `fastapi`, `uvicorn` — Admin API
-  - `sqlalchemy` — ORM для БД
-  - `cryptography` — шифрование секретов (Fernet)
-  - `python-dotenv` — загрузка `.env`
-  - `pytest`, `pytest-asyncio` — тесты
+  - `sqlalchemy` — ORM for DB
+  - `cryptography` — secret encryption (Fernet)
+  - `python-dotenv` — load `.env`
+  - `pytest`, `pytest-asyncio` — tests
 
-### 7.2 База данных
+### 7.2 Database
 
-- **По умолчанию:** SQLite (`sqlite:///./data/settings.db`)
-- **Модели:**
-  - `TelegramSettingsModel` — настройки Telegram (токен, base_url, статус подключения, флаг активности)
-  - `LLMSettingsModel` — настройки LLM (провайдер, API key, модель, system prompt, статус подключения, флаг активности)
-  - `ServiceAdminModel` — администраторы сервиса (Telegram ID, имя пользователя, имя, фамилия)
-- **Шифрование:** API-ключи и токены хранятся в зашифрованном виде (Fernet), ключ шифрования в `data/.encryption_key` или в `.env` (`SETTINGS_ENCRYPTION_KEY`)
+- **Default:** SQLite (`sqlite:///./data/settings.db`)
+- **Models:**
+  - `TelegramSettingsModel` — Telegram settings (token, base_url, connection status, active flag)
+  - `LLMSettingsModel` — LLM settings (provider, API key, model, system prompt, connection status, active flag)
+  - `ServiceAdminModel` — service administrators (Telegram ID, username, first name, last name)
+- **Encryption:** API keys and tokens are stored encrypted (Fernet); encryption key in `data/.encryption_key` or in `.env` (`SETTINGS_ENCRYPTION_KEY`)
 
-### 7.3 История диалога
+### 7.3 Conversation history
 
-- История хранится в памяти по `chat_id`
-- Ограничение: последние **20 пар** user/assistant на чат
-- Ограничение памяти: максимум **500 чатов** в памяти; при превышении удаляется чат с наименьшей историей
+- History is kept in memory by `chat_id`
+- Limit: last **20 pairs** of user/assistant per chat
+- Memory limit: at most **500 chats** in memory; when exceeded, the chat with the smallest history is removed
 
-### 7.4 Hot-swap (переключение на лету)
+### 7.4 Hot-swap (switch on the fly)
 
-- **Telegram бот:** при активации новых настроек Telegram подпроцесс бота перезапускается с новым токеном/Base URL
-- **LLM:** настройки читаются из БД при каждом запросе к `get_reply()`, переключение происходит без перезапуска
+- **Telegram bot:** when new Telegram settings are activated, the bot subprocess is restarted with the new token/Base URL
+- **LLM:** settings are read from the DB on every `get_reply()` call; switching happens without restart
 
 ---
 
-## 8. Рефакторинг и оптимизация
+## 8. Refactoring and optimization
 
-### 8.1 Проблемы, которые были решены
+### 8.1 Issues that were addressed
 
-1. **Блокировка event loop** — синхронные вызовы `test_telegram_connection()`, `test_llm_connection()` и работа с Telegram API в эндпоинтах FastAPI выполнялись в основном потоке. При сохранении настроек или добавлении админа сервер мог «зависать» на 10–15+ секунд.
+1. **Event loop blocking** — synchronous calls to `test_telegram_connection()`, `test_llm_connection()` and Telegram API usage in FastAPI endpoints ran in the main thread. When saving settings or adding an admin, the server could "hang" for 10–15+ seconds.
 
-2. **Рост потребления памяти** — история чатов `_chat_history` не ограничивалась по числу чатов и могла расти неограниченно при большом количестве пользователей.
+2. **Memory growth** — chat history `_chat_history` was not limited by number of chats and could grow without bound with many users.
 
-3. **Двойное чтение БД** — в `get_reply()` дважды вызывался `get_llm_settings_decrypted()` (для провайдера и для system_prompt).
+3. **Double DB read** — in `get_reply()`, `get_llm_settings_decrypted()` was called twice (for provider and for system_prompt).
 
-4. **Устаревшие API** — использование `session.query()` (deprecated в SQLAlchemy 2.0) и `datetime.utcnow()` (deprecated в Python 3.12+).
+4. **Deprecated APIs** — use of `session.query()` (deprecated in SQLAlchemy 2.0) and `datetime.utcnow()` (deprecated in Python 3.12+).
 
-### 8.2 Внесённые изменения
+### 8.2 Changes made
 
-#### Производительность и стабильность
+#### Performance and stability
 
-- **Эндпоинты не блокируют event loop:**  
-  `PUT /api/settings/telegram`, `PUT /api/settings/llm`, `POST .../activate`, а также все эндпоинты service-admins переведены на `async` и выполняют тяжёлую синхронную работу через `asyncio.to_thread()`. Проверка подключения к Telegram/LLM и запросы к Telegram API больше не блокируют обработку других запросов.
+- **Endpoints do not block the event loop:**  
+  `PUT /api/settings/telegram`, `PUT /api/settings/llm`, `POST .../activate`, and all service-admins endpoints are now `async` and run heavy synchronous work via `asyncio.to_thread()`. Telegram/LLM connection tests and Telegram API requests no longer block other requests.
 
-- **Ограничение памяти бота:**  
-  Введён лимит числа чатов в памяти (`MAX_CHATS_IN_MEMORY = 500`). При превышении лимита удаляется чат с наименьшей историей. Размер истории внутри чата по-прежнему ограничен `MAX_HISTORY_MESSAGES = 20`.
+- **Bot memory limit:**  
+  A limit on number of chats in memory (`MAX_CHATS_IN_MEMORY = 500`) was added. When exceeded, the chat with the smallest history is removed. Per-chat history size remains limited to `MAX_HISTORY_MESSAGES = 20`.
 
-- **Один проход по настройкам LLM:**  
-  `_get_llm_from_settings_db()` возвращает кортеж с `system_prompt`; в `get_reply()` больше не вызывается повторно `get_llm_settings_decrypted()`.
+- **Single pass for LLM settings:**  
+  `_get_llm_from_settings_db()` returns a tuple including `system_prompt`; `get_reply()` no longer calls `get_llm_settings_decrypted()` again.
 
-#### Качество кода
+#### Code quality
 
 - **SQLAlchemy 2.0:**  
-  В `settings_repository` и `service_admins_repository` запросы переписаны на `select()` / `delete()` и `session.execute()` вместо `session.query()`.
+  In `settings_repository` and `service_admins_repository`, queries were rewritten to use `select()` / `delete()` and `session.execute()` instead of `session.query()`.
 
-- **Даты в UTC:**  
-  Везде заменён устаревший `datetime.utcnow()` на `datetime.now(timezone.utc)`; в `api/db.py` для default/onupdate колонок введена функция `_utc_now()`.
+- **UTC dates:**  
+  Deprecated `datetime.utcnow()` was replaced with `datetime.now(timezone.utc)` everywhere; in `api/db.py` a `_utc_now()` function was added for default/onupdate columns.
 
-- **Админ-панель (JS):**  
-  - Для провайдеров с API списка моделей (OpenAI и др.) при наличии ключа показывается «Загрузка списка моделей...» вместо «Введите API key...» до завершения загрузки
-  - Введена общая функция `getConnectionStatusText(status)` для текстов статусов подключения
+- **Admin panel (JS):**  
+  - For providers with a model list API (OpenAI, etc.), when a key is present, "Loading model list..." is shown instead of "Enter API key..." until loading finishes
+  - A shared function `getConnectionStatusText(status)` was added for connection status text
 
 ---
 
-## 9. Решение проблем
+## 9. Troubleshooting
 
-### 9.1 Ошибки при выборе модели (OpenAI и др.)
+### 9.1 Model selection errors (OpenAI and others)
 
-После обновления бот показывает в ответе **текст ошибки от API** — по нему можно понять причину.
+After the update, the bot shows **the API error text** in the reply — you can use it to identify the cause.
 
-#### Частые причины
+#### Common causes
 
-1. **Тариф OpenAI (Free tier)**  
-   В [документации OpenAI](https://platform.openai.com/docs/models/gpt-5) для GPT-5 указано: **Free — Not supported**.  
-   То есть на бесплатном тарифе GPT-5 и часть других новых моделей недоступны.
+1. **OpenAI tier (Free tier)**  
+   In [OpenAI documentation](https://platform.openai.com/docs/models/gpt-5) for GPT-5: **Free — Not supported**.  
+   So on the free tier, GPT-5 and some other new models are not available.
 
-2. **Имя модели**  
-   Лучше выбирать модель из списка, загруженного по кнопке **«Загрузить список моделей»** в админ-панели (провайдер OpenAI). Тогда подставляется актуальный `id` из API. Если выбирать только из статичного списка, идентификатор может не совпадать с текущим API.
+2. **Model name**  
+   Prefer choosing the model from the list loaded via **"Load model list"** in the admin panel (OpenAI provider). That uses the current `id` from the API. If you only use the static list, the identifier may not match the current API.
 
-3. **Лимиты (rate limits)**  
-   Даже при платном тарифе есть ограничения RPM/TPM; при превышении приходит ошибка (часто про лимиты).
+3. **Rate limits**  
+   Even on a paid tier there are RPM/TPM limits; exceeding them returns an error (often about limits).
 
-#### Как проверить доступ и лимиты (OpenAI)
+#### How to check access and limits (OpenAI)
 
-- **Лимиты и тариф:**  
+- **Limits and tier:**  
   [https://platform.openai.com/account/limits](https://platform.openai.com/account/limits)  
-  Показывает tier и лимиты запросов/токенов. Для GPT-5 нужен минимум Tier 1 (Free — не поддерживается).
+  Shows tier and request/token limits. For GPT-5 you need at least Tier 1 (Free is not supported).
 
-- **Использование и биллинг:**  
+- **Usage and billing:**  
   [https://platform.openai.com/usage](https://platform.openai.com/usage)  
-  Позволяет убедиться, что аккаунт активен и есть доступ к платным моделям.
+  Lets you confirm the account is active and has access to paid models.
 
-- **Список моделей по API:**  
-  В админ-панели: провайдер OpenAI → сохранить API key → нажать «Загрузить список моделей». В выпадающем списке будут только модели, доступные вашему аккаунту (с учётом тарифа и прав).
+- **Model list via API:**  
+  In the admin panel: OpenAI provider → save API key → click "Load model list". The dropdown will only show models available to your account (according to tier and permissions).
 
-#### Что сделать
+#### What to do
 
-1. Открыть [Account limits](https://platform.openai.com/account/limits) и проверить tier
-2. Если tier Free — для GPT-5 нужно пополнить баланс / перейти на платный доступ
-3. В админ-панели бота заново нажать «Загрузить список моделей» и выбрать модель из этого списка
-4. Если ошибка повторится — в ответе бота будет приведён текст от API (например, про тариф или имя модели); по нему можно точнее понять причину
+1. Open [Account limits](https://platform.openai.com/account/limits) and check your tier
+2. If tier is Free — for GPT-5 you need to add credits or switch to paid access
+3. In the bot admin panel click "Load model list" again and choose a model from that list
+4. If the error persists — the bot reply will include the API text (e.g. about tier or model name); use it to pinpoint the cause
 
-### 9.2 Проверка текущей модели
+### 9.2 Checking the current model
 
-Чтобы проверить, какая модель реально используется ботом:
+To see which model the bot is actually using:
 
 ```bash
-# Через API (получить настройки)
+# Via API (get settings)
 curl http://localhost:8000/api/settings | python3 -m json.tool
 
-# Через Docker (проверить настройки в БД)
+# Via Docker (check settings in DB)
 docker compose exec bot python3 -c "
 import sys
 sys.path.insert(0, '.')
 from api.settings_repository import get_llm_settings_decrypted
 settings = get_llm_settings_decrypted()
 if settings:
-    print(f'Модель: {settings.get(\"model_type\")}')
-    print(f'Провайдер: {settings.get(\"llm_type\")}')
+    print(f'Model: {settings.get(\"model_type\")}')
+    print(f'Provider: {settings.get(\"llm_type\")}')
 "
 ```
 
-### 9.3 Проблемы с ключом шифрования
+### 9.3 Encryption key issues
 
-| Ситуация | Что делать |
-|----------|------------|
-| **Docker** | Ничего: ключ создаётся автоматически в volume при первом запуске (`data/.encryption_key`) |
-| **Локально (uvicorn)** | Либо не задавать — ключ создастся в `data/.encryption_key`; либо сгенерировать и добавить в `.env`: `source .venv/bin/activate`, затем `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`, в `.env`: `SETTINGS_ENCRYPTION_KEY=<ключ>` |
-| Свой путь к файлу ключа | `SETTINGS_ENCRYPTION_KEY_FILE=/path/to/key.file` |
-| Если ключ потерян | Данные в БД расшифровать нельзя; нужно задать новый ключ и заново сохранить настройки в админке |
-
----
-
-## Планируемое развитие
-
-Документы по планам развития (tool-calling, плагины, админка инструментов/администраторов, Worklog Checker) находятся в той же папке `docs/`:
-
-- [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) — целевая архитектура
-- [UPGRADE_TASKS.md](UPGRADE_TASKS.md) — декомпозиция задач по фазам
-- [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) … [PLAN_PHASE_6.md](PLAN_PHASE_6.md) — детальные планы фаз
-
-Текущая реализация (v1.0) служит базой для этих планов.
+| Situation | What to do |
+|-----------|------------|
+| **Docker** | Nothing: key is created automatically in the volume on first run (`data/.encryption_key`) |
+| **Local (uvicorn)** | Either leave it unset — key will be created in `data/.encryption_key`; or generate and add to `.env`: `source .venv/bin/activate`, then `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`, in `.env`: `SETTINGS_ENCRYPTION_KEY=<key>` |
+| Custom key file path | `SETTINGS_ENCRYPTION_KEY_FILE=/path/to/key.file` |
+| Key lost | Data in DB cannot be decrypted; set a new key and save settings again in the admin panel |
 
 ---
 
-## Версионирование документа
+## Planned evolution
 
-| Версия | Дата | Описание |
-|--------|------|----------|
-| 1.0 | 2026-02-06 | Первая версия объединённой документации |
+Documents for planned evolution (tool-calling, plugins, tools/admin panel, Worklog Checker) are in the same `docs/` folder:
+
+- [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) — target architecture
+- [UPGRADE_TASKS.md](UPGRADE_TASKS.md) — task breakdown by phase
+- [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) … [PLAN_PHASE_6.md](PLAN_PHASE_6.md) — detailed phase plans
+
+The current implementation (v1.0) is the base for these plans.
+
+---
+
+## Document versioning
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0 | 2026-02-06 | First version of consolidated documentation |

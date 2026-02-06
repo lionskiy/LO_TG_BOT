@@ -14,12 +14,12 @@
 
 | Документ | Описание | Статус |
 |----------|----------|--------|
-| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Целевая архитектура системы | ✅ Актуален (не завершено) |
-| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Декомпозиция всех задач | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Детальный план Фазы 0-1 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Детальный план Фазы 2 | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Детальный план Фазы 3 (этот документ) | ✅ Актуален (не завершено) |
-| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Детальный план Фазы 4 (следующая) | ✅ Актуален (не завершено) |
+| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Целевая архитектура системы | ✅ Current (in progress) |
+| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Декомпозиция всех задач | ✅ Current (in progress) |
+| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Детальный план Фазы 0-1 | ✅ Current (in progress) |
+| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Детальный план Фазы 2 | ✅ Current (in progress) |
+| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Детальный план Фазы 3 (этот документ) | ✅ Current (in progress) |
+| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Детальный план Фазы 4 (следующая) | ✅ Current (in progress) |
 
 ### Текущая реализация (v1.0)
 
@@ -34,12 +34,12 @@
 
 | Фаза | Документ | Описание | Статус |
 |------|----------|----------|--------|
-| 0-1 | [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Стабилизация + Tool-Calling | ✅ Актуален (не завершено) |
-| 2 | [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Plugin System | ✅ Актуален (не завершено) |
-| 3 | **[PLAN_PHASE_3.md](PLAN_PHASE_3.md)** | Storage + API | ✅ Актуален (не завершено) |
-| 4 | [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Админка Инструменты | ✅ Актуален (не завершено) |
-| 5 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Админка Администраторы | ✅ Актуален (не завершено) |
-| 6 | [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Worklog Checker | ✅ Актуален (не завершено) |
+| 0-1 | [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Stabilization + Tool-Calling | ✅ Current (in progress) |
+| 2 | [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Plugin System | ✅ Current (in progress) |
+| 3 | **[PLAN_PHASE_3.md](PLAN_PHASE_3.md)** | Storage + API | ✅ Current (in progress) |
+| 4 | [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Admin Tools | ✅ Current (in progress) |
+| 5 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Admin Administrators | ✅ Current (in progress) |
+| 6 | [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Worklog Checker | ✅ Current (in progress) |
 
 ---
 
@@ -1077,7 +1077,7 @@ test_reload_one_plugin_not_found
 │  ✅ API для управления инструментами работает                              │
 │  ✅ API для управления плагинами работает                                  │
 │  ✅ Персистентность: настройки переживают перезапуск                       │
-│  ✅ Готов бэкенд для Фазы 4 (Админка Инструменты)                          │
+│  ✅ Готов бэкенд для Фазы 4 (Admin Tools)                          │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
