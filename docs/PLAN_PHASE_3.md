@@ -43,7 +43,7 @@
 
 ---
 
-## Phase 3
+## Phase 3 goal and scope
 
 **Before (after Phase 2):** Plugin System works but plugin settings are not saved. On restart everything resets.
 
@@ -56,7 +56,7 @@
 
 ---
 
-## Phase 3
+## Phase 3 architecture diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐

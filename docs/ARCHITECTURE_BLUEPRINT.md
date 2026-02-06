@@ -866,7 +866,7 @@ settings:
 | Component | Status | Phase |
 |-----------|--------|-------|
 | Telegram Bot | No changes | — |
-| LLM Provider Adapter | No changes | — |
+| LLM Provider Adapter | Extension (tool-calling) | 1 |
 | Admin API (TG, LLM, Admins) | No changes | — |
 | Admin panel (Settings) | No changes | — |
 | **Tool-calling in LLM** | **NEW** | 1 |

@@ -46,7 +46,7 @@
 
 ## Phase 4
 
-**Before (after Phase 3):** API for managing toolмand работает, но manage only via Swagger/curl.
+**Before (after Phase 3):** API for managing tools works, but can only be used via Swagger/curl.
 
 **After:** Admin gets a section "Tools" with полным UI for managing: просмотр списка, включение/выключение, настройка параметров.
 

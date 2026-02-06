@@ -241,6 +241,7 @@ async def get_reply(
 - Passes `tools` and `tool_choice` to LLM API
 - If LLM returned tool_calls, returns `(None, [ToolCall(...)])`
 - If LLM returned text, returns `(content, None)`
+- If the provider returns both content and tool_calls in one response: treat as tool_calls (continue the tool-calling loop); optionally append the content as an assistant message before tool results
 
 ### ToolCall structure
 ```python
@@ -304,7 +305,7 @@ Response:
 ```
 
 ### Tasks
-1. Add dataclass `ToolCall` in bot/llm.py (or separate models.py)
+1. Add dataclass `ToolCall` in bot/llm.py (or separate models.py). Note: in Phase 2 these will move to tools/models.py.
 2. Modify each provider to support tools
 3. Unify parsing of tool_calls into ToolCall
 4. Add tool converters between formats (if needed)
