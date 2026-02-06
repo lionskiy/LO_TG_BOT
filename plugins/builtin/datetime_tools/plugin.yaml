@@ -1,0 +1,48 @@
+id: datetime-tools
+name: "Date & Time"
+version: "1.0.0"
+description: "Date and time utilities"
+enabled: true
+
+tools:
+  - name: get_current_datetime
+    description: "Returns current date and time with weekday name. Use when user asks about current time or date."
+    handler: get_current_datetime
+    timeout: 5
+    parameters:
+      type: object
+      properties:
+        timezone:
+          type: string
+          description: "Timezone name (e.g. 'Europe/Moscow', 'UTC'). Default is server timezone."
+      required: []
+
+  - name: get_weekday
+    description: "Returns the weekday name for a given date."
+    handler: get_weekday
+    timeout: 5
+    parameters:
+      type: object
+      properties:
+        date:
+          type: string
+          description: "Date in format YYYY-MM-DD, DD.MM.YYYY, or natural language like 'tomorrow', 'next monday'"
+      required:
+        - date
+
+  - name: calculate_date_difference
+    description: "Calculates the difference between two dates in days."
+    handler: calculate_date_difference
+    timeout: 5
+    parameters:
+      type: object
+      properties:
+        date1:
+          type: string
+          description: "First date"
+        date2:
+          type: string
+          description: "Second date"
+      required:
+        - date1
+        - date2

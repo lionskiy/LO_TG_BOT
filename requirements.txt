@@ -14,6 +14,9 @@ cryptography==44.0.0
 # Safe expression evaluation (Phase 1: calculate tool)
 simpleeval>=0.9.13
 
+# Plugin manifests (Phase 2)
+PyYAML>=6.0
+
 # dev/test
 pytest==8.3.4
 pytest-asyncio==0.24.0
