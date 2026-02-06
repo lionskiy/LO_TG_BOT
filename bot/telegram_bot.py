@@ -1,10 +1,13 @@
 """Telegram bot with LLM conversation."""
 import asyncio
 import logging
+import os
 from collections import defaultdict
 from typing import Dict, List
 
 logger = logging.getLogger(__name__)
+
+ENABLE_TOOL_CALLING = os.getenv("ENABLE_TOOL_CALLING", "").strip().lower() in ("1", "true", "yes")
 
 
 def _llm_error_message(exc: Exception) -> str:
@@ -62,6 +65,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 from bot.config import BOT_TOKEN, validate_config
 from bot.llm import get_reply
+from bot.tool_calling import get_reply_with_tools, get_system_prompt_for_tools
 
 # Per-chat conversation history for LLM context (last N messages)
 MAX_HISTORY_MESSAGES = 20
@@ -75,10 +79,11 @@ SYSTEM_PROMPT = (
 )
 
 
-def _get_messages(chat_id: int, user_text: str) -> List[dict]:
+def _get_messages(chat_id: int, user_text: str, use_tools: bool = False) -> List[dict]:
     """Build message list for API: system + history + new user message."""
     history = _chat_history[chat_id]
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    system = get_system_prompt_for_tools() if use_tools else SYSTEM_PROMPT
+    messages = [{"role": "system", "content": system}]
     messages.extend(history)
     messages.append({"role": "user", "content": user_text})
     return messages
@@ -126,7 +131,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
     logger.debug("message chat_id=%s text=%s", chat_id, user_text[:200])
 
-    messages = _get_messages(chat_id, user_text)
+    use_tools = ENABLE_TOOL_CALLING
+    messages = _get_messages(chat_id, user_text, use_tools=use_tools)
     typing_task = None
     typing_stop = asyncio.Event()
 
@@ -143,7 +149,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     try:
         typing_task = asyncio.create_task(_typing_loop())
-        reply = await get_reply(messages)
+        if use_tools:
+            try:
+                reply = await get_reply_with_tools(messages)
+            except Exception as e:
+                logger.warning("Tool-calling failed, falling back to plain reply: %s", e)
+                content, _ = await get_reply(messages)
+                reply = content or ""
+        else:
+            content, _ = await get_reply(messages)
+            reply = content or ""
     except Exception as e:
         logger.exception("LLM request failed: %s", e)
         user_msg = _llm_error_message(e)
