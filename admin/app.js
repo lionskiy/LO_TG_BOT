@@ -1215,6 +1215,7 @@ function showSection(sectionId) {
     a.classList.toggle('nav-item--active', a.getAttribute('data-section') === sectionId);
   });
   if (sectionId === 'tools' && typeof window.loadTools === 'function') window.loadTools();
+  if (sectionId === 'admins' && typeof loadServiceAdmins === 'function') loadServiceAdmins();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

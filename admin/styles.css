@@ -621,3 +621,19 @@ body {
   padding: 0.25rem 0.5rem;
   font-size: 13px;
 }
+
+/* Section common */
+.section {
+  display: block;
+}
+
+.section-hint {
+  color: #5f6368;
+  font-size: 14px;
+  margin: 0 0 1rem;
+}
+
+/* Administrators section (Phase 5) */
+.admins-header {
+  margin-bottom: 1rem;
+}

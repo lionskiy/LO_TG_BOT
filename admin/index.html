@@ -120,22 +120,7 @@
             </div>
           </div>
         </section>
-        <section class="block block--service-admins" id="blockServiceAdmins">
-          <h3 class="block-title">Админы сервиса</h3>
-          <div id="serviceAdminsList" class="service-admins-list">
-            <p class="block-placeholder" id="serviceAdminsPlaceholder">Нет добавленных администраторов</p>
-          </div>
-          <div class="form">
-            <label class="field">
-              <span class="field-label">Введите Telegram ID</span>
-              <input type="text" id="serviceAdminTelegramId" class="field-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-              <span class="field-error" id="serviceAdminFieldError" role="alert"></span>
-            </label>
-            <div class="form-actions">
-              <button type="button" class="btn btn-primary" id="serviceAdminAdd">Добавить</button>
-            </div>
-          </div>
-        </section>
+        <!-- Service admins moved to section-admins (Phase 5) -->
         </div>
       </div>
       <div id="section-tools" class="section" hidden>
@@ -149,7 +134,24 @@
       </div>
       <div id="section-admins" class="section" hidden>
         <h2 class="page-title">Администраторы</h2>
-        <p class="block-placeholder">Раздел в разработке (Phase 5).</p>
+        <p class="section-hint">Администраторы сервиса имеют доступ к админ-панели (при вводе Admin key).</p>
+        <div class="admins-header">
+          <button type="button" class="btn btn-primary" id="adminsAddBtn">+ Добавить</button>
+        </div>
+        <div id="serviceAdminsList" class="service-admins-list">
+          <p class="block-placeholder" id="serviceAdminsPlaceholder">Нет добавленных администраторов</p>
+        </div>
+        <div class="form" id="adminsAddForm" hidden>
+          <label class="field">
+            <span class="field-label">Telegram ID *</span>
+            <input type="text" id="serviceAdminTelegramId" class="field-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Числовой ID пользователя Telegram">
+            <span class="field-error" id="serviceAdminFieldError" role="alert"></span>
+          </label>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="serviceAdminAdd">Добавить</button>
+            <button type="button" class="btn btn-secondary" id="adminsAddCancel">Отмена</button>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -166,5 +168,6 @@
   </div>
   <script src="/admin/app.js"></script>
   <script src="/admin/tools.js"></script>
+  <script src="/admin/admins.js"></script>
 </body>
 </html>
