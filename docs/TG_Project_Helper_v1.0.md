@@ -509,6 +509,18 @@ if settings:
 
 ---
 
+## Планируемое развитие
+
+Документы по планам развития (tool-calling, плагины, админка инструментов/администраторов, Worklog Checker) находятся в той же папке `docs/`:
+
+- [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) — целевая архитектура
+- [UPGRADE_TASKS.md](UPGRADE_TASKS.md) — декомпозиция задач по фазам
+- [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) … [PLAN_PHASE_6.md](PLAN_PHASE_6.md) — детальные планы фаз
+
+Текущая реализация (v1.0) служит базой для этих планов.
+
+---
+
 ## Версионирование документа
 
 | Версия | Дата | Описание |

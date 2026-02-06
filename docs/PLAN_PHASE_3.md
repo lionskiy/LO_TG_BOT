@@ -21,12 +21,12 @@
 | [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Детальный план Фазы 3 (этот документ) | ✅ Актуален (не завершено) |
 | [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Детальный план Фазы 4 (следующая) | ✅ Актуален (не завершено) |
 
-### Существующая документация проекта
+### Текущая реализация (v1.0)
 
 | Документ | Описание |
 |----------|----------|
-| [CURRENT_IMPLEMENTATION.md](CURRENT_IMPLEMENTATION.md) | Текущая реализация |
-| [APP_DESCRIPTION_AND_API.md](APP_DESCRIPTION_AND_API.md) | Описание приложения и API |
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Спецификация текущей реализации |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
 
 ---
 

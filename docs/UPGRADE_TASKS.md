@@ -21,13 +21,12 @@
 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Детальный план Фазы 5 (Админка Администраторы) | ✅ Актуален (не завершено) |
 | [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Детальный план Фазы 6 (Worklog Checker) | ✅ Актуален (не завершено) |
 
-### Существующая документация проекта
+### Текущее состояние (v1.0) — реализовано
 
 | Документ | Описание |
 |----------|----------|
-| [CURRENT_IMPLEMENTATION.md](CURRENT_IMPLEMENTATION.md) | Текущая реализация (до изменений) |
-| [APP_DESCRIPTION_AND_API.md](APP_DESCRIPTION_AND_API.md) | Описание приложения и API |
-| [LAUNCH_INSTRUCTIONS.md](LAUNCH_INSTRUCTIONS.md) | Инструкции по запуску |
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Полная спецификация текущей реализации |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
 
 ---
 

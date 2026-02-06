@@ -165,7 +165,7 @@ curl -X POST http://localhost:8000/api/service-admins \
 ```
 
 **Через админ-панель:**  
-(если реализовано в UI)
+Раздел «Администраторы» в админке планируется в Фазе 5 (см. [PLAN_PHASE_5.md](PLAN_PHASE_5.md)). Пока — только через API или Swagger (http://localhost:8000/docs).
 
 ### Где хранятся настройки?
 

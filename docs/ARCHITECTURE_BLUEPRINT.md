@@ -22,13 +22,14 @@
 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Детальный план Фазы 5 (Админка Администраторы) | ✅ Актуален (не завершено) |
 | [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Детальный план Фазы 6 (Worklog Checker) | ✅ Актуален (не завершено) |
 
-### Существующая документация проекта
+### Текущее состояние (v1.0) — реализовано
 
 | Документ | Описание |
 |----------|----------|
-| [CURRENT_IMPLEMENTATION.md](CURRENT_IMPLEMENTATION.md) | Текущая реализация (до изменений) |
-| [APP_DESCRIPTION_AND_API.md](APP_DESCRIPTION_AND_API.md) | Описание приложения и API |
-| [LAUNCH_INSTRUCTIONS.md](LAUNCH_INSTRUCTIONS.md) | Инструкции по запуску |
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Полная спецификация текущей реализации: архитектура, API, установка |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
+
+Планы фаз (0–6) опираются на эту базу и добавляют tool-calling, плагины, админку инструментов/админов, Worklog Checker.
 
 ---
 
@@ -611,8 +612,8 @@ tools:
           description: "Employee name, email, or Jira username"
         period:
           type: string
-          description: "Period to check: today, yesterday, week, month, or date range (YYYY-MM-DD:YYYY-MM-DD)"
-          default: "week"
+          description: "Period to check: this_week, last_week, this_month, last_month, or date range (YYYY-MM-DD/YYYY-MM-DD)"
+          default: "this_week"
       required:
         - employee
 
@@ -628,7 +629,7 @@ tools:
           description: "Team or department name"
         period:
           type: string
-          default: "week"
+          default: "this_week"
       required:
         - team
 
@@ -730,7 +731,7 @@ settings:
 │           "id": "call_123",                                                      │
 │           "function": {                                                          │
 │             "name": "check_worklogs",                                            │
-│             "arguments": "{\"employee\": \"Иванов\", \"period\": \"week\"}"      │
+│             "arguments": "{\"employee\": \"Иванов\", \"period\": \"this_week\"}"      │
 │           }                                                                      │
 │         }                                                                        │
 │       ]                                                                          │
@@ -742,7 +743,7 @@ settings:
 │  5. TOOL EXECUTOR                                                                │
 │                                                                                  │
 │     • Находит handler в Registry                                                 │
-│     • Вызывает: check_worklogs(employee="Иванов", period="week")                 │
+│     • Вызывает: check_worklogs(employee="Иванов", period="this_week")             │
 │     • Логирует вызов                                                             │
 │     • Обрабатывает таймаут/ошибки                                                │
 └──────────────────────────────────────────────────────────────────────────────────┘
