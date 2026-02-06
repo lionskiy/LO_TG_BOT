@@ -45,8 +45,29 @@ _anthropic_client: Optional[object] = None
 _google_model = None
 
 
+def _needs_max_completion_tokens(model: str) -> bool:
+    """
+    Check if model requires max_completion_tokens instead of max_tokens.
+    New OpenAI models (gpt-5, o3, o4 series) use max_completion_tokens.
+    """
+    model_lower = model.lower()
+    # GPT-5 series
+    if model_lower.startswith("gpt-5") or "gpt-5" in model_lower:
+        return True
+    # O-series reasoning models
+    if model_lower.startswith("o3") or model_lower.startswith("o4"):
+        return True
+    # O1 series (older reasoning)
+    if model_lower.startswith("o1"):
+        return True
+    return False
+
+
 async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
-    """OpenAI-compatible: always create client from kwargs so DB/config hot-swap uses current api_key and base_url."""
+    """
+    OpenAI-compatible: always create client from kwargs so DB/config hot-swap uses current api_key and base_url.
+    For new models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
+    """
     from openai import AsyncOpenAI
 
     base_url = kwargs.get("base_url")
@@ -59,23 +80,37 @@ async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
         client = AsyncOpenAI(api_key=api_key, base_url=base_url, **client_kw)
     else:
         client = AsyncOpenAI(api_key=api_key, **client_kw)
-    resp = await client.chat.completions.create(
-        model=model, messages=messages, max_tokens=1024
-    )
+    
+    # New models require max_completion_tokens; older models use max_tokens
+    if _needs_max_completion_tokens(model):
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_completion_tokens=1024
+        )
+    else:
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_tokens=1024
+        )
     return (resp.choices[0].message.content or "").strip()
 
 
 async def _reply_groq(messages: List[dict], model: str, kwargs: dict) -> str:
+    """Groq uses OpenAI-compatible API; new OpenAI models need max_completion_tokens."""
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=kwargs["base_url"])
-    resp = await client.chat.completions.create(
-        model=model, messages=messages, max_tokens=1024
-    )
+    if _needs_max_completion_tokens(model):
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_completion_tokens=1024
+        )
+    else:
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_tokens=1024
+        )
     return (resp.choices[0].message.content or "").strip()
 
 
 async def _reply_openrouter(messages: List[dict], model: str, kwargs: dict) -> str:
+    """OpenRouter uses OpenAI-compatible API; new OpenAI models need max_completion_tokens."""
     from openai import AsyncOpenAI
 
     # OpenRouter/DeepSeek могут отвечать долго — увеличиваем таймаут
@@ -85,23 +120,36 @@ async def _reply_openrouter(messages: List[dict], model: str, kwargs: dict) -> s
         base_url=kwargs["base_url"],
         timeout=timeout,
     )
-    resp = await client.chat.completions.create(
-        model=model, messages=messages, max_tokens=1024
-    )
+    if _needs_max_completion_tokens(model):
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_completion_tokens=1024
+        )
+    else:
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_tokens=1024
+        )
     return (resp.choices[0].message.content or "").strip()
 
 
 async def _reply_ollama(messages: List[dict], model: str, kwargs: dict) -> str:
+    """Ollama uses OpenAI-compatible API; typically uses max_tokens (local models)."""
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=kwargs["base_url"])
-    resp = await client.chat.completions.create(
-        model=model, messages=messages, max_tokens=1024
-    )
+    # Ollama models typically don't need max_completion_tokens, but check for OpenAI models routed through Ollama
+    if _needs_max_completion_tokens(model):
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_completion_tokens=1024
+        )
+    else:
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_tokens=1024
+        )
     return (resp.choices[0].message.content or "").strip()
 
 
 async def _reply_azure(messages: List[dict], model: str, kwargs: dict) -> str:
+    """Azure OpenAI; new OpenAI models (gpt-5, o3, o4) need max_completion_tokens."""
     from openai import AsyncAzureOpenAI
 
     endpoint = kwargs.get("azure_endpoint") or (kwargs.get("base_url") or "").rstrip("/")
@@ -111,9 +159,14 @@ async def _reply_azure(messages: List[dict], model: str, kwargs: dict) -> str:
         azure_endpoint=endpoint,
         api_version=version,
     )
-    resp = await client.chat.completions.create(
-        model=model, messages=messages, max_tokens=1024
-    )
+    if _needs_max_completion_tokens(model):
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_completion_tokens=1024
+        )
+    else:
+        resp = await client.chat.completions.create(
+            model=model, messages=messages, max_tokens=1024
+        )
     return (resp.choices[0].message.content or "").strip()
 
 
