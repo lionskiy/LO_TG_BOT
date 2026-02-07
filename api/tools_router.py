@@ -3,6 +3,7 @@ import logging
 import os
 from typing import List
 
+import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException
 
 from api.tools_repository import (
@@ -170,10 +171,44 @@ async def put_tool_settings(name: str, body: dict, _: None = Depends(_require_ad
     return {"success": True, "message": "Settings saved"}
 
 
+async def _test_get_worklogs_connection() -> tuple[bool, str]:
+    """Test Jira/Tempo connection using get_worklogs plugin settings. Returns (success, message)."""
+    rec = get_tool_settings("get_worklogs")
+    if not rec or not getattr(rec, "_decrypted_settings", None):
+        return False, "Настройки инструмента get_worklogs не найдены. Сохраните настройки и повторите."
+    s = rec._decrypted_settings
+    base = (s.get("jira_url") or "").strip().rstrip("/")
+    token = s.get("api_token") or ""
+    if not base:
+        return False, "Укажите Jira URL в настройках."
+    if not token or token.startswith("***"):
+        return False, "Укажите API Token в настройках (не маска)."
+    url = f"{base}/rest/api/2/myself"
+    try:
+        async with httpx.AsyncClient(timeout=15.0, verify=False) as client:
+            r = await client.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                },
+            )
+        if r.status_code == 200:
+            return True, "Подключение к Jira успешно."
+        if r.status_code == 401:
+            return False, "Неверный API Token или нет доступа."
+        return False, f"Jira вернул код {r.status_code}: {r.text[:200] if r.text else ''}"
+    except httpx.RequestError as e:
+        return False, f"Ошибка подключения: {e!s}"
+
+
 @router.post("/{name}/test")
 async def test_tool_connection(name: str, _: None = Depends(_require_admin)):
-    """Test tool connection. Most tools do not support this."""
+    """Test tool connection. Supported for get_worklogs (Jira/Tempo)."""
     reg = get_registry()
     if not reg.get_tool(name):
         raise HTTPException(status_code=404, detail=f"Tool '{name}' not found")
+    if name == "get_worklogs":
+        success, message = await _test_get_worklogs_connection()
+        return {"success": success, "message": message}
     return {"success": False, "message": f"Tool '{name}' does not support connection testing"}

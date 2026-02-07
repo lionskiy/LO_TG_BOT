@@ -40,14 +40,3 @@ settings:
     type: password
     required: true
     description: "API token or Personal Access Token (PAT); Cloud and Server/Data Center"
-  - key: required_hours_per_day
-    label: "Required hours per day"
-    type: number
-    required: false
-    default: 8
-    description: "Expected working hours per day"
-  - key: working_days
-    label: "Working days"
-    type: string
-    required: false
-    description: "Comma-separated: mon,tue,wed,thu,fri"
