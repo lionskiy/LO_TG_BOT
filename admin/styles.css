@@ -431,6 +431,86 @@ body {
   gap: 0.5rem;
 }
 
+/* Tool settings modal — wider, form layout */
+.modal--tool-settings {
+  max-width: 480px;
+  width: 100%;
+}
+
+.modal--tool-settings .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.modal--tool-settings .modal-title {
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #5f6368;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.modal-close:hover {
+  color: #202124;
+}
+
+.modal--tool-settings .modal-body {
+  margin-bottom: 1rem;
+}
+
+.tool-settings-plugin-info {
+  font-size: 12px;
+  color: #5f6368;
+  margin: 0 0 1rem;
+}
+
+.tool-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tool-settings-field {
+  display: block;
+}
+
+.tool-settings-field .field-password-toggle {
+  margin-left: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  vertical-align: middle;
+}
+
+.tool-settings-test {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dadce0;
+}
+
+.tool-settings-test-result {
+  margin: 0.5rem 0 0;
+  font-size: 13px;
+}
+
+.tool-settings-test-result--success {
+  color: #1e7e34;
+}
+
+.tool-settings-test-result--error {
+  color: #b71c1c;
+}
+
 /* Toast — PRD 5.6 */
 .toast-container {
   position: fixed;

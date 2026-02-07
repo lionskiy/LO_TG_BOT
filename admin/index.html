@@ -163,8 +163,28 @@
       </div>
     </div>
   </div>
-  <script src="/admin/app.js?v=3"></script>
-  <script src="/admin/tools.js?v=3"></script>
-  <script src="/admin/admins.js?v=3"></script>
+  <div id="toolSettingsModalOverlay" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="toolSettingsModalTitle">
+    <div class="modal modal--tool-settings" id="toolSettingsModal">
+      <div class="modal-header">
+        <h4 class="modal-title" id="toolSettingsModalTitle">Настройки инструмента</h4>
+        <button type="button" class="modal-close" id="toolSettingsModalClose" aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="tool-settings-plugin-info" id="toolSettingsPluginInfo"></p>
+        <form id="toolSettingsForm" class="tool-settings-form"></form>
+        <div class="tool-settings-test" id="toolSettingsTestBlock" hidden>
+          <button type="button" class="btn btn-secondary" id="toolSettingsTestBtn">Проверить подключение</button>
+          <p class="tool-settings-test-result" id="toolSettingsTestResult" hidden></p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="toolSettingsModalCancel">Отмена</button>
+        <button type="button" class="btn btn-primary" id="toolSettingsModalSave">Сохранить</button>
+      </div>
+    </div>
+  </div>
+  <script src="/admin/app.js?v=4"></script>
+  <script src="/admin/tools.js?v=4"></script>
+  <script src="/admin/admins.js?v=4"></script>
 </body>
 </html>
