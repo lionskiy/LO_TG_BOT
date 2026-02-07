@@ -17,6 +17,10 @@ simpleeval>=0.9.13
 # Plugin manifests (Phase 2)
 PyYAML>=6.0
 
+# HR Service: Excel import
+openpyxl>=3.1.0
+xlrd>=2.0.0
+
 # dev/test
 pytest==8.3.4
 pytest-asyncio==0.24.0
