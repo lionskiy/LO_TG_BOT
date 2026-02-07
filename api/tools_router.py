@@ -146,26 +146,27 @@ async def get_tool_settings_endpoint(name: str, _: None = Depends(_require_admin
 
 @router.put("/{name}/settings")
 async def put_tool_settings(name: str, body: dict, _: None = Depends(_require_admin)):
-    """Save tool settings. Masked password values (***...) are preserved."""
+    """Save tool settings. Masked password values (***...) are preserved. Does not change enabled (per plan)."""
     reg = get_registry()
     tool = reg.get_tool(name)
     if not tool:
         raise HTTPException(status_code=404, detail=f"Tool '{name}' not found")
     manifest = reg.get_plugin(tool.plugin_id)
     schema = getattr(manifest, "settings", None) or []
-    new_settings = body.get("settings") or body
+    new_settings = dict(body.get("settings") or body)
     current = get_plugin_settings(tool.plugin_id)
     for key, val in list(new_settings.items()):
-        if isinstance(val, str) and val.startswith("***") and len(val) > 3:
-            if key in current:
-                new_settings[key] = current[key]
+        if isinstance(val, str) and val.startswith("***") and len(val) > 3 and key in current:
+            new_settings[key] = current[key]
     errors = validate_plugin_settings(new_settings, schema)
     if errors:
         raise HTTPException(
             status_code=400,
             detail={"success": False, "message": "Validation failed", "errors": errors},
         )
-    save_tool_settings(tool_name=name, plugin_id=tool.plugin_id, enabled=tool.enabled, settings=new_settings)
+    rec = get_tool_settings(name)
+    enabled = rec.enabled if rec else tool.enabled
+    save_tool_settings(tool_name=name, plugin_id=tool.plugin_id, enabled=enabled, settings=new_settings)
     return {"success": True, "message": "Settings saved"}
 
 

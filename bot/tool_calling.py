@@ -91,6 +91,8 @@ async def get_reply_with_tools(
 
         if tool_calls:
             logger.info("Tool calls: %s", [tc.name for tc in tool_calls])
+            if content:
+                current_messages.append({"role": "assistant", "content": content})
             results = []
             for tc in tool_calls:
                 tools_tc = ToolsToolCall(id=tc.id, name=tc.name, arguments=tc.arguments or {})
