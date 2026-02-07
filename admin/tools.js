@@ -427,9 +427,11 @@
     });
   }
 
+  // Expose loadTools before DOMContentLoaded so app.js can call it when opening #tools on initial load/refresh
+  window.loadTools = loadTools;
+
   document.addEventListener('DOMContentLoaded', () => {
     wireToolSettingsModal();
-    window.loadTools = loadTools;
     const reloadBtn = document.getElementById('toolsReload');
     if (reloadBtn) reloadBtn.addEventListener('click', reloadPlugins);
   });
