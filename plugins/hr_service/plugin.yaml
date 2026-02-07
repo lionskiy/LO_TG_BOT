@@ -1,0 +1,61 @@
+id: hr_service
+name: "HR Service"
+version: "1.0.0"
+description: "Employee directory: import from Excel, Jira enrichment, edits via bot and admin"
+enabled: true
+
+tools:
+  - name: hr
+    description: "HR operations: get_employee (by name, personal_number, email), list_employees (with filters: mvz, team, supervisors, delivery_managers), search_employees (by name/department/position), update_employee (admins only), import_employees from file (admins only). Pass 'action' and required arguments."
+    handler: hr_dispatch
+    timeout: 120
+    parameters:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [get_employee, list_employees, search_employees, update_employee, import_employees]
+          description: "Which operation to perform"
+        query:
+          type: string
+          description: "Search query: name, personal_number, or email for get_employee; search terms for search_employees"
+        mvz:
+          type: string
+          description: "Filter by MVZ for list_employees"
+        team:
+          type: string
+          description: "Filter by team for list_employees"
+        supervisors_only:
+          type: boolean
+          description: "If true, list only supervisors (list_employees)"
+        delivery_managers_only:
+          type: boolean
+          description: "If true, list only delivery managers (list_employees)"
+        personal_number:
+          type: string
+          description: "Employee personal number for update_employee (or use query for name)"
+        updates:
+          type: object
+          description: "Fields to update for update_employee (fte, dismissal_date, is_supervisor, is_delivery_manager, team, mvz, supervisor, etc.)"
+        file_path:
+          type: string
+          description: "Path to Excel file for import_employees (when called with file)"
+      required:
+        - action
+
+settings:
+  - key: jira_url
+    label: "Jira URL"
+    type: string
+    required: true
+    description: "Base URL of Jira instance (e.g. https://company.atlassian.net)"
+  - key: api_token
+    label: "API Token"
+    type: password
+    required: true
+    description: "API token or PAT for Jira REST API"
+  - key: jira_email
+    label: "Jira user (email or username)"
+    type: string
+    required: false
+    description: "Email (Cloud) or username (Server/Data Center); used for auth and user lookup"
