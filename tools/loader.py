@@ -25,19 +25,6 @@ def _should_scan_dir(dirname: str) -> bool:
     )
 
 
-def _collect_plugin_dirs(root: Path) -> List[Path]:
-    """Recursively find all directories that contain plugin.yaml (e.g. plugins/builtin/calculator)."""
-    result: List[Path] = []
-    for child in sorted(root.iterdir()):
-        if not child.is_dir() or not _should_scan_dir(child.name):
-            continue
-        if (child / "plugin.yaml").exists():
-            result.append(child)
-        else:
-            result.extend(_collect_plugin_dirs(child))
-    return result
-
-
 @dataclass
 class LoadError:
     """Plugin load error."""
@@ -170,23 +157,25 @@ async def load_all_plugins(
 
     loaded: List[str] = []
     failed: List[LoadError] = []
-    for plugin_path in _collect_plugin_dirs(path):
+    for child in sorted(path.iterdir()):
+        if not child.is_dir() or not _should_scan_dir(child.name):
+            continue
         try:
-            manifest = await load_plugin(str(plugin_path), registry=reg)
+            manifest = await load_plugin(str(child), registry=reg)
             if manifest:
                 loaded.append(manifest.id)
             else:
                 failed.append(LoadError(
                     plugin_id=None,
-                    plugin_path=str(plugin_path),
+                    plugin_path=str(child),
                     error="Load returned None",
                     exception=None,
                 ))
         except Exception as e:
-            logger.exception("Error loading plugin %s: %s", plugin_path, e)
+            logger.exception("Error loading plugin %s: %s", child, e)
             failed.append(LoadError(
                 plugin_id=None,
-                plugin_path=str(plugin_path),
+                plugin_path=str(child),
                 error=str(e),
                 exception=e,
             ))
@@ -204,12 +193,14 @@ async def reload_plugin(
     path = Path(plugins_dir).resolve()
     if not path.exists():
         return False
-    # Find plugin folder by id (search recursively)
+    # Find plugin folder by id (direct children only)
     plugin_path = None
-    for candidate in _collect_plugin_dirs(path):
-        manifest = _load_manifest(candidate)
+    for child in path.iterdir():
+        if not child.is_dir() or not _should_scan_dir(child.name):
+            continue
+        manifest = _load_manifest(child)
         if manifest and manifest.id == plugin_id:
-            plugin_path = candidate
+            plugin_path = child
             break
     if not plugin_path:
         logger.warning("Plugin %s not found in %s", plugin_id, plugins_dir)
