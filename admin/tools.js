@@ -116,12 +116,17 @@
     return div.innerHTML;
   }
 
+  const TOOLS_FETCH_TIMEOUT_MS = 20000;
+
   async function loadTools() {
     const listEl = document.getElementById('toolsList');
     const summaryEl = document.getElementById('toolsSummary');
     if (summaryEl) summaryEl.textContent = 'Загрузка...';
     try {
-      const r = await api('/api/tools');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TOOLS_FETCH_TIMEOUT_MS);
+      const r = await api('/api/tools', { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!r.ok) {
         if (r.status === 403) showToast('Требуется ключ администратора', 'error');
         else showToast('Ошибка загрузки: ' + r.status, 'error');
@@ -131,8 +136,10 @@
       const data = await r.json();
       renderTools(data);
     } catch (e) {
-      showToast('Ошибка сети', 'error');
-      if (summaryEl) summaryEl.textContent = 'Ошибка';
+      const isAbort = e.name === 'AbortError';
+      showToast(isAbort ? 'Таймаут загрузки' : 'Ошибка сети', 'error');
+      if (summaryEl) summaryEl.textContent = isAbort ? 'Таймаут' : 'Ошибка';
+      if (listEl) listEl.innerHTML = '';
     }
   }
 
