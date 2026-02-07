@@ -1207,9 +1207,10 @@ async function serviceAdminDelete(telegramId, displayName) {
 }
 
 function showSection(sectionId) {
+  const visibleId = 'section-' + sectionId;
   ['section-settings', 'section-tools', 'section-admins'].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.hidden = id !== sectionId;
+    if (el) el.hidden = id !== visibleId;
   });
   document.querySelectorAll('.sidebar-nav .nav-item').forEach((a) => {
     a.classList.toggle('nav-item--active', a.getAttribute('data-section') === sectionId);
