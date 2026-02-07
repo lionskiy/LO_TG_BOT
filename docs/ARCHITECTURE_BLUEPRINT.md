@@ -3,8 +3,8 @@
 > **Primary architecture document for development**  
 > Used as a reference when working on each block/phase
 
-**Version:** 1.1  
-**Date:** 2026-02-06  
+**Version:** 1.2  
+**Date:** 2026-02-07  
 **Approach:** Smart monolith with plugins (single process)
 
 ---
@@ -41,6 +41,15 @@ Phase plans (0–6) build on this base and add tool-calling, plugins, tools/admi
 4. **For optimization** — consider the "Resources and constraints" section
 5. **When planning work** — see [UPGRADE_TASKS.md](UPGRADE_TASKS.md)
 6. **When implementing a specific phase** — see the corresponding PLAN_PHASE_X.md
+
+---
+
+## Terminology (единая терминология во всех документах)
+
+- **Плагин = инструмент для оркестратора.** Для оркестратора (LLM и бот) каждый плагин выступает как **один инструмент**: один пункт в списке вызовов; оркестратор вызывает плагин с параметрами (действие + аргументы).
+- **У плагина не инструменты, а функции.** Внутри плагина реализованы **функции** (например, get_employee, check_worklogs, import_employees), которые выполняют конкретные операции. Снаружи они не разбиваются на отдельные «инструменты» оркестратора — с точки зрения оркестратора вызывается один инструмент (плагин), который сам выбирает и выполняет нужную функцию по параметрам.
+
+В коде и API могут сохраняться технические имена (tool_name, Tool Registry, tools в plugin.yaml) для совместимости с LLM API; в описаниях и спецификациях везде используем: **плагин = инструмент оркестратора**, **функции плагина** = внутренние операции плагина.
 
 ---
 
@@ -83,7 +92,7 @@ Phase plans (0–6) build on this base and add tool-calling, plugins, tools/admi
 │  │   │                                                                   │    │ │
 │  │   │  • Builds request: system_prompt + tools + history + message     │    │ │
 │  │   │  • System prompt in English (token savings)                      │    │ │
-│  │   │  • Tool descriptions from Registry                               │    │ │
+│  │   │  • Plugin (as tool) descriptions from Registry                               │    │ │
 │  │   │  • Sends to LLM Provider                                          │    │ │
 │  │   │  • Handles tool_calls                                             │    │ │
 │  │   │  • Returns final reply in user language                           │    │ │
@@ -129,7 +138,7 @@ Phase plans (0–6) build on this base and add tool-calling, plugins, tools/admi
 │  │   │  • Scans plugins/ directory                                       │    │ │
 │  │   │  • Reads plugin.yaml (manifests)                                  │    │ │
 │  │   │  • Loads handlers.py (code)                                       │    │ │
-│  │   │  • Registers tools in Registry                                    │    │ │
+│  │   │   │  • Registers each plugin as one tool; plugin exposes functions  │    │ │
 │  │   │  • Hot-reload plugins (no restart)                                 │    │ │
 │  │   └──────────────────────────────────────────────────────────────────┘    │ │
 │  │                                        │                                   │ │
@@ -162,16 +171,16 @@ Phase plans (0–6) build on this base and add tool-calling, plugins, tools/admi
 │  │   │                                                                        │ │
 │  │   ├── builtin/                          [NEW — with core]                  │ │
 │  │   │   ├── calculator/                                                      │ │
-│  │   │   │   ├── plugin.yaml               # tool description                  │ │
-│  │   │   │   └── handlers.py               # calculate()                      │ │
+│  │   │   │   ├── plugin.yaml               # plugin (tool) + functions         │ │
+│  │   │   │   └── handlers.py               # functions: calculate()            │ │
 │  │   │   │                                                                    │ │
 │  │   │   └── datetime_tools/                                                  │ │
 │  │   │       ├── plugin.yaml                                                  │ │
-│  │   │       └── handlers.py               # get_datetime(), get_weekday()    │ │
+│  │   │       └── handlers.py               # functions: get_datetime(), get_weekday() │ │
 │  │   │                                                                        │ │
 │  │   ├── worklog_checker/                  [PHASE 6 — first business plugin] │ │
-│  │   │   ├── plugin.yaml                   # tools + settings (jira, tempo)   │ │
-│  │   │   └── handlers.py                   # check_worklogs()                 │ │
+│  │   │   ├── plugin.yaml                   # functions + settings (jira, tempo)   │ │
+│  │   │   └── handlers.py                   # functions: check_worklogs()                 │ │
 │  │   │                                                                        │ │
 │  │   ├── hr_service/                       [FUTURE]                           │ │
 │  │   │   ├── plugin.yaml                                                      │ │
@@ -426,7 +435,7 @@ Phase plans (0–6) build on this base and add tool-calling, plugins, tools/admi
 │   │  • plugins/hr_service/plugin.yaml                                       │   │
 │   │  • plugins/hr_service/handlers.py                                       │   │
 │   │                                                                         │   │
-│   │  Tools:                                                                 │   │
+│   │  Functions (функции плагина):                                            │   │
 │   │  • get_employee — get employee data                                     │   │
 │   │  • list_employees — list employees                                     │   │
 │   │  • update_employee — update data                                       │   │
@@ -443,7 +452,7 @@ Phase plans (0–6) build on this base and add tool-calling, plugins, tools/admi
 │   │  • plugins/reminder/handlers.py                                         │   │
 │   │  • plugins/reminder/templates.py       # prompts for generation          │   │
 │   │                                                                         │   │
-│   │  Tools:                                                                 │   │
+│   │  Functions (функции плагина):                                            │   │
 │   │  • find_violators — find violators                                      │   │
 │   │  • send_reminder — generate and send reminder                           │   │
 │   │  • escalate — escalate to manager                                       │   │
@@ -552,10 +561,10 @@ Phase plans (0–6) build on this base and add tool-calling, plugins, tools/admi
 │       │   ├── description: string  # Description for UI                          │
 │       │   ├── enabled: bool        # Enabled by default                           │
 │       │   │                                                                      │
-│       │   ├── tools:               # List of tools                              │
+│       │   ├── tools:               # List of plugin functions (YAML key kept) │
 │       │   │   └── - name: string                                                │
 │       │   │       description: string (ENGLISH!)                                │
-│       │   │       handler: string  # Path to function                           │
+│       │   │       handler: string  # Function name in handlers.py               │
 │       │   │       parameters:      # JSON Schema                                │
 │       │   │       uses_llm: bool   # Uses LLM (optional)                        │
 │       │   │       timeout: int     # Timeout in seconds                         │
@@ -568,9 +577,9 @@ Phase plans (0–6) build on this base and add tool-calling, plugins, tools/admi
 │       │           default: any                                                  │
 │       │           options: []      # For select                                 │
 │       │                                                                          │
-│       ├── handlers.py              # Tool code (required)                        │
+│       ├── handlers.py              # Plugin functions (required)                 │
 │       │   │                                                                      │
-│       │   ├── async def tool_name(param1, param2) -> str | dict                 │
+│       │   ├── async def function_name(param1, param2) -> str | dict              │
 │       │   │   """Docstring — description for logs"""                            │
 │       │   │   ...                                                               │
 │       │   │   return result                                                     │
@@ -699,8 +708,8 @@ settings:
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │  3. LLM ROUTER                                                                   │
 │                                                                                  │
-│     • Gets tools from Registry (enabled only)                                    │
-│     • Tool descriptions: ENGLISH                                                 │
+│     • Gets plugins (as tools for LLM) from Registry (enabled only)                │
+│     • Descriptions of plugin functions: ENGLISH                                  │
 │     • Sends request to LLM Provider                                              │
 │                                                                                  │
 │     Request:                                                                     │
@@ -818,7 +827,7 @@ settings:
 │                                                                                  │
 │   Token optimization:                                                            │
 │   ├── System prompt: English                                                     │
-│   ├── Tool descriptions: English                                                 │
+│   ├── Plugin (function) descriptions: English                                    │
 │   ├── Short descriptions                                                        │
 │   ├── Model: GPT-4o-mini or Gemini Flash                                        │
 │   └── Savings: ~20-25%                                                          │
@@ -888,3 +897,5 @@ settings:
 | Version | Date | Description |
 |---------|------|-------------|
 | 1.0 | 2026-02-06 | First version of target architecture |
+| 1.1 | 2026-02-06 | (in progress) |
+| 1.2 | 2026-02-07 | Terminology: plugin = tool for orchestrator; plugin has functions (not tools). Section Terminology, Plugin anatomy and blocks updated. |

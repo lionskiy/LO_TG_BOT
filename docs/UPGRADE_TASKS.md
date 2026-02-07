@@ -38,6 +38,7 @@
 4. **When testing** — use the done criteria as a checklist
 5. **Detailed phase plan** — see the corresponding PLAN_PHASE_X.md
 6. **Architecture questions** — see [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md)
+7. **Терминология:** плагин = инструмент для оркестратора; у плагина — функции (не инструменты). См. раздел "Terminology" в ARCHITECTURE_BLUEPRINT.
 
 ---
 
@@ -701,7 +702,7 @@
 │
 ├── 7.2 HR Service [FUTURE]
 │   │
-│   ├── 7.2.1 Tools
+│   ├── 7.2.1 Functions (функции плагина; плагин = один инструмент для оркестратора)
 │   │   ├── get_employee — get employee data
 │   │   ├── list_employees — list with filters
 │   │   ├── search_employees — search by name/department
@@ -720,7 +721,7 @@
 │
 ├── 7.3 Reminder [FUTURE]
 │   │
-│   ├── 7.3.1 Tools
+│   ├── 7.3.1 Functions (функции плагина; плагин = один инструмент для оркестратора)
 │   │   ├── find_violators — find violators for period
 │   │   ├── send_reminder — send reminder (uses_llm: true)
 │   │   └── escalate_to_manager — escalate to manager
