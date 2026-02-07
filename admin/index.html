@@ -135,13 +135,10 @@
       <div id="section-admins" class="section" hidden>
         <h2 class="page-title">Администраторы</h2>
         <p class="section-hint">Администраторы сервиса имеют доступ к админ-панели (при вводе Admin key).</p>
-        <div class="admins-header">
-          <button type="button" class="btn btn-primary" id="adminsAddBtn">+ Добавить</button>
-        </div>
         <div id="serviceAdminsList" class="service-admins-list">
           <p class="block-placeholder" id="serviceAdminsPlaceholder">Нет добавленных администраторов</p>
         </div>
-        <div class="form" id="adminsAddForm" hidden>
+        <div class="form" id="adminsAddForm">
           <label class="field">
             <span class="field-label">Telegram ID *</span>
             <input type="text" id="serviceAdminTelegramId" class="field-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Числовой ID пользователя Telegram">
@@ -166,8 +163,8 @@
       </div>
     </div>
   </div>
-  <script src="/admin/app.js?v=2"></script>
-  <script src="/admin/tools.js?v=2"></script>
-  <script src="/admin/admins.js?v=2"></script>
+  <script src="/admin/app.js?v=3"></script>
+  <script src="/admin/tools.js?v=3"></script>
+  <script src="/admin/admins.js?v=3"></script>
 </body>
 </html>
