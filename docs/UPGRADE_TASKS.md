@@ -20,6 +20,8 @@
 | [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Detailed plan for Phase 4 (Admin Tools) | ✅ Current (in progress) |
 | [PLAN_PHASE_5.md](PLAN_PHASE_5.md) | Detailed plan for Phase 5 (Admin Administrators) | ✅ Current (in progress) |
 | [PLAN_PHASE_6.md](PLAN_PHASE_6.md) | Detailed plan for Phase 6 (Worklog Checker) | ✅ Current (in progress) |
+| [SPEC_HR_SERVICE.md](SPEC_HR_SERVICE.md) | Спецификация плагина HR Service | ✅ Current |
+| [PLAN_HR_SERVICE.md](PLAN_HR_SERVICE.md) | План работ HR Service (задачи с чекбоксами) | ✅ Current |
 
 ### Current state (v1.0) — implemented
 
@@ -700,24 +702,35 @@
 │   └── Done when:
 │       └── "Check Ivanov's worklogs" → real data
 │
-├── 7.2 HR Service [FUTURE]
+├── 7.2 HR Service [SPEC: SPEC_HR_SERVICE.md]
+│   │
+│   ├── План с чекбоксами для отметки выполнения: [PLAN_HR_SERVICE.md](PLAN_HR_SERVICE.md)
 │   │
 │   ├── 7.2.1 Functions (функции плагина; плагин = один инструмент для оркестратора)
-│   │   ├── get_employee — get employee data
-│   │   ├── list_employees — list with filters
-│   │   ├── search_employees — search by name/department
-│   │   └── update_employee — update data
+│   │   ├── get_employee — get employee data (by ФИО, personal_number, email)
+│   │   ├── list_employees — list with filters (МВЗ, команда, руководители, delivery managers)
+│   │   ├── search_employees — search by name/department/position
+│   │   ├── update_employee — update data (только сервисные админы в боте)
+│   │   └── import_employees — import from Excel (два листа ДДЖ + Инфоком)
 │   │
 │   ├── 7.2.2 Storage
-│   │   ├── Separate employees table in SQLite
-│   │   └── Or integration with external HR system
+│   │   ├── Отдельная таблица employees (или hr_employees) в той же SQLite
+│   │   ├── Индексы: personal_number (unique), email, jira_worker_id
+│   │   └── Миграция или создание при первом обращении
 │   │
 │   ├── 7.2.3 Import
-│   │   ├── import_from_excel — load from Excel
-│   │   └── import_from_csv — load from CSV
+│   │   ├── Парсинг .xlsx/.xls, листы «ДДЖ» и «Инфоком», маппинг по SPEC
+│   │   ├── Проверка дубликатов personal_number в файле → ошибка с расшифровкой
+│   │   ├── Сверка с БД: существующие пропуск, новые — вставка
+│   │   └── Дообогащение jira_worker_id из Jira (GET /rest/api/2/user?username=…)
+│   │
+│   ├── 7.2.4 Bot & Admin
+│   │   ├── Передача файла из бота в плагин (import_employees); проверка service_admins
+│   │   ├── API для админки: GET/PATCH /api/hr/employees, POST /api/hr/import
+│   │   └── Админка «Работа с БД» (/admin/#db): три представления, таблица, импорт
 │   │
 │   └── Done when:
-│       └── "Who is Ivanov's manager?" → answer from DB
+│       └── Импорт (бот + админка) работает, дообогащение Jira, правки через бота и админку, права соблюдаются
 │
 ├── 7.3 Reminder [FUTURE]
 │   │

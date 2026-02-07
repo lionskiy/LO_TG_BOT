@@ -13,6 +13,7 @@
 |---------|-------------------|
 | [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Terminology (плагин = инструмент, функции); Plugin anatomy (структура plugin.yaml, handlers.py); общая схема Registry, Loader, Settings |
 | [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Блок 7.2 HR Service, зависимости |
+| [PLAN_HR_SERVICE.md](PLAN_HR_SERVICE.md) | План работ с задачами и чекбоксами для отметки выполнения |
 | [tempo_api.md](tempo_api.md) | Раздел «Get Worker ID by Email/Username» — эндпоинт Jira `GET /rest/api/2/user?username={username}` для дообогащения |
 | [PLAN_PHASE_3.md](PLAN_PHASE_3.md), [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | API /api/tools/*, настройки плагинов в БД, админка «Инструменты» |
 | [DOCUMENTATION_AUDIT.md](DOCUMENTATION_AUDIT.md) | Контракт ошибок, рекомендации по контрактам |
