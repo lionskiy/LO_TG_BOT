@@ -622,9 +622,12 @@ body {
   font-size: 13px;
 }
 
-/* Section common */
+/* Section common: only the active section is visible (controlled by showSection in app.js) */
 .section {
   display: block;
+}
+.section[hidden] {
+  display: none !important;
 }
 
 .section-hint {
