@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/plugins", tags=["plugins"])
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "").strip()
 
 
-def _admin_dep(x_admin_key: str = Depends(Header(None, alias="X-Admin-Key"))):
+def _admin_dep(x_admin_key: str | None = Header(None, alias="X-Admin-Key")):
     if ADMIN_API_KEY and x_admin_key != ADMIN_API_KEY:
         raise HTTPException(status_code=403, detail="Admin access required")
 
