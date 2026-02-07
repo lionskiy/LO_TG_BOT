@@ -1,40 +1,26 @@
 id: worklog-checker
 name: "Worklog Checker"
-version: "1.0.0"
+version: "1.1.0"
 description: "Check employee worklogs via Jira and Tempo"
 enabled: false
 
 tools:
-  - name: check_worklogs
-    description: "Checks employee worklogs for a period. Returns logged hours, required hours, deficit/overtime, and task list. Configure Jira and Tempo in admin first."
-    handler: check_worklogs
-    timeout: 60
-    parameters:
-      type: object
-      properties:
-        employee:
-          type: string
-          description: "Employee name, surname, or email (for Jira user search)"
-        period:
-          type: string
-          description: "Period: this_week, last_week, this_month, last_month, or YYYY-MM-DD/YYYY-MM-DD"
-      required:
-        - employee
-        - period
-
-  - name: get_worklog_summary
-    description: "Summary of worklogs for a team or multiple employees for a period (totals per person, overall picture)."
-    handler: get_worklog_summary
+  - name: get_worklogs
+    description: "Get worklogs for a period: for one employee (detailed — hours, deficit/overtime, tasks) or for a team / several people (summary). Pass employee= for one person, team= for summary. Configure Jira and Tempo in admin first."
+    handler: get_worklogs
     timeout: 90
     parameters:
       type: object
       properties:
-        team:
-          type: string
-          description: "Team name or comma-separated list of names/identifiers (optional)"
         period:
           type: string
           description: "Period: this_week, last_week, this_month, last_month, or YYYY-MM-DD/YYYY-MM-DD"
+        employee:
+          type: string
+          description: "Employee name, surname, or email (for one person — returns detail)"
+        team:
+          type: string
+          description: "Team name or comma-separated list of names (for summary by people)"
       required:
         - period
 
@@ -43,22 +29,17 @@ settings:
     label: "Jira URL"
     type: string
     required: true
-    description: "Base URL of Jira (e.g. https://company.atlassian.net)"
+    description: "Base URL: Cloud (https://company.atlassian.net) or self-hosted (https://jira.your-company.local)"
   - key: jira_email
-    label: "Jira email (Cloud)"
+    label: "Jira user (email or username)"
     type: string
     required: true
-    description: "Email for Jira Cloud API token"
-  - key: jira_token
-    label: "Jira API Token"
+    description: "Email (Jira Cloud) or username (Jira Server/Data Center); same account for Jira and Tempo"
+  - key: api_token
+    label: "API Token (Jira & Tempo)"
     type: password
     required: true
-    description: "Jira Cloud API token or PAT (Server)"
-  - key: tempo_token
-    label: "Tempo API Token"
-    type: password
-    required: true
-    description: "Tempo API token"
+    description: "API token or Personal Access Token (PAT); Cloud and Server/Data Center"
   - key: required_hours_per_day
     label: "Required hours per day"
     type: number
