@@ -1210,7 +1210,10 @@ function showSection(sectionId) {
   const visibleId = 'section-' + sectionId;
   ['section-settings', 'section-tools', 'section-admins'].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.hidden = id !== visibleId;
+    if (!el) return;
+    const isVisible = id === visibleId;
+    el.hidden = !isVisible;
+    el.style.display = isVisible ? '' : 'none';
   });
   document.querySelectorAll('.sidebar-nav .nav-item').forEach((a) => {
     a.classList.toggle('nav-item--active', a.getAttribute('data-section') === sectionId);
@@ -1219,13 +1222,15 @@ function showSection(sectionId) {
   if (sectionId === 'admins' && typeof loadServiceAdmins === 'function') loadServiceAdmins();
 }
 
+function getSectionIdFromHash() {
+  const h = (window.location.hash || '#settings').replace(/^#/, '');
+  return h === 'tools' ? 'tools' : h === 'admins' ? 'admins' : 'settings';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-  const hash = (window.location.hash || '#settings').replace('#', '');
-  const sectionId = hash === 'tools' ? 'tools' : hash === 'admins' ? 'admins' : 'settings';
-  showSection(sectionId);
+  showSection(getSectionIdFromHash());
   window.addEventListener('hashchange', () => {
-    const h = (window.location.hash || '#settings').replace('#', '');
-    showSection(h === 'tools' ? 'tools' : h === 'admins' ? 'admins' : 'settings');
+    showSection(getSectionIdFromHash());
   });
   document.querySelectorAll('.sidebar-nav .nav-item').forEach((a) => {
     a.addEventListener('click', (e) => {
