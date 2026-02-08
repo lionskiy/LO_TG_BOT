@@ -1208,7 +1208,7 @@ async function serviceAdminDelete(telegramId, displayName) {
 
 function showSection(sectionId) {
   const visibleId = 'section-' + sectionId;
-  ['section-settings', 'section-tools', 'section-admins'].forEach((id) => {
+  ['section-settings', 'section-tools', 'section-db', 'section-admins'].forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
     const isVisible = id === visibleId;
@@ -1219,12 +1219,16 @@ function showSection(sectionId) {
     a.classList.toggle('nav-item--active', a.getAttribute('data-section') === sectionId);
   });
   if (sectionId === 'tools' && typeof window.loadTools === 'function') window.loadTools();
+  if (sectionId === 'db' && typeof window.loadDb === 'function') window.loadDb();
   if (sectionId === 'admins' && typeof loadServiceAdmins === 'function') loadServiceAdmins();
 }
 
 function getSectionIdFromHash() {
   const h = (window.location.hash || '#settings').replace(/^#/, '');
-  return h === 'tools' ? 'tools' : h === 'admins' ? 'admins' : 'settings';
+  if (h === 'tools') return 'tools';
+  if (h === 'db') return 'db';
+  if (h === 'admins') return 'admins';
+  return 'settings';
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

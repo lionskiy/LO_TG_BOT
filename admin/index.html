@@ -13,6 +13,7 @@
       <nav class="sidebar-nav">
         <a href="#settings" class="nav-item nav-item--active" data-section="settings">Настройки</a>
         <a href="#tools" class="nav-item" data-section="tools">Инструменты</a>
+        <a href="#db" class="nav-item" data-section="db">Работа с БД</a>
         <a href="#admins" class="nav-item" data-section="admins">Администраторы</a>
       </nav>
       <div class="sidebar-footer">
@@ -132,6 +133,30 @@
         <div id="toolsList" class="tools-list"></div>
         <p class="block-placeholder" id="toolsPlaceholder" hidden>Нет инструментов. Нажмите «Перезагрузить плагины».</p>
       </div>
+      <div id="section-db" class="section" hidden>
+        <h2 class="page-title">Работа с БД</h2>
+        <div class="db-toolbar">
+          <div class="db-views">
+            <button type="button" class="btn btn-outline db-view-btn db-view-btn--active" data-view="all">Списки сотрудников</button>
+            <button type="button" class="btn btn-outline db-view-btn" data-view="supervisors">Руководители и МВЗ</button>
+            <button type="button" class="btn btn-outline db-view-btn" data-view="delivery_managers">Деливери менеджеры</button>
+          </div>
+          <div class="db-actions">
+            <label class="btn btn-primary">
+              Импорт
+              <input type="file" id="dbImportFile" accept=".xlsx,.xls" hidden>
+            </label>
+          </div>
+        </div>
+        <p class="db-import-result" id="dbImportResult" hidden></p>
+        <div class="db-table-wrap">
+          <table class="db-table" id="dbEmployeesTable">
+            <thead id="dbTableHead"></thead>
+            <tbody id="dbTableBody"></tbody>
+          </table>
+        </div>
+        <p class="block-placeholder" id="dbPlaceholder" hidden>Нет данных. Загрузите файл через «Импорт».</p>
+      </div>
       <div id="section-admins" class="section" hidden>
         <h2 class="page-title">Администраторы</h2>
         <p class="section-hint">Администраторы сервиса имеют доступ к админ-панели (при вводе Admin key).</p>
@@ -185,6 +210,7 @@
   </div>
   <script src="/admin/app.js?v=4"></script>
   <script src="/admin/tools.js?v=4"></script>
+  <script src="/admin/db.js?v=1"></script>
   <script src="/admin/admins.js?v=4"></script>
 </body>
 </html>
