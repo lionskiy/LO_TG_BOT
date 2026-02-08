@@ -38,6 +38,41 @@ function api(path, options = {}) {
   });
 }
 
+/** Safely parse JSON from fetch Response. Avoids "r.json is not a function" when response is not a proper Response (e.g. proxy/HTML). */
+async function parseResponseJson(r) {
+  if (!r || typeof r.json !== 'function') {
+    throw new Error('Неверный ответ сервера (ожидается JSON)');
+  }
+  return r.json();
+}
+
+/** Safely get response body as text (for error messages). Returns '' if r is not a Response or text() fails. */
+async function responseText(r) {
+  if (!r || typeof r.text !== 'function') return '';
+  try {
+    return await r.text();
+  } catch (_) {
+    return '';
+  }
+}
+
+/** Read response as text and parse JSON. Use when you need a clear error on empty/invalid body (e.g. loadSettings). */
+async function responseTextThenJson(r) {
+  if (!r || typeof r.text !== 'function') {
+    throw new Error('Неверный ответ сервера');
+  }
+  const text = await responseText(r);
+  if (!text || !text.trim()) {
+    throw new Error('Пустой ответ сервера');
+  }
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    const msg = (e && (e.message || String(e))) || 'Ошибка разбора JSON';
+    throw new Error(msg);
+  }
+}
+
 /** PRD 5.6: success / warning (saved but not applied, validation) / error */
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
@@ -120,7 +155,7 @@ function hasTelegramTokenInput() {
 
 function isTelegramFormValid() {
   if (hasTelegramTokenInput()) return true;
-  if (lastTelegram.isActive && lastTelegram.activeTokenMasked) return true;
+  if (lastTelegram?.isActive && lastTelegram?.activeTokenMasked) return true;
   const tokenEl = document.getElementById('telegramToken');
   const placeholder = (tokenEl?.placeholder || '').trim();
   const defaultPh = 'Токен бота';
@@ -181,8 +216,11 @@ function setLlmChecking() {
 async function loadLlmProviders() {
   const r = await api('/api/settings/llm/providers');
   if (!r.ok) return [];
-  const d = await r.json();
-  llmProviders = d.providers || [];
+  const d = await responseTextThenJson(r).catch((e) => {
+    console.warn('loadLlmProviders parse failed:', e);
+    throw e;
+  });
+  llmProviders = Array.isArray(d.providers) ? d.providers : [];
   return llmProviders;
 }
 
@@ -482,15 +520,20 @@ async function loadSettings() {
         showToast('Требуется Admin key (заголовок X-Admin-Key)', 'warning');
         return;
       }
-      throw new Error(r.statusText);
+      const errText = await responseText(r);
+      throw new Error(errText || r.statusText || 'Ошибка ' + (r.status || ''));
     }
-    const data = await r.json();
+    const data = await responseTextThenJson(r);
     const tg = data.telegram || {};
     lastTelegram = { ...tg };
 
-    document.getElementById('telegramToken').value = '';
-    document.getElementById('telegramToken').placeholder = tg.accessTokenMasked || 'Токен бота';
-    document.getElementById('telegramBaseUrl').value = tg.baseUrl || TELEGRAM_DEFAULT_BASE_URL;
+    const telegramTokenEl = document.getElementById('telegramToken');
+    if (telegramTokenEl) {
+      telegramTokenEl.value = '';
+      telegramTokenEl.placeholder = tg.accessTokenMasked || 'Токен бота';
+    }
+    const telegramBaseUrlEl = document.getElementById('telegramBaseUrl');
+    if (telegramBaseUrlEl) telegramBaseUrlEl.value = tg.baseUrl || TELEGRAM_DEFAULT_BASE_URL;
 
     const telegramActiveEl = document.getElementById('telegramActiveToken');
     const telegramActiveValueEl = document.getElementById('telegramActiveTokenValue');
@@ -514,7 +557,10 @@ async function loadSettings() {
     const llm = data.llm || {};
     lastLlm = { ...llm };
     if (llmProviders.length === 0) {
-      await loadLlmProviders();
+      await loadLlmProviders().catch((e) => {
+        console.warn('loadLlmProviders:', e);
+        showToast('Список провайдеров LLM не загружен. Обновите страницу.', 'warning');
+      });
     }
     fillLlmTypeSelect(llm.llmType || '');
     const llmHasKey = !!(llm.apiKeyMasked || llm.isActive);
@@ -562,7 +608,8 @@ async function loadSettings() {
     // Load service admins
     await loadServiceAdmins();
   } catch (e) {
-    showToast('Ошибка загрузки настроек: ' + e.message, 'error');
+    const msg = (e && (e.message || String(e))) || 'Неизвестная ошибка';
+    showToast('Ошибка загрузки настроек: ' + msg, 'error');
   }
 }
 
@@ -622,7 +669,7 @@ async function telegramSave() {
   if (!baseUrl) baseUrl = TELEGRAM_DEFAULT_BASE_URL;
 
   setFieldError('telegramToken', 'telegramFieldError', '');
-  if (!token && !(lastTelegram.isActive && lastTelegram.activeTokenMasked)) {
+  if (!token && !(lastTelegram?.isActive && lastTelegram?.activeTokenMasked)) {
     showToast('Заполните обязательные поля', 'warning');
     setFieldError('telegramToken', 'telegramFieldError', 'Заполните обязательные поля');
     return;
@@ -636,10 +683,10 @@ async function telegramSave() {
       body: JSON.stringify({ accessToken: token || null, baseUrl }),
     });
     if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
+      const err = await parseResponseJson(r).catch(() => ({}));
       throw new Error(err.detail || r.statusText);
     }
-    const data = await r.json();
+    const data = await parseResponseJson(r);
     const applied = data.applied === true;
     const tg = data.telegram || {};
     if (applied) {
@@ -666,7 +713,8 @@ async function telegramSave() {
     }
     if (!telegramCheckTimer) startTelegramAutoCheck();
   } catch (e) {
-    showToast('Ошибка сохранения: ' + e.message, 'error');
+    const msg = (e && (e.message || String(e))) || 'Неизвестная ошибка';
+    showToast('Ошибка сохранения: ' + msg, 'error');
   } finally {
     setButtonLoading(btn, false);
     updateTelegramSaveDisabled();
@@ -796,7 +844,7 @@ async function llmSave() {
     if (!modelType && !noModelButHasKey) document.getElementById('llmModel')?.classList.add('field-input--error');
     return;
   }
-  if (!apiKey && llmType.toLowerCase() !== 'ollama' && !(lastLlm.isActive && lastLlm.activeTokenMasked)) {
+  if (!apiKey && llmType.toLowerCase() !== 'ollama' && !(lastLlm?.isActive && lastLlm?.activeTokenMasked)) {
     showToast('Введите API key', 'warning');
     setFieldError('llmApiKey', 'llmFieldError', 'Введите API key');
     document.getElementById('llmApiKey')?.classList.add('field-input--error');
@@ -831,10 +879,10 @@ async function llmSave() {
         body: JSON.stringify(patchBody),
       });
       if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
+        const err = await parseResponseJson(r).catch(() => ({}));
         throw new Error(err.detail || r.statusText);
       }
-      const data = await r.json();
+      const data = await parseResponseJson(r);
       lastLlm = { ...data.llm };
       const modelChanged = changed.includes('modelType');
       const promptChanged = changed.includes('systemPrompt');
@@ -891,10 +939,10 @@ async function llmSave() {
         body: JSON.stringify(putBody),
       });
       if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
+        const err = await parseResponseJson(r).catch(() => ({}));
         throw new Error(err.detail || r.statusText);
       }
-      const data = await r.json();
+      const data = await parseResponseJson(r);
       const applied = data.applied === true;
       lastLlm = { ...data.llm };
       if (applied) {
@@ -927,7 +975,8 @@ async function llmSave() {
       if (!llmCheckTimer) startLlmAutoCheck();
     }
   } catch (e) {
-    showToast('Ошибка сохранения: ' + e.message, 'error');
+    const msg = (e && (e.message || String(e))) || 'Неизвестная ошибка';
+    showToast('Ошибка сохранения: ' + msg, 'error');
   } finally {
     setButtonLoading(btn, false);
     updateLlmSaveDisabled();
@@ -1011,7 +1060,7 @@ async function loadServiceAdmins() {
       }
       throw new Error(r.statusText);
     }
-    const data = await r.json();
+    const data = await parseResponseJson(r);
     serviceAdminsList = data.admins || [];
     renderServiceAdminsList();
   } catch (e) {
@@ -1118,7 +1167,7 @@ async function serviceAdminAdd() {
       return;
     }
 
-    const admin = await r.json();
+    const admin = await parseResponseJson(r);
     serviceAdminsList.push(admin);
     renderServiceAdminsList();
     inputEl.value = '';
@@ -1250,6 +1299,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('adminKey').addEventListener('change', (e) => {
     sessionStorage.setItem('adminApiKey', e.target.value);
   });
+
+  // Load LLM providers first so dropdown is populated even if /api/settings returns 403
+  await loadLlmProviders().catch((e) => {
+    console.warn('loadLlmProviders:', e);
+    showToast('Не удалось загрузить список провайдеров LLM. Обновите страницу.', 'warning');
+  });
+  fillLlmTypeSelect(document.getElementById('llmType')?.value || '');
 
   await loadSettings();
 

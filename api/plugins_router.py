@@ -14,8 +14,11 @@ router = APIRouter(prefix="/api/plugins", tags=["plugins"])
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "").strip()
 
 
-def _admin_dep(x_admin_key: str | None = Header(None, alias="X-Admin-Key")):
-    if ADMIN_API_KEY and x_admin_key != ADMIN_API_KEY:
+def _admin_dep(x_admin_key: str | None = Header(None, alias="X-Admin-Key")) -> None:
+    """Raise 403 if ADMIN_API_KEY is set and request does not provide it (consistent with app.py)."""
+    if not ADMIN_API_KEY:
+        return
+    if not x_admin_key or x_admin_key != ADMIN_API_KEY:
         raise HTTPException(status_code=403, detail="Admin access required")
 
 
