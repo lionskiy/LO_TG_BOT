@@ -431,6 +431,99 @@ body {
   gap: 0.5rem;
 }
 
+/* Tool settings modal — wider, form layout */
+.modal--tool-settings {
+  max-width: 520px;
+  width: 100%;
+}
+
+.modal--tool-settings .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.modal--tool-settings .modal-title {
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #5f6368;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.modal-close:hover {
+  color: #202124;
+}
+
+.modal--tool-settings .modal-body {
+  margin-bottom: 1rem;
+  min-width: 0;
+}
+
+.tool-settings-plugin-info {
+  font-size: 12px;
+  color: #5f6368;
+  margin: 0 0 1rem;
+}
+
+.tool-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.tool-settings-form .tool-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.tool-settings-form .field-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.tool-settings-field .field-password-toggle {
+  margin-top: 0.25rem;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.tool-settings-test {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dadce0;
+}
+
+.tool-settings-test-result {
+  margin: 0.5rem 0 0;
+  font-size: 13px;
+}
+
+.tool-settings-test-result--success {
+  color: #1e7e34;
+}
+
+.tool-settings-test-result--error {
+  color: #b71c1c;
+}
+
 /* Toast — PRD 5.6 */
 .toast-container {
   position: fixed;
@@ -523,4 +616,162 @@ body {
   content: ' (Adding...)';
   color: #5f6368;
   font-style: italic;
+}
+
+/* Tools section (Phase 4) */
+.tools-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tools-summary {
+  color: #5f6368;
+  font-size: 14px;
+}
+
+.tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tools-group {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #f8f9fa;
+}
+
+.tools-group-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: #202124;
+  font-weight: 600;
+}
+
+.tools-card {
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.tools-card:last-child {
+  margin-bottom: 0;
+}
+
+.tools-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.tools-card-name {
+  font-weight: 600;
+  color: #202124;
+}
+
+.tools-card-status {
+  font-size: 12px;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.tools-card-status--enabled {
+  background: var(--status-success-bg);
+  color: #155724;
+}
+
+.tools-card-status--disabled {
+  background: var(--status-not-configured-bg);
+  color: #5f6368;
+}
+
+.tools-card-status--needs_config {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.tools-card-desc {
+  margin: 0 0 0.5rem;
+  font-size: 13px;
+  color: #5f6368;
+  line-height: 1.4;
+}
+
+.tools-card-actions {
+  margin-top: 0.5rem;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 13px;
+}
+
+/* Section common: only the active section is visible (controlled by showSection in app.js) */
+.section {
+  display: block;
+}
+.section[hidden] {
+  display: none !important;
+}
+
+.section-hint {
+  color: #5f6368;
+  font-size: 14px;
+  margin: 0 0 1rem;
+}
+
+/* Работа с БД */
+.db-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.db-views { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.db-view-btn--active { font-weight: 600; }
+.db-actions { margin-left: auto; }
+.db-import-result {
+  font-size: 14px;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+}
+.db-import-result--ok { color: #0f5132; background: var(--status-success-bg); }
+.db-import-result--error { color: #842029; background: var(--status-failed-bg); }
+.db-table-wrap { overflow-x: auto; margin-bottom: 1rem; }
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.db-table th,
+.db-table td {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #dadce0;
+  text-align: left;
+}
+.db-table th { background: #f1f3f4; font-weight: 600; }
+.db-cell-editable { cursor: pointer; }
+.db-cell-editable:hover { background: #e8eaed; }
+.db-cell--editing { padding: 0; }
+.db-cell-input {
+  width: 100%;
+  min-width: 80px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--sidebar-accent);
+  font-size: inherit;
+}
+
+/* Administrators section (Phase 5) */
+.admins-header {
+  margin-bottom: 1rem;
 }

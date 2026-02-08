@@ -1,11 +1,21 @@
 """LLM client: active provider from settings DB (if active) or from config (.env)."""
+import json
 import logging
 import os
-from typing import Dict, List, Optional
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 from bot.config import get_active_llm
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ToolCall:
+    """Single tool call from LLM. Phase 2 will move to tools/models.py."""
+    id: str
+    name: str
+    arguments: dict
 
 
 def _get_llm_from_settings_db() -> Optional[tuple]:
@@ -71,10 +81,31 @@ def _needs_max_completion_tokens(model: str) -> bool:
     return False
 
 
-async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
+def _parse_openai_tool_calls(message) -> List[ToolCall]:
+    """Parse OpenAI response message.tool_calls into List[ToolCall]."""
+    tool_calls = getattr(message, "tool_calls", None) or []
+    result = []
+    for tc in tool_calls:
+        fid = getattr(tc, "id", None) or ""
+        fn = getattr(tc, "function", None)
+        name = getattr(fn, "name", None) or ""
+        args_str = getattr(fn, "arguments", None) or "{}"
+        try:
+            args = json.loads(args_str) if isinstance(args_str, str) else (args_str or {})
+        except json.JSONDecodeError:
+            args = {}
+        result.append(ToolCall(id=fid, name=name, arguments=args))
+    return result
+
+
+async def _reply_openai(
+    messages: List[dict], model: str, kwargs: dict,
+    tools: Optional[List[dict]] = None, tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
     """
     OpenAI: always create client from kwargs so DB/config hot-swap uses current api_key and base_url.
     For new models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
+    With tools: returns (content, tool_calls or None).
     """
     from openai import AsyncOpenAI
 
@@ -88,88 +119,110 @@ async def _reply_openai(messages: List[dict], model: str, kwargs: dict) -> str:
         client = AsyncOpenAI(api_key=api_key, base_url=base_url, **client_kw)
     else:
         client = AsyncOpenAI(api_key=api_key, **client_kw)
-    
-    # OpenAI: new models (gpt-5, o3, o4) require max_completion_tokens; older models use max_tokens
+
+    create_kw: dict = {}
     if _needs_max_completion_tokens(model):
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_completion_tokens=1024
-        )
+        create_kw["max_completion_tokens"] = 1024
     else:
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_tokens=1024
-        )
-    return (resp.choices[0].message.content or "").strip()
+        create_kw["max_tokens"] = 1024
+    if tools:
+        create_kw["tools"] = tools
+        create_kw["tool_choice"] = tool_choice
+
+    resp = await client.chat.completions.create(
+        model=model, messages=messages, **create_kw
+    )
+    msg = resp.choices[0].message
+    content = (msg.content or "").strip() or None
+    parsed = _parse_openai_tool_calls(msg)
+    if parsed:
+        return (content, parsed)
+    return (content if content else None, None)
 
 
-async def _reply_groq(messages: List[dict], model: str, kwargs: dict) -> str:
-    """
-    Groq: OpenAI-compatible API.
-    For new OpenAI models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
-    """
+async def _reply_groq(
+    messages: List[dict], model: str, kwargs: dict,
+    tools: Optional[List[dict]] = None, tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
+    """Groq: OpenAI-compatible API; supports tools like OpenAI."""
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=kwargs["base_url"])
+    create_kw: dict = {}
     if _needs_max_completion_tokens(model):
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_completion_tokens=1024
-        )
+        create_kw["max_completion_tokens"] = 1024
     else:
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_tokens=1024
-        )
-    return (resp.choices[0].message.content or "").strip()
+        create_kw["max_tokens"] = 1024
+    if tools:
+        create_kw["tools"] = tools
+        create_kw["tool_choice"] = tool_choice
+    resp = await client.chat.completions.create(model=model, messages=messages, **create_kw)
+    msg = resp.choices[0].message
+    content = (msg.content or "").strip() or None
+    parsed = _parse_openai_tool_calls(msg)
+    if parsed:
+        return (content, parsed)
+    return (content, None)
 
 
-async def _reply_openrouter(messages: List[dict], model: str, kwargs: dict) -> str:
-    """
-    OpenRouter: OpenAI-compatible API, supports both max_tokens and max_completion_tokens.
-    For new OpenAI models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
-    """
+async def _reply_openrouter(
+    messages: List[dict], model: str, kwargs: dict,
+    tools: Optional[List[dict]] = None, tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
+    """OpenRouter: OpenAI-compatible API; supports tools like OpenAI."""
     from openai import AsyncOpenAI
 
-    # OpenRouter/DeepSeek могут отвечать долго — увеличиваем таймаут
     timeout = kwargs.get("timeout", 120.0)
     client = AsyncOpenAI(
-        api_key=kwargs["api_key"],
-        base_url=kwargs["base_url"],
-        timeout=timeout,
+        api_key=kwargs["api_key"], base_url=kwargs["base_url"], timeout=timeout,
     )
+    create_kw: dict = {}
     if _needs_max_completion_tokens(model):
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_completion_tokens=1024
-        )
+        create_kw["max_completion_tokens"] = 1024
     else:
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_tokens=1024
-        )
-    return (resp.choices[0].message.content or "").strip()
+        create_kw["max_tokens"] = 1024
+    if tools:
+        create_kw["tools"] = tools
+        create_kw["tool_choice"] = tool_choice
+    resp = await client.chat.completions.create(model=model, messages=messages, **create_kw)
+    msg = resp.choices[0].message
+    content = (msg.content or "").strip() or None
+    parsed = _parse_openai_tool_calls(msg)
+    if parsed:
+        return (content, parsed)
+    return (content, None)
 
 
-async def _reply_ollama(messages: List[dict], model: str, kwargs: dict) -> str:
-    """
-    Ollama: OpenAI-compatible endpoint (/v1/chat/completions) accepts max_tokens.
-    For new OpenAI models (gpt-5, o3, o4) routed through Ollama, uses max_completion_tokens;
-    local Ollama models typically use max_tokens.
-    """
+async def _reply_ollama(
+    messages: List[dict], model: str, kwargs: dict,
+    tools: Optional[List[dict]] = None, tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
+    """Ollama: OpenAI-compatible; supports tools when provided."""
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(api_key=kwargs["api_key"], base_url=kwargs["base_url"])
+    create_kw: dict = {}
     if _needs_max_completion_tokens(model):
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_completion_tokens=1024
-        )
+        create_kw["max_completion_tokens"] = 1024
     else:
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_tokens=1024
-        )
-    return (resp.choices[0].message.content or "").strip()
+        create_kw["max_tokens"] = 1024
+    if tools:
+        create_kw["tools"] = tools
+        create_kw["tool_choice"] = tool_choice
+    resp = await client.chat.completions.create(model=model, messages=messages, **create_kw)
+    msg = resp.choices[0].message
+    content = (msg.content or "").strip() or None
+    parsed = _parse_openai_tool_calls(msg)
+    if parsed:
+        return (content, parsed)
+    return (content, None)
 
 
-async def _reply_azure(messages: List[dict], model: str, kwargs: dict) -> str:
-    """
-    Azure OpenAI: OpenAI-compatible API.
-    For new OpenAI models (gpt-5, o3, o4) uses max_completion_tokens; older models use max_tokens.
-    """
+async def _reply_azure(
+    messages: List[dict], model: str, kwargs: dict,
+    tools: Optional[List[dict]] = None, tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
+    """Azure OpenAI: OpenAI-compatible; supports tools like OpenAI."""
     from openai import AsyncAzureOpenAI
 
     endpoint = kwargs.get("azure_endpoint") or (kwargs.get("base_url") or "").rstrip("/")
@@ -179,21 +232,49 @@ async def _reply_azure(messages: List[dict], model: str, kwargs: dict) -> str:
         azure_endpoint=endpoint,
         api_version=version,
     )
+    create_kw: dict = {}
     if _needs_max_completion_tokens(model):
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_completion_tokens=1024
-        )
+        create_kw["max_completion_tokens"] = 1024
     else:
-        resp = await client.chat.completions.create(
-            model=model, messages=messages, max_tokens=1024
-        )
-    return (resp.choices[0].message.content or "").strip()
+        create_kw["max_tokens"] = 1024
+    if tools:
+        create_kw["tools"] = tools
+        create_kw["tool_choice"] = tool_choice
+    resp = await client.chat.completions.create(model=model, messages=messages, **create_kw)
+    msg = resp.choices[0].message
+    content = (msg.content or "").strip() or None
+    parsed = _parse_openai_tool_calls(msg)
+    if parsed:
+        return (content, parsed)
+    return (content, None)
 
 
-async def _reply_anthropic(messages: List[dict], model: str, kwargs: dict) -> str:
+def _parse_anthropic_tool_calls(content_blocks) -> List[ToolCall]:
+    """Parse Anthropic response content blocks (tool_use) into List[ToolCall]."""
+    result = []
+    for block in content_blocks or []:
+        if getattr(block, "type", None) != "tool_use":
+            continue
+        tid = getattr(block, "id", None) or ""
+        name = getattr(block, "name", None) or ""
+        inp = getattr(block, "input", None)
+        if isinstance(inp, dict):
+            args = inp
+        else:
+            try:
+                args = json.loads(inp) if inp else {}
+            except (TypeError, json.JSONDecodeError):
+                args = {}
+        result.append(ToolCall(id=tid, name=name, arguments=args))
+    return result
+
+
+async def _reply_anthropic(
+    messages: List[dict], model: str, kwargs: dict,
+    tools: Optional[List[dict]] = None, tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
     """
-    Anthropic Claude: uses max_tokens (not max_completion_tokens).
-    This is Anthropic's native API parameter.
+    Anthropic Claude: uses max_tokens. With tools, passes tools in request and parses tool_use blocks.
     """
     import anthropic
 
@@ -204,27 +285,79 @@ async def _reply_anthropic(messages: List[dict], model: str, kwargs: dict) -> st
         for m in messages
         if m.get("role") != "system"
     ]
-    resp = await client.messages.create(
-        model=model,
-        max_tokens=1024,
-        system=system,
-        messages=msgs,
-    )
-    return (resp.content[0].text if resp.content else "").strip()
+    create_kw: dict = {"model": model, "max_tokens": 1024, "system": system, "messages": msgs}
+    if tools:
+        # Anthropic format: list of {"name", "description", "input_schema"}
+        anthropic_tools = []
+        for t in tools:
+            fn = t.get("function") or {}
+            anthropic_tools.append({
+                "name": fn.get("name", ""),
+                "description": fn.get("description") or "",
+                "input_schema": fn.get("parameters") or {"type": "object", "properties": {}},
+            })
+        create_kw["tools"] = anthropic_tools
+        create_kw["tool_choice"] = "auto" if tool_choice == "auto" else tool_choice
+    resp = await client.messages.create(**create_kw)
+    text_part = ""
+    for block in (resp.content or []):
+        if getattr(block, "type", None) == "text":
+            text_part += getattr(block, "text", "") or ""
+    content = text_part.strip() or None
+    tool_calls = _parse_anthropic_tool_calls(resp.content)
+    if tool_calls:
+        return (content, tool_calls)
+    return (content, None)
 
 
-async def _reply_google(messages: List[dict], model: str, kwargs: dict) -> str:
+def _parse_google_tool_calls(candidates) -> List[ToolCall]:
+    """Parse Gemini response candidates for function_call parts into List[ToolCall]."""
+    result = []
+    for cand in (candidates or []):
+        content = getattr(cand, "content", None)
+        if not content:
+            continue
+        for part in getattr(content, "parts", []) or []:
+            fc = getattr(part, "function_call", None)
+            if not fc:
+                continue
+            name = getattr(fc, "name", None) or ""
+            args = getattr(fc, "args", None) or {}
+            if isinstance(args, dict):
+                pass
+            else:
+                args = dict(args) if args else {}
+            # Gemini may not give id; generate one for consistency
+            result.append(ToolCall(id=f"gc_{name}_{len(result)}", name=name, arguments=args))
+    return result
+
+
+async def _reply_google(
+    messages: List[dict], model: str, kwargs: dict,
+    tools: Optional[List[dict]] = None, tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
     """
-    Google Gemini: uses max_output_tokens in generation_config (not max_tokens).
-    This is Google's native API parameter.
+    Google Gemini: uses max_output_tokens. With tools, uses generate_content with tools and parses function_call.
     """
     import google.generativeai as genai
 
     genai.configure(api_key=kwargs["api_key"])
-    gemini = genai.GenerativeModel(
-        model,
-        generation_config={"max_output_tokens": 1024}
-    )
+    config = {"max_output_tokens": 1024}
+    if tools:
+        # Convert OpenAI-style tools to Gemini function declarations
+        from google.generativeai.types import Tool, FunctionDeclaration
+        declarations = []
+        for t in tools:
+            fn = t.get("function") or {}
+            name = fn.get("name", "")
+            desc = fn.get("description") or ""
+            params = fn.get("parameters") or {}
+            declarations.append(FunctionDeclaration(name=name, description=desc, parameters=params))
+        tool = Tool(function_declarations=declarations)
+        # Gemini 2.x generate_content with tools returns response with function_call in parts
+        model_obj = genai.GenerativeModel(model, generation_config=config, tools=[tool])
+    else:
+        model_obj = genai.GenerativeModel(model, generation_config=config)
     system = next((m["content"] for m in messages if m.get("role") == "system"), None)
     parts = []
     if system:
@@ -235,11 +368,18 @@ async def _reply_google(messages: List[dict], model: str, kwargs: dict) -> str:
         parts.append(f"{m['role']}: {m['content']}")
     parts.append("assistant:")
     prompt = "\n\n".join(parts)
-    resp = await gemini.generate_content_async(prompt)
-    return (resp.text or "").strip()
+    resp = await model_obj.generate_content_async(prompt)
+    text_part = (resp.text or "").strip() or None
+    tool_calls = _parse_google_tool_calls(getattr(resp, "candidates", None))
+    if tool_calls:
+        return (text_part, tool_calls)
+    return (text_part, None)
 
 
-async def _reply_yandex(messages: List[dict], model: str, kwargs: dict) -> str:
+async def _reply_yandex(
+    messages: List[dict], model: str, kwargs: dict,
+    tools: Optional[List[dict]] = None, tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
     """
     Yandex GPT: uses maxTokens in completionOptions (not max_tokens).
     POST .../completion with modelUri (gpt://folder_id/model/latest). Folder from YANDEX_FOLDER_ID.
@@ -289,8 +429,9 @@ async def _reply_yandex(messages: List[dict], model: str, kwargs: dict) -> str:
     result = (data.get("result") or {}) if isinstance(data, dict) else {}
     alternatives = result.get("alternatives") or []
     if not alternatives:
-        return ""
-    return (alternatives[0].get("message", {}).get("text") or "").strip()
+        return (None, None)
+    text = (alternatives[0].get("message", {}).get("text") or "").strip()
+    return (text or None, None)
 
 
 _HANDLERS: Dict[str, object] = {
@@ -309,8 +450,16 @@ _HANDLERS: Dict[str, object] = {
 }
 
 
-async def get_reply(messages: List[dict]) -> str:
-    """Use active LLM from settings DB if present, else from config (.env)."""
+async def get_reply(
+    messages: List[dict],
+    tools: Optional[List[dict]] = None,
+    tool_choice: str = "auto",
+) -> Tuple[Optional[str], Optional[List[ToolCall]]]:
+    """
+    Use active LLM from settings DB if present, else from config (.env).
+    Returns (content, tool_calls). When tools=None, always (content, None). When tools provided,
+    returns (content, None) for text reply or (None, tool_calls) when LLM requested tool use.
+    """
     from_db = _get_llm_from_settings_db()
     if from_db:
         provider, model, kwargs, system_prompt = from_db
@@ -323,15 +472,16 @@ async def get_reply(messages: List[dict]) -> str:
     else:
         provider, model, kwargs = get_active_llm()
     logger.info(
-        "LLM request provider=%s model=%s messages=%d",
-        provider,
-        model,
-        len(messages),
+        "LLM request provider=%s model=%s messages=%d tools=%s",
+        provider, model, len(messages), bool(tools),
     )
     handler = _HANDLERS.get(provider)
     if not handler:
         raise ValueError(f"Unknown LLM provider: {provider}")
-    reply = await handler(messages, model, kwargs)
-    logger.info("LLM response len=%d", len(reply))
-    logger.debug("LLM response preview=%s", (reply[:150] + "..." if len(reply) > 150 else reply))
-    return reply
+    content, tool_calls = await handler(messages, model, kwargs, tools=tools, tool_choice=tool_choice)
+    if content:
+        logger.info("LLM response len=%d", len(content))
+        logger.debug("LLM response preview=%s", (content[:150] + "..." if len(content) > 150 else content))
+    if tool_calls:
+        logger.info("LLM tool_calls count=%d", len(tool_calls))
+    return (content, tool_calls)

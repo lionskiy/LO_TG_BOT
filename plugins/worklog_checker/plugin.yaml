@@ -1,0 +1,42 @@
+id: worklog-checker
+name: "Worklog Checker"
+version: "1.1.0"
+description: "Check employee worklogs via Jira and Tempo"
+enabled: false
+
+tools:
+  - name: get_worklogs
+    description: "Get worklogs for a period: for one employee (detailed — hours, deficit/overtime, tasks) or for a team / several people (summary). Pass employee= for one person, team= for summary. Configure Jira and Tempo in admin first."
+    handler: get_worklogs
+    timeout: 90
+    parameters:
+      type: object
+      properties:
+        period:
+          type: string
+          description: "Period: this_week, last_week, this_month, last_month, or YYYY-MM-DD/YYYY-MM-DD"
+        employee:
+          type: string
+          description: "Employee name, surname, or email (for one person — returns detail)"
+        team:
+          type: string
+          description: "Team name or comma-separated list of names (for summary by people)"
+      required:
+        - period
+
+settings:
+  - key: jira_url
+    label: "Jira URL"
+    type: string
+    required: true
+    description: "Base URL: Cloud (https://company.atlassian.net) or self-hosted (https://jira.your-company.local)"
+  - key: jira_email
+    label: "Jira user (email or username)"
+    type: string
+    required: true
+    description: "Email (Jira Cloud) or username (Jira Server/Data Center); same account for Jira and Tempo"
+  - key: api_token
+    label: "API Token (Jira & Tempo)"
+    type: password
+    required: true
+    description: "API token or Personal Access Token (PAT); Cloud and Server/Data Center"

@@ -1,0 +1,19 @@
+id: calculator
+name: "Calculator"
+version: "1.0.0"
+description: "Mathematical expression evaluator"
+enabled: true
+
+tools:
+  - name: calculate
+    description: "Evaluates a mathematical expression and returns the result. Supports: +, -, *, /, **, parentheses, sqrt, sin, cos, tan, log, abs, round, pi, e."
+    handler: calculate
+    timeout: 10
+    parameters:
+      type: object
+      properties:
+        expression:
+          type: string
+          description: "Mathematical expression to evaluate, e.g. '2 + 2 * 3' or 'sqrt(16) + pi'"
+      required:
+        - expression

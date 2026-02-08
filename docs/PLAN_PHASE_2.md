@@ -1,37 +1,37 @@
 # PHASE 2: Plugin System
 
-> **Детальная постановка задач для Фазы 2**  
-> Система плагинов: Registry, Loader, Executor, Builtin-плагины
+> **Detailed task breakdown for Phase 2**  
+> Plugin system: Registry, Loader, Executor, Builtin plugins
 
-**Версия:** 1.0  
-**Дата:** 2026-02-06  
-**Ориентировочный срок:** 5-7 дней  
-**Предусловие:** Фаза 1 завершена (tool-calling работает)
-
----
-
-## Связанные документы
-
-| Документ | Описание | Статус |
-|----------|----------|--------|
-| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Целевая архитектура системы | ✅ Current (in progress) |
-| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Декомпозиция всех задач | ✅ Current (in progress) |
-| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Детальный план Фазы 0-1 | ✅ Current (in progress) |
-| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Детальный план Фазы 2 (этот документ) | ✅ Current (in progress) |
-| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Детальный план Фазы 3 (следующая) | ✅ Current (in progress) |
-
-### Текущая реализация (v1.0)
-
-| Документ | Описание |
-|----------|----------|
-| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Спецификация текущей реализации |
-| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
+**Version:** 1.0  
+**Date:** 2026-02-06  
+**Estimated duration:** 5–7 days  
+**Prerequisite:** Phase 1 done (tool-calling works)
 
 ---
 
-## Навигация по фазам
+## Related documents
 
-| Фаза | Документ | Описание | Статус |
+| Document | Description | Status |
+|----------|-------------|--------|
+| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Target system architecture | ✅ Current (in progress) |
+| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Task breakdown | ✅ Current (in progress) |
+| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Phase 0–1 detailed plan | ✅ Current (in progress) |
+| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Phase 2 detailed plan (this document) | ✅ Current (in progress) |
+| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Phase 3 detailed plan (next) | ✅ Current (in progress) |
+
+### Current implementation (v1.0)
+
+| Document | Description |
+|----------|-------------|
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Current implementation spec |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Quick start and FAQ |
+
+---
+
+## Phase navigation
+
+| Phase | Document | Description | Status |
 |------|----------|----------|--------|
 | 0-1 | [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Stabilization + Tool-Calling | ✅ Current (in progress) |
 | 2 | **[PLAN_PHASE_2.md](PLAN_PHASE_2.md)** | Plugin System | ✅ Current (in progress) |
@@ -42,20 +42,20 @@
 
 ---
 
-## Общая цель Фазы 2
+## Phase 2 goal
 
-**Было (после Фазы 1):** Tool-calling работает, но инструменты захардкожены в коде `bot/tool_calling.py`.
+**Before (after Phase 1):** Tool-calling works but tools are hardcoded in `bot/tool_calling.py`.
 
-**Стало:** Инструменты загружаются из папки `plugins/` как отдельные модули. Добавление нового инструмента = добавление файлов в папку (без изменения кода ядра).
+**After:** Tools are loaded from `plugins/` as separate modules. Adding a new tool = adding files to the folder (no core code changes).
 
-**Важно:** 
-- Захардкоженные инструменты из Фазы 1 переносятся в плагины
-- Tool-calling продолжает работать без изменений для пользователя
-- Настройки плагинов пока НЕ сохраняются в БД (это Фаза 3)
+**Important:** 
+- Hardcoded tools from Phase 1 are moved to plugins
+- Tool-calling keeps working unchanged for the user
+- Plugin settings are NOT stored in DB yet (Phase 3)
 
 ---
 
-## Архитектура Фазы 2
+## Phase 2 architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -70,10 +70,10 @@
 │  │                                                                         │
 │  │  get_reply_with_tools(messages)                                         │
 │  │  │                                                                      │
-│  │  ├── tools = registry.get_tools_for_llm()    ← ИЗМЕНЕНИЕ               │
+│  │  ├── tools = registry.get_tools_for_llm()    ← CHANGE               │
 │  │  ├── response = llm.get_reply(messages, tools)                          │
 │  │  ├── if tool_calls:                                                     │
-│  │  │   └── result = executor.execute(tool_call)  ← ИЗМЕНЕНИЕ             │
+│  │  │   └── result = executor.execute(tool_call)  ← CHANGE             │
 │  │  └── return final_response                                              │
 │  │                                                                         │
 │  └─────────────────────────────────────────────────────────────────────────┘
@@ -90,7 +90,7 @@
 │         ▲                                     │
 │         │                                     │
 │         └─────────────────────────────────────┘
-│                       регистрация
+│                       registration
 │                              │
 │                              ▼
 │  ┌─────────────────────────────────────────────────────────────────────────┐
@@ -105,7 +105,7 @@
 │  │  │       ├── plugin.yaml                                                │
 │  │  │       └── handlers.py                                                │
 │  │  │                                                                      │
-│  │  └── (будущие плагины...)                                               │
+│  │  └── (future plugins...)                                               │
 │  │                                                                         │
 │  └─────────────────────────────────────────────────────────────────────────┘
 │                                                                             │
@@ -114,21 +114,21 @@
 
 ---
 
-## Структура папки tools/
+## tools/ folder structure
 
 ```
 LO_TG_BOT/
-├── tools/                      # Модуль системы плагинов
-│   ├── __init__.py             # Экспорт публичного API
-│   ├── models.py               # Pydantic модели (ToolDefinition, PluginManifest, etc.)
+├── tools/                      # Plugin system module
+│   ├── __init__.py             # Public API export
+│   ├── models.py               # Pydantic models (ToolDefinition, PluginManifest, etc.)
 │   ├── registry.py             # Tool Registry
 │   ├── loader.py               # Plugin Loader
 │   ├── executor.py             # Tool Executor
-│   └── base.py                 # Утилиты для плагинов
+│   └── base.py                 # Plugin utilities
 │
-└── plugins/                    # Папка с плагинами
-    ├── __init__.py             # Пустой
-    └── builtin/                # Встроенные плагины
+└── plugins/                    # Plugins folder
+    ├── __init__.py             # Empty
+    └── builtin/                # Built-in plugins
         ├── calculator/
         │   ├── plugin.yaml
         │   └── handlers.py
@@ -139,182 +139,182 @@ LO_TG_BOT/
 
 ---
 
-# Задачи Фазы 2
+# Phase 2
 
 ---
 
-## Задача 2.1: Модели данных (tools/models.py)
+## Task 2.1: Data models (tools/models.py)
 
-### Описание
-Создать Pydantic-модели для описания плагинов, инструментов и связанных структур.
+### Description
+Create Pydantic models to describe plugins, tools and related structures.
 
-### Файл: tools/models.py
+### File: tools/models.py
 
-### Модели
+### Models
 
 #### ToolParameter
 ```python
 class ToolParameter(BaseModel):
-    """Описание параметра инструмента"""
+    """Tool parameter description"""
     name: str
     type: str                    # string, number, boolean, array, object
     description: str
     required: bool = False
     default: Any = None
-    enum: List[Any] | None = None  # Для ограниченного набора значений
+    enum: List[Any] | None = None  # For limited set of values
 ```
 
 #### ToolDefinition
 ```python
 class ToolDefinition(BaseModel):
-    """Полное описание инструмента"""
-    name: str                    # Уникальное имя (например: "calculate")
-    description: str             # Описание для LLM (английский)
-    plugin_id: str               # ID плагина-владельца
-    handler: Callable | None = None  # Функция-обработчик (не сериализуется)
-    parameters: Dict[str, Any]   # JSON Schema параметров
-    timeout: int = 30            # Таймаут выполнения в секундах
-    enabled: bool = True         # Включён ли инструмент
+    """Full tool description"""
+    name: str                    # Unique name (e.g.: "calculate")
+    description: str             # Description for LLM (English)
+    plugin_id: str               # Owner plugin ID
+    handler: Callable | None = None  # Handler function (not serialized)
+    parameters: Dict[str, Any]   # JSON Schema of parameters
+    timeout: int = 30            # Execution timeout in seconds
+    enabled: bool = True         # Whether tool is enabled
     
     class Config:
-        arbitrary_types_allowed = True  # Для Callable
+        arbitrary_types_allowed = True  # For Callable
 ```
 
 #### PluginSettingDefinition
 ```python
 class PluginSettingDefinition(BaseModel):
-    """Описание настройки плагина"""
-    key: str                     # Ключ настройки
-    label: str                   # Название для UI
+    """Plugin setting description"""
+    key: str                     # Setting key
+    label: str                   # Label for UI
     type: str                    # string, password, number, boolean, select
     description: str | None = None
     required: bool = False
     default: Any = None
-    options: List[Any] | None = None  # Для select
+    options: List[Any] | None = None  # For select
 ```
 
 #### PluginManifest
 ```python
 class PluginManifest(BaseModel):
-    """Манифест плагина (из plugin.yaml)"""
-    id: str                      # Уникальный ID плагина
-    name: str                    # Название для UI
-    version: str                 # Версия (semver)
+    """Plugin manifest (from plugin.yaml)"""
+    id: str                      # Unique plugin ID
+    name: str                    # Label for UI
+    version: str                 # Version (semver)
     description: str | None = None
-    enabled: bool = True         # Включён по умолчанию
-    tools: List[ToolManifestItem]  # Список инструментов
-    settings: List[PluginSettingDefinition] = []  # Настройки плагина
+    enabled: bool = True         # Enabled by default
+    tools: List[ToolManifestItem]  # Tool list
+    settings: List[PluginSettingDefinition] = []  # Plugin settings
 ```
 
 #### ToolManifestItem
 ```python
 class ToolManifestItem(BaseModel):
-    """Описание инструмента в манифесте"""
+    """Tool description in manifest"""
     name: str
     description: str
-    handler: str                 # Имя функции в handlers.py
+    handler: str                 # Function name in handlers.py
     timeout: int = 30
     parameters: Dict[str, Any]   # JSON Schema
 ```
 
-#### ToolCall и ToolResult (перенос из Фазы 1)
+#### ToolCall and ToolResult (moved from Phase 1)
 ```python
 @dataclass
 class ToolCall:
-    """Вызов инструмента от LLM"""
+    """Tool call from LLM"""
     id: str
     name: str
     arguments: Dict[str, Any]
 
 @dataclass  
 class ToolResult:
-    """Результат выполнения инструмента"""
+    """Tool execution result"""
     tool_call_id: str
     content: str
     success: bool = True
     error: str | None = None
 ```
 
-### Критерий готовности
-- [ ] Все модели созданы в tools/models.py
-- [ ] Модели валидируют данные (Pydantic)
-- [ ] ToolCall/ToolResult перенесены из bot/llm.py
-- [ ] Тесты на валидацию моделей
+### Done when
+- [ ] All models created in tools/models.py
+- [ ] Models validate data (Pydantic)
+- [ ] ToolCall/ToolResult moved from bot/llm.py
+- [ ] Model validation tests
 
 ---
 
-## Задача 2.2: Tool Registry (tools/registry.py)
+## Task 2.2: Tool Registry (tools/registry.py)
 
-### Описание
-Централизованное хранилище всех зарегистрированных инструментов. Предоставляет API для регистрации, получения и управления инструментами.
+### Description
+Centralized store of all registered tools. Provides API for registration, retrieval and management of tools.
 
-### Файл: tools/registry.py
+### File: tools/registry.py
 
-### Класс ToolRegistry
+### ToolRegistry class
 
 ```python
 class ToolRegistry:
     """
-    Реестр инструментов.
-    Singleton — один экземпляр на всё приложение.
+    Tool registry.
+    Singleton — one instance per application.
     """
 ```
 
-### Внутреннее хранилище
+### Internal storage
 ```python
 _tools: Dict[str, ToolDefinition] = {}      # tool_name → ToolDefinition
 _plugins: Dict[str, PluginManifest] = {}    # plugin_id → PluginManifest
 ```
 
-### Публичные методы
+### Public methods
 
-#### Регистрация
+#### Registration
 ```python
 def register_tool(self, tool: ToolDefinition) -> None:
     """
-    Регистрирует инструмент в реестре.
+    Registers a tool in the registry.
     
     Args:
-        tool: Определение инструмента
+        tool: Tool definition
         
     Raises:
-        ValueError: Если инструмент с таким именем уже существует
+        ValueError: If a tool with this name already exists
     """
     
 def register_plugin(self, manifest: PluginManifest) -> None:
     """
-    Регистрирует плагин (без инструментов).
-    Инструменты регистрируются отдельно через register_tool().
+    Registers a plugin (without tools).
+    Tools are registered separately via register_tool().
     """
 
 def unregister_plugin(self, plugin_id: str) -> None:
     """
-    Удаляет плагин и все его инструменты из реестра.
-    Используется при hot-reload.
+    Removes plugin and all its tools from the registry.
+    Used on hot-reload.
     """
 ```
 
-#### Получение инструментов
+#### Retrieving tools
 ```python
 def get_tool(self, name: str) -> ToolDefinition | None:
-    """Получить инструмент по имени"""
+    """Get tool by name"""
 
 def get_all_tools(self) -> List[ToolDefinition]:
-    """Получить все инструменты (включая отключённые)"""
+    """Get all tools (including disabled)"""
 
 def get_enabled_tools(self) -> List[ToolDefinition]:
-    """Получить только включённые инструменты"""
+    """Get only enabled tools"""
 
 def get_tools_by_plugin(self, plugin_id: str) -> List[ToolDefinition]:
-    """Получить инструменты конкретного плагина"""
+    """Get tools of a specific plugin"""
 ```
 
-#### Формирование для LLM
+#### Formatting for LLM
 ```python
 def get_tools_for_llm(self) -> List[Dict[str, Any]]:
     """
-    Возвращает список инструментов в формате OpenAI для передачи в LLM.
-    Только включённые инструменты.
+    Returns list of tools in OpenAI format for passing to LLM.
+    Only enabled tools.
     
     Returns:
         [
@@ -331,26 +331,26 @@ def get_tools_for_llm(self) -> List[Dict[str, Any]]:
     """
 ```
 
-#### Управление состоянием
+#### State management
 ```python
 def enable_tool(self, name: str) -> bool:
-    """Включить инструмент. Возвращает успех."""
+    """Enable tool. Returns success."""
 
 def disable_tool(self, name: str) -> bool:
-    """Выключить инструмент. Возвращает успех."""
+    """Disable tool. Returns success."""
 
 def is_tool_enabled(self, name: str) -> bool:
-    """Проверить включён ли инструмент"""
+    """Check if tool is enabled"""
 ```
 
-#### Служебные
+#### Internal
 ```python
 def clear(self) -> None:
-    """Очистить реестр (для тестов и reload)"""
+    """Clear registry (for tests and reload)"""
 
 def get_stats(self) -> Dict[str, Any]:
     """
-    Статистика реестра.
+    Registry statistics.
     Returns: {
         "total_plugins": 2,
         "total_tools": 3,
@@ -359,36 +359,36 @@ def get_stats(self) -> Dict[str, Any]:
     """
 ```
 
-### Singleton паттерн
+### Singleton pattern
 ```python
-# Глобальный экземпляр
+# Global instance
 _registry: ToolRegistry | None = None
 
 def get_registry() -> ToolRegistry:
-    """Получить глобальный экземпляр реестра"""
+    """Get global registry instance"""
     global _registry
     if _registry is None:
         _registry = ToolRegistry()
     return _registry
 ```
 
-### Критерий готовности
-- [ ] Класс ToolRegistry реализован
-- [ ] Все публичные методы работают
-- [ ] get_tools_for_llm() возвращает корректный формат
-- [ ] Singleton работает
-- [ ] Тесты на все методы
+### Done when
+- [ ] ToolRegistry class implemented
+- [ ] All public methods work
+- [ ] get_tools_for_llm() returns correct format
+- [ ] Singleton works
+- [ ] Tests for all methods
 
 ---
 
-## Задача 2.3: Plugin Loader (tools/loader.py)
+## Task 2.3: Plugin Loader (tools/loader.py)
 
-### Описание
-Сканирует папку `plugins/`, читает манифесты, загружает код обработчиков и регистрирует инструменты в Registry.
+### Description
+Scans `plugins/` folder, reads manifests, loads handler code and registers tools in Registry.
 
-### Файл: tools/loader.py
+### File: tools/loader.py
 
-### Основные функции
+### Main functions
 
 #### load_all_plugins
 ```python
@@ -397,14 +397,14 @@ async def load_all_plugins(
     registry: ToolRegistry | None = None
 ) -> LoadResult:
     """
-    Загружает все плагины из указанной директории.
+    Loads all plugins from the given directory.
     
     Args:
-        plugins_dir: Путь к папке с плагинами
-        registry: Реестр (если None — используется глобальный)
+        plugins_dir: Path to plugins folder
+        registry: Registry (if None, global one is used)
         
     Returns:
-        LoadResult с информацией о загруженных плагинах и ошибках
+        LoadResult with info on loaded plugins and errors
     """
 ```
 
@@ -415,17 +415,17 @@ async def load_plugin(
     registry: ToolRegistry | None = None
 ) -> PluginManifest | None:
     """
-    Загружает один плагин из указанной папки.
+    Loads one plugin from the given folder.
     
     Args:
-        plugin_path: Путь к папке плагина (содержит plugin.yaml)
-        registry: Реестр для регистрации
+        plugin_path: Path to plugin folder (contains plugin.yaml)
+        registry: Registry to register with
         
     Returns:
-        PluginManifest если успешно, None если ошибка
+        PluginManifest if success, None on error
         
     Raises:
-        PluginLoadError: При критических ошибках загрузки
+        PluginLoadError: On critical load errors
     """
 ```
 
@@ -437,16 +437,16 @@ async def reload_plugin(
     registry: ToolRegistry | None = None
 ) -> bool:
     """
-    Перезагружает плагин (unregister + load).
+    Reloads plugin (unregister + load).
     
-    Шаги:
-    1. Найти папку плагина по ID
-    2. Удалить из реестра (unregister_plugin)
-    3. Перезагрузить модуль Python (importlib.reload)
-    4. Загрузить заново (load_plugin)
+    Steps:
+    1. Find plugin folder by ID
+    2. Remove from registry (unregister_plugin)
+    3. Reload Python module (importlib.reload)
+    4. Load again (load_plugin)
     
     Returns:
-        True если успешно
+        True if successful
     """
 ```
 
@@ -457,87 +457,87 @@ async def reload_all_plugins(
     registry: ToolRegistry | None = None
 ) -> LoadResult:
     """
-    Перезагружает все плагины.
+    Reloads all plugins.
     
-    Шаги:
-    1. Очистить реестр
-    2. Загрузить все плагины заново
+    Steps:
+    1. Clear registry
+    2. Load all plugins again
     """
 ```
 
-### Структура LoadResult
+### Structure LoadResult
 ```python
 @dataclass
 class LoadResult:
-    """Результат загрузки плагинов"""
-    loaded: List[str]            # ID успешно загруженных плагинов
-    failed: List[LoadError]      # Ошибки загрузки
-    total_tools: int             # Всего инструментов загружено
+    """Plugin load result"""
+    loaded: List[str]            # IDs of successfully loaded plugins
+    failed: List[LoadError]      # Load errors
+    total_tools: int             # Total tools loaded
 
 @dataclass
 class LoadError:
-    """Ошибка загрузки плагина"""
-    plugin_id: str | None        # ID плагина (если известен)
-    plugin_path: str             # Путь к папке
-    error: str                   # Сообщение об ошибке
-    exception: Exception | None  # Исключение (для логов)
+    """Plugin load error"""
+    plugin_id: str | None        # Plugin ID (if known)
+    plugin_path: str             # Path to folder
+    error: str                   # Error message
+    exception: Exception | None  # Exception (for logs)
 ```
 
-### Алгоритм загрузки плагина
+### Plugin load algorithm
 
 ```
 load_plugin(plugin_path):
 │
-├── 1. ЧТЕНИЕ МАНИФЕСТА
-│   ├── Проверить существование plugin.yaml
-│   ├── Прочитать YAML
-│   ├── Валидировать через PluginManifest (Pydantic)
-│   └── При ошибке → вернуть None, залогировать
+├── 1. READ MANIFEST
+│   ├── Check plugin.yaml exists
+│   ├── Read YAML
+│   ├── Validate via PluginManifest (Pydantic)
+│   └── On error → return None, log
 │
-├── 2. ЗАГРУЗКА КОДА
-│   ├── Проверить существование handlers.py
-│   ├── Загрузить модуль через importlib.util
+├── 2. LOAD CODE
+│   ├── Check handlers.py exists
+│   ├── Load module via importlib.util
 │   │   ├── spec = importlib.util.spec_from_file_location(...)
 │   │   ├── module = importlib.util.module_from_spec(spec)
 │   │   └── spec.loader.exec_module(module)
-│   └── При ошибке → вернуть None, залогировать
+│   └── On error → return None, log
 │
-├── 3. СВЯЗЫВАНИЕ HANDLERS
-│   ├── Для каждого tool в manifest.tools:
-│   │   ├── Найти функцию handler в module
-│   │   ├── Проверить что это callable
-│   │   ├── Проверить что async (опционально)
-│   │   └── При ошибке → пропустить tool, залогировать
+├── 3. BINDING HANDLERS
+│   ├── For each tool in manifest.tools:
+│   │   ├── Find handler function in module
+│   │   ├── Check it is callable
+│   │   ├── Check async (optional)
+│   │   └── On error → skip tool, log
 │   │
-│   └── Создать ToolDefinition с привязанным handler
+│   └── Create ToolDefinition with bound handler
 │
-├── 4. РЕГИСТРАЦИЯ
+├── 4. REGISTRATION
 │   ├── registry.register_plugin(manifest)
-│   └── Для каждого tool:
+│   └── For each tool:
 │       └── registry.register_tool(tool_definition)
 │
-└── 5. РЕЗУЛЬТАТ
-    ├── Залогировать успех
-    └── Вернуть manifest
+└── 5. RESULT
+    ├── Log success
+    └── Return manifest
 ```
 
-### Обработка ошибок
+### Error handling
 
-| Ситуация | Поведение |
+| Situation | Behaviour |
 |----------|-----------|
-| plugin.yaml не найден | Пропустить папку, warning в лог |
-| plugin.yaml невалидный | Пропустить плагин, error в лог |
-| handlers.py не найден | Пропустить плагин, error в лог |
-| Ошибка импорта handlers.py | Пропустить плагин, error в лог |
-| Handler функция не найдена | Пропустить tool, warning в лог |
-| Handler не callable | Пропустить tool, warning в лог |
+| plugin.yaml not found | Skip folder, warning to log |
+| plugin.yaml invalid | Skip plugin, error to log |
+| handlers.py not found | Skip plugin, error to log |
+| handlers.py import error | Skip plugin, error to log |
+| Handler function not found | Skip tool, warning to log |
+| Handler not callable | Skip tool, warning to log |
 
-### Фильтрация при сканировании
+### Filtering when scanning
 ```python
 IGNORE_DIRS = {'__pycache__', '.git', '.idea', 'node_modules', '.venv'}
 
 def _should_scan_dir(dirname: str) -> bool:
-    """Проверяет нужно ли сканировать папку"""
+    """Checks whether to scan folder"""
     return (
         not dirname.startswith('.') and
         not dirname.startswith('_') and
@@ -545,27 +545,27 @@ def _should_scan_dir(dirname: str) -> bool:
     )
 ```
 
-### Критерий готовности
-- [ ] load_all_plugins() загружает плагины из папки
-- [ ] load_plugin() загружает один плагин
-- [ ] reload_plugin() перезагружает плагин
-- [ ] Манифест валидируется через Pydantic
-- [ ] Handlers загружаются через importlib
-- [ ] Ошибки не ломают загрузку других плагинов
-- [ ] Логирование всех этапов
-- [ ] Тесты на успешную загрузку
-- [ ] Тесты на ошибки (битый YAML, отсутствующий handler)
+### Done when
+- [ ] load_all_plugins() loads plugins from folder
+- [ ] load_plugin() loads one plugin
+- [ ] reload_plugin() reloads plugin
+- [ ] Manifest validated via Pydantic
+- [ ] Handlers loaded via importlib
+- [ ] Errors do not break loading other plugins
+- [ ] Logging all stages
+- [ ] Tests for successful load
+- [ ] Tests for errors (bad YAML, missing handler)
 
 ---
 
-## Задача 2.4: Tool Executor (tools/executor.py)
+## Task 2.4: Tool Executor (tools/executor.py)
 
-### Описание
-Выполняет инструменты: получает ToolCall, находит handler в Registry, вызывает с аргументами, возвращает результат.
+### Description
+Executes tools: gets ToolCall, finds handler in Registry, calls with arguments, returns result.
 
-### Файл: tools/executor.py
+### File: tools/executor.py
 
-### Основная функция
+### Main function
 
 ```python
 async def execute_tool(
@@ -574,34 +574,34 @@ async def execute_tool(
     timeout: int | None = None
 ) -> ToolResult:
     """
-    Выполняет вызов инструмента.
+    Executes a tool call.
     
     Args:
-        tool_call: Вызов от LLM (name, arguments)
-        registry: Реестр инструментов
-        timeout: Таймаут (если None — из ToolDefinition)
+        tool_call: Call from LLM (name, arguments)
+        registry: Tool registry
+        timeout: Timeout (if None — from ToolDefinition)
         
     Returns:
-        ToolResult с результатом или ошибкой
+        ToolResult with result or error
     """
 ```
 
-### Алгоритм выполнения
+### Execution algorithm
 
 ```
 execute_tool(tool_call):
 │
-├── 1. ПОИСК ИНСТРУМЕНТА
+├── 1. FIND TOOL
 │   ├── tool = registry.get_tool(tool_call.name)
-│   ├── Если не найден → вернуть ToolResult с ошибкой
-│   └── Если отключён → вернуть ToolResult с ошибкой
+│   ├── If not found → return ToolResult with error
+│   └── If disabled → return ToolResult with error
 │
-├── 2. ПОДГОТОВКА
+├── 2. PREPARE
 │   ├── handler = tool.handler
 │   ├── arguments = tool_call.arguments
 │   └── effective_timeout = timeout or tool.timeout
 │
-├── 3. ВЫПОЛНЕНИЕ
+├── 3. EXECUTION
 │   ├── start_time = time.time()
 │   │
 │   ├── try:
@@ -612,28 +612,28 @@ execute_tool(tool_call):
 │   │   └── duration = time.time() - start_time
 │   │
 │   ├── except asyncio.TimeoutError:
-│   │   └── вернуть ToolResult(success=False, error="Timeout")
+│   │   └── return ToolResult(success=False, error="Timeout")
 │   │
-│   ├── except TypeError as e:  # Неверные аргументы
-│   │   └── вернуть ToolResult(success=False, error=str(e))
+│   ├── except TypeError as e:  # Invalid arguments
+│   │   └── return ToolResult(success=False, error=str(e))
 │   │
 │   └── except Exception as e:
-│       ├── Залогировать полный traceback
-│       └── вернуть ToolResult(success=False, error=str(e))
+│       ├── Log full traceback
+│       └── return ToolResult(success=False, error=str(e))
 │
-├── 4. ФОРМИРОВАНИЕ РЕЗУЛЬТАТА
-│   ├── Если result — dict → сериализовать в JSON
-│   ├── Если result — str → использовать как есть
-│   └── Иначе → str(result)
+├── 4. FORM RESULT
+│   ├── If result is dict → serialize to JSON
+│   ├── If result is str → use as is
+│   └── Else → str(result)
 │
-├── 5. ЛОГИРОВАНИЕ
-│   └── Лог: tool_name, duration, success, error (если есть)
+├── 5. LOGGING
+│   └── Log: tool_name, duration, success, error (if any)
 │
-└── 6. ВОЗВРАТ
+└── 6. RETURN
     └── ToolResult(tool_call_id, content, success=True)
 ```
 
-### Вспомогательные функции
+### Helper functions
 
 ```python
 async def execute_tools(
@@ -642,21 +642,21 @@ async def execute_tools(
     parallel: bool = False
 ) -> List[ToolResult]:
     """
-    Выполняет несколько инструментов.
+    Executes multiple tools.
     
     Args:
-        tool_calls: Список вызовов
-        parallel: Выполнять параллельно (asyncio.gather)
-                  или последовательно
+        tool_calls: List of calls
+        parallel: Run in parallel (asyncio.gather)
+                  or sequentially
                   
     Returns:
-        Список результатов в том же порядке
+        List of results in same order
     """
 ```
 
-### Формат ошибок для LLM
+### Error format for LLM
 
-При ошибке выполнения в `ToolResult.content` возвращается понятное сообщение:
+On execution error, a clear message is returned in `ToolResult.content`:
 
 ```python
 ERROR_MESSAGES = {
@@ -668,127 +668,127 @@ ERROR_MESSAGES = {
 }
 ```
 
-### Критерий готовности
-- [ ] execute_tool() выполняет инструмент
-- [ ] Таймаут работает (asyncio.wait_for)
-- [ ] Ошибки обрабатываются gracefully
-- [ ] Результат сериализуется корректно
-- [ ] Логирование вызовов
-- [ ] Тесты на успешное выполнение
-- [ ] Тесты на таймаут
-- [ ] Тесты на ошибки
+### Done when
+- [ ] execute_tool() executes tool
+- [ ] Timeout works (asyncio.wait_for)
+- [ ] Errors handled gracefully
+- [ ] Result serialized correctly
+- [ ] Call logging
+- [ ] Tests for successful execution
+- [ ] Tests for timeout
+- [ ] Tests for errors
 
 ---
 
-## Задача 2.5: Plugin Base (tools/base.py)
+## Task 2.5: Plugin Base (tools/base.py)
 
-### Описание
-Утилиты для использования в плагинах: доступ к настройкам, HTTP-клиент, логирование.
+### Description
+Utilities for use in plugins: settings access, HTTP client, logging.
 
-### Файл: tools/base.py
+### File: tools/base.py
 
-### Функции
+### Functions
 
-#### Доступ к настройкам
+#### Settings access
 ```python
 def get_plugin_setting(plugin_id: str, key: str, default: Any = None) -> Any:
     """
-    Получить значение настройки плагина.
+    Get plugin setting value.
     
-    В Фазе 2: возвращает default (настройки в БД появятся в Фазе 3)
-    В Фазе 3+: читает из БД
+    In Phase 2: returns default (DB settings in Phase 3)
+    In Phase 3+: reads from DB
     
     Args:
-        plugin_id: ID плагина
-        key: Ключ настройки
-        default: Значение по умолчанию
+        plugin_id: Plugin ID
+        key: Setting key
+        default: Default value
         
     Returns:
-        Значение настройки или default
+        Setting value or default
     """
 
 def require_plugin_setting(plugin_id: str, key: str) -> Any:
     """
-    Получить обязательную настройку.
+    Get required setting.
     
     Raises:
-        PluginConfigError: Если настройка не задана
+        PluginConfigError: If setting not set
     """
 ```
 
-#### HTTP клиент
+#### HTTP client
 ```python
 def get_http_client(
     timeout: float = 30.0,
     follow_redirects: bool = True
 ) -> httpx.AsyncClient:
     """
-    Получить настроенный HTTP клиент.
+    Get configured HTTP client.
     
     Returns:
-        httpx.AsyncClient с преднастроенными таймаутами
+        httpx.AsyncClient with preset timeouts
     """
 ```
 
-#### Логирование
+#### Logging
 ```python
 def get_plugin_logger(plugin_id: str) -> logging.Logger:
     """
-    Получить логгер для плагина.
+    Get logger for plugin.
     
-    Логгер имеет префикс [plugin_id] в сообщениях.
+    Logger has [plugin_id] prefix in messages.
     
     Returns:
         logging.Logger
     """
 ```
 
-#### Контекст выполнения (для будущего)
+#### Execution context (for future)
 ```python
 @dataclass
 class ToolContext:
-    """Контекст выполнения инструмента"""
+    """Tool execution context"""
     user_id: str | None = None      # Telegram user ID
     chat_id: str | None = None      # Telegram chat ID
-    plugin_id: str | None = None    # ID плагина
+    plugin_id: str | None = None    # Plugin ID
     
-# Глобальный контекст (thread-local или contextvars)
+# Global context (thread-local or contextvars)
 _current_context: ToolContext | None = None
 
 def get_current_context() -> ToolContext | None:
-    """Получить текущий контекст выполнения"""
+    """Get current execution context"""
     return _current_context
 ```
 
-### Критерий готовности
-- [ ] get_plugin_setting() работает (возвращает default в Фазе 2)
-- [ ] get_http_client() возвращает настроенный клиент
-- [ ] get_plugin_logger() возвращает логгер с префиксом
-- [ ] Тесты на утилиты
+### Done when
+- [ ] get_plugin_setting() works (returns default in Phase 2)
+- [ ] get_http_client() returns configured client
+- [ ] get_plugin_logger() returns logger with prefix
+- [ ] Tests for utilities
 
 ---
 
-## Задача 2.6: Публичный API модуля (tools/__init__.py)
+## Task 2.6: Module public API (tools/__init__.py)
 
-### Описание
-Экспортировать публичные функции и классы для использования в других модулях.
+### Description
+Export public functions and classes for use in other modules.
 
-### Файл: tools/__init__.py
+### File: tools/__init__.py
 
 ```python
 """
-Tools — система плагинов для LO_TG_BOT.
+Tools — plugin system for LO_TG_BOT.
 
-Использование:
+Usage:
     from tools import get_registry, load_all_plugins, execute_tool
     
-    # Загрузка плагинов при старте
+    # Load plugins on startup
     await load_all_plugins()
     
-    # Получение инструментов для LLM
+    # Retrieving tools for LLM
     tools = get_registry().get_tools_for_llm()
     
-    # Выполнение инструмента
+    # Tool execution
     result = await execute_tool(tool_call)
 """
 
@@ -854,19 +854,19 @@ __all__ = [
 ]
 ```
 
-### Критерий готовности
-- [ ] Все публичные API экспортируются
-- [ ] Импорт `from tools import ...` работает
-- [ ] Docstring с примером использования
+### Done when
+- [ ] All public APIs exported
+- [ ] Import `from tools import ...` works
+- [ ] Docstring with usage example
 
 ---
 
-## Задача 2.7: Builtin-плагин Calculator
+## Task 2.7: Built-in Calculator plugin
 
-### Описание
-Перенести калькулятор из захардкоженного кода в плагин.
+### Description
+Move calculator from hardcoded code to plugin.
 
-### Структура
+### Structure
 ```
 plugins/builtin/calculator/
 ├── plugin.yaml
@@ -904,7 +904,7 @@ import math
 import operator
 from typing import Union
 
-# Безопасные операции
+# Safe operations
 SAFE_OPERATORS = {
     '+': operator.add,
     '-': operator.sub,
@@ -935,23 +935,23 @@ SAFE_CONSTANTS = {
 
 async def calculate(expression: str) -> str:
     """
-    Вычисляет математическое выражение.
+    Evaluates a mathematical expression.
     
     Args:
-        expression: Выражение для вычисления
+        expression: Expression to evaluate
         
     Returns:
-        Строка с результатом или сообщением об ошибке
+        String with result or error message
     """
     try:
-        # Используем безопасный eval или библиотеку simpleeval
+        # Use safe eval or simpleeval library
         result = _safe_eval(expression)
         
-        # Форматирование результата
+        # Format result
         if isinstance(result, float):
             if result.is_integer():
                 return str(int(result))
-            return f"{result:.10g}"  # Убираем лишние нули
+            return f"{result:.10g}"  # Strip trailing zeros
         return str(result)
         
     except ZeroDivisionError:
@@ -964,35 +964,35 @@ async def calculate(expression: str) -> str:
 
 def _safe_eval(expression: str) -> Union[int, float]:
     """
-    Безопасное вычисление выражения.
+    Safe expression evaluation.
     
-    Варианты реализации:
-    1. simpleeval библиотека (рекомендуется)
-    2. ast.literal_eval + ручной парсинг
-    3. Собственный парсер
+    Implementation options:
+    1. simpleeval library (recommended)
+    2. ast.literal_eval + manual parsing
+    3. Custom parser
     """
-    # TODO: Реализовать через simpleeval или ast
+    # TODO: Implement via simpleeval or ast
     pass
 ```
 
-### Критерий готовности
-- [ ] plugin.yaml создан и валиден
-- [ ] handlers.py реализован
-- [ ] Безопасное вычисление (нет code injection)
-- [ ] Поддержка базовых операций: +, -, *, /, **
-- [ ] Поддержка функций: sqrt, sin, cos, tan, log
-- [ ] Поддержка констант: pi, e
-- [ ] Корректная обработка ошибок
-- [ ] Тесты
+### Done when
+- [ ] plugin.yaml created and valid
+- [ ] handlers.py implemented
+- [ ] Safe evaluation (no code injection)
+- [ ] Support basic operations: +, -, *, /, **
+- [ ] Support functions: sqrt, sin, cos, tan, log
+- [ ] Support constants: pi, e
+- [ ] Correct error handling
+- [ ] Tests
 
 ---
 
-## Задача 2.8: Builtin-плагин DateTime
+## Task 2.8: Built-in DateTime plugin
 
-### Описание
-Перенести datetime-инструменты из захардкоженного кода в плагин.
+### Description
+Move datetime tools from hardcoded code to plugin.
 
-### Структура
+### Structure
 ```
 plugins/builtin/datetime_tools/
 ├── plugin.yaml
@@ -1062,13 +1062,13 @@ from typing import Optional
 
 async def get_current_datetime(timezone: Optional[str] = None) -> str:
     """
-    Возвращает текущую дату и время.
+    Returns current date and time.
     
     Args:
-        timezone: Часовой пояс (опционально)
+        timezone: Timezone (optional)
         
     Returns:
-        Строка вида "2024-01-15 14:30:00 (Monday)"
+        String like "2024-01-15 14:30:00 (Monday)"
     """
     try:
         if timezone:
@@ -1088,13 +1088,13 @@ async def get_current_datetime(timezone: Optional[str] = None) -> str:
 
 async def get_weekday(date: str) -> str:
     """
-    Возвращает день недели для указанной даты.
+    Returns weekday for given date.
     
     Args:
-        date: Дата в различных форматах
+        date: Date in various formats
         
     Returns:
-        Название дня недели
+        Weekday name
     """
     try:
         parsed = _parse_date(date)
@@ -1112,7 +1112,7 @@ async def get_weekday(date: str) -> str:
 
 async def calculate_date_difference(date1: str, date2: str) -> str:
     """
-    Вычисляет разницу между датами в днях.
+    Computes difference between dates in days.
     """
     try:
         d1 = _parse_date(date1)
@@ -1132,9 +1132,9 @@ async def calculate_date_difference(date1: str, date2: str) -> str:
 
 def _parse_date(date_str: str) -> Optional[datetime]:
     """
-    Парсит дату из различных форматов.
+    Parses date from various formats.
     
-    Поддерживает:
+    Supports:
     - YYYY-MM-DD
     - DD.MM.YYYY
     - DD/MM/YYYY
@@ -1142,7 +1142,7 @@ def _parse_date(date_str: str) -> Optional[datetime]:
     """
     date_str = date_str.strip().lower()
     
-    # Специальные значения
+    # Special values
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     if date_str == 'today':
@@ -1152,7 +1152,7 @@ def _parse_date(date_str: str) -> Optional[datetime]:
     elif date_str == 'yesterday':
         return today - timedelta(days=1)
     
-    # Форматы дат
+    # Date formats
     formats = [
         "%Y-%m-%d",
         "%d.%m.%Y",
@@ -1170,41 +1170,41 @@ def _parse_date(date_str: str) -> Optional[datetime]:
     return None
 ```
 
-### Критерий готовности
-- [ ] plugin.yaml создан и валиден
-- [ ] get_current_datetime работает
-- [ ] get_weekday работает с разными форматами
-- [ ] calculate_date_difference работает
-- [ ] Поддержка timezone
-- [ ] Поддержка special values (today, tomorrow)
-- [ ] Тесты
+### Done when
+- [ ] plugin.yaml created and valid
+- [ ] get_current_datetime works
+- [ ] get_weekday works with different formats
+- [ ] calculate_date_difference works
+- [ ] Timezone support
+- [ ] Support special values (today, tomorrow)
+- [ ] Tests
 
 ---
 
-## Задача 2.9: Интеграция с tool_calling.py
+## Task 2.9: Integration with tool_calling.py
 
-### Описание
-Модифицировать `bot/tool_calling.py` для использования Registry и Executor вместо захардкоженных инструментов.
+### Description
+Modify `bot/tool_calling.py` to use Registry and Executor instead of hardcoded tools.
 
-### Изменения в bot/tool_calling.py
+### Changes in bot/tool_calling.py
 
-**Было (Фаза 1):**
+**Before (Phase 1):**
 ```python
-# Захардкоженные инструменты
+# Hardcoded tools
 HARDCODED_TOOLS = [...]
 
 async def get_reply_with_tools(messages):
     tools = HARDCODED_TOOLS
     ...
-    # Выполнение через локальные функции
+    # Execution via local functions
     result = await execute_hardcoded_tool(tool_call)
 ```
 
-**Стало (Фаза 2):**
+**After (Phase 2):**
 ```python
 from tools import get_registry, execute_tool, load_all_plugins
 
-# При первом вызове загружаем плагины
+# On first call load plugins
 _plugins_loaded = False
 
 async def _ensure_plugins_loaded():
@@ -1221,35 +1221,35 @@ async def get_reply_with_tools(messages):
     tools = registry.get_tools_for_llm()
     
     if not tools:
-        # Нет инструментов — обычный ответ
+        # No tools — regular reply
         return await get_reply(messages)
     
     ...
     
-    # Выполнение через Executor
+    # Execution via Executor
     for tool_call in tool_calls:
         result = await execute_tool(tool_call)
         ...
 ```
 
-### Удаление захардкоженного кода
-- Удалить `HARDCODED_TOOLS`
-- Удалить локальные функции `get_current_datetime()`, `calculate()`
-- Удалить локальную функцию `execute_hardcoded_tool()`
+### Remove hardcoded code
+- Remove `HARDCODED_TOOLS`
+- Remove local functions `get_current_datetime()`, `calculate()`
+- Remove local function `execute_hardcoded_tool()`
 
-### Критерий готовности
-- [ ] tool_calling.py использует Registry
-- [ ] tool_calling.py использует Executor
-- [ ] Захардкоженный код удалён
-- [ ] Плагины загружаются при первом вызове
-- [ ] Тесты проходят
-- [ ] Ручное тестирование: "Сколько времени?" и "Посчитай 2+2"
+### Done when
+- [ ] tool_calling.py uses Registry
+- [ ] tool_calling.py uses Executor
+- [ ] Hardcoded code removed
+- [ ] Plugins loaded on first call
+- [ ] Tests pass
+- [ ] Manual testing: "What time?" and "Calculate 2+2"
 
 ---
 
-## Задача 2.10: Тестирование Фазы 2
+## Task 2.10: Phase 2 testing
 
-### Unit-тесты
+### Unit tests
 
 #### tests/test_tools_models.py
 ```
@@ -1316,7 +1316,7 @@ test_get_weekday_special_values
 test_calculate_date_difference
 ```
 
-### Integration тесты
+### Integration tests
 
 ```
 test_full_flow_calculator_through_llm
@@ -1324,180 +1324,180 @@ test_full_flow_datetime_through_llm
 test_plugins_reload_updates_registry
 ```
 
-### Ручное тестирование (чеклист)
+### Manual testing (checklist)
 
-**Подготовка:**
-- [ ] Плагины в папке plugins/builtin/
-- [ ] Бот запущен
-- [ ] LLM настроен
+**Setup:**
+- [ ] Plugins in plugins/builtin/ folder
+- [ ] Bot running
+- [ ] LLM configured
 
 **Calculator:**
-- [ ] "Сколько будет 2+2?" → "4"
-- [ ] "Посчитай 15% от 200" → "30"
-- [ ] "Квадратный корень из 144" → "12"
+- [ ] "What is 2+2?" → "4"
+- [ ] "15% of 200" → "30"
+- [ ] "Square root of 144" → "12"
 - [ ] "sin(0) + cos(0)" → "1"
-- [ ] "Раздели 10 на 0" → сообщение об ошибке
+- [ ] "Divide 10 by 0" → error message
 
 **DateTime:**
-- [ ] "Сколько сейчас времени?" → текущее время
-- [ ] "Какой сегодня день недели?" → правильный день
-- [ ] "Какой день недели будет 01.01.2025?" → среда
-- [ ] "Сколько дней до нового года?" → правильное число
+- [ ] "What time is it?" → current time
+- [ ] "What day of the week is it?" → correct day
+- [ ] "What day is 01.01.2025?" → Wednesday
+- [ ] "Days until New Year?" → correct number
 
-**Обычные вопросы (без tools):**
-- [ ] "Привет!" → обычный ответ
-- [ ] "Расскажи анекдот" → обычный ответ
+**Regular questions (no tools):**
+- [ ] "Hi!" → normal reply
+- [ ] "Tell a joke" → normal reply
 
-### Критерий готовности
-- [ ] Все unit-тесты проходят
-- [ ] Integration тесты проходят
-- [ ] Ручное тестирование пройдено
-- [ ] Нет регрессий
+### Done when
+- [ ] All unit tests pass
+- [ ] Integration tests pass
+- [ ] Manual testing done
+- [ ] No regressions
 
 ---
 
-## Последовательность работ
+## Work sequence
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 1: Модели и Registry                                                  │
+│  DAY 1: Models and Registry                                                  │
 │                                                                             │
-│  Утро:                                                                      │
-│  ├── 2.1 Создать tools/models.py                                           │
-│  └── Тесты моделей                                                         │
+│  Morning:                                                                      │
+│  ├── 2.1 Create tools/models.py                                           │
+│  └── Model tests                                                         │
 │                                                                             │
-│  После обеда:                                                               │
-│  ├── 2.2 Создать tools/registry.py                                         │
-│  └── Тесты registry                                                        │
+│  Afternoon:                                                               │
+│  ├── 2.2 Create tools/registry.py                                         │
+│  └── Registry tests                                                        │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 2: Loader                                                             │
+│  DAY 2: Loader                                                             │
 │                                                                             │
-│  ├── 2.3 Создать tools/loader.py                                           │
-│  ├── Сканирование папок                                                    │
-│  ├── Парсинг YAML                                                          │
-│  ├── Загрузка handlers через importlib                                     │
-│  └── Тесты loader                                                          │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 3: Executor и Base                                                    │
-│                                                                             │
-│  Утро:                                                                      │
-│  ├── 2.4 Создать tools/executor.py                                         │
-│  └── Тесты executor                                                        │
-│                                                                             │
-│  После обеда:                                                               │
-│  ├── 2.5 Создать tools/base.py                                             │
-│  ├── 2.6 Создать tools/__init__.py                                         │
-│  └── Тесты base                                                            │
+│  ├── 2.3 Create tools/loader.py                                           │
+│  ├── Folder scanning                                                    │
+│  ├── YAML parsing                                                          │
+│  ├── Loading handlers via importlib                                     │
+│  └── Loader tests                                                          │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 4: Builtin-плагины                                                    │
+│  DAY 3: Executor and Base                                                    │
 │                                                                             │
-│  Утро:                                                                      │
-│  ├── 2.7 Создать plugins/builtin/calculator/                               │
-│  └── Тесты calculator                                                      │
+│  Morning:                                                                      │
+│  ├── 2.4 Create tools/executor.py                                         │
+│  └── Executor tests                                                        │
 │                                                                             │
-│  После обеда:                                                               │
-│  ├── 2.8 Создать plugins/builtin/datetime_tools/                           │
-│  └── Тесты datetime                                                        │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 5: Интеграция и тестирование                                         │
-│                                                                             │
-│  Утро:                                                                      │
-│  ├── 2.9 Интеграция с tool_calling.py                                      │
-│  └── Удаление захардкоженного кода                                         │
-│                                                                             │
-│  После обеда:                                                               │
-│  ├── 2.10 Integration тесты                                                │
-│  ├── Ручное тестирование                                                   │
-│  └── Исправление багов                                                     │
+│  Afternoon:                                                               │
+│  ├── 2.5 Create tools/base.py                                             │
+│  ├── 2.6 Create tools/__init__.py                                         │
+│  └── Base tests                                                            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  РЕЗУЛЬТАТ ФАЗЫ 2                                                          │
+│  DAY 4: Built-in plugins                                                    │
 │                                                                             │
-│  ✅ Plugin System работает                                                  │
-│  ✅ Плагины загружаются из папки plugins/                                  │
-│  ✅ Calculator и DateTime — полноценные плагины                            │
-│  ✅ Добавление плагина = добавление файлов                                 │
-│  ✅ Hot-reload плагинов (программно)                                       │
-│  ✅ Готов фундамент для Фазы 3 (Storage + API)                             │
+│  Morning:                                                                      │
+│  ├── 2.7 Create plugins/builtin/calculator/                               │
+│  └── Calculator tests                                                      │
+│                                                                             │
+│  Afternoon:                                                               │
+│  ├── 2.8 Create plugins/builtin/datetime_tools/                           │
+│  └── Datetime tests                                                        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  DAY 5: Integration and testing                                         │
+│                                                                             │
+│  Morning:                                                                      │
+│  ├── 2.9 Integration with tool_calling.py                                      │
+│  └── Remove hardcoded code                                         │
+│                                                                             │
+│  Afternoon:                                                               │
+│  ├── 2.10 Integration tests                                                │
+│  ├── Manual testing                                                   │
+│  └── Bug fixes                                                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  PHASE 2 RESULT                                                          │
+│                                                                             │
+│  ✅ Plugin System works                                                     │
+│  ✅ Plugins load from plugins/ folder                                       │
+│  ✅ Calculator and DateTime are full plugins                               │
+│  ✅ Adding a plugin = adding files                                          │
+│  ✅ Hot-reload plugins (programmatic)                                       │
+│  ✅ Foundation ready for Phase 3 (Storage + API)                           │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Зависимости от внешних библиотек
+## External library dependencies
 
-### Новые зависимости (добавить в requirements.txt)
+### New dependencies (add to requirements.txt)
 
 ```
-PyYAML>=6.0           # Парсинг plugin.yaml
-simpleeval>=0.9.13    # Безопасное вычисление выражений (для calculator)
+PyYAML>=6.0           # Parse plugin.yaml
+simpleeval>=0.9.13    # Safe expression evaluation (for calculator)
 ```
 
-### Существующие (уже используются)
+### Existing (already in use)
 ```
-pydantic              # Валидация моделей
-httpx                 # HTTP клиент (в base.py)
+pydantic              # Model validation
+httpx                 # HTTP client (in base.py)
 ```
 
 ---
 
-## Риски и митигации
+## Risks and mitigations
 
-| Риск | Вероятность | Влияние | Митигация |
-|------|-------------|---------|-----------|
-| importlib не загружает модуль | Средняя | Высокое | Детальное логирование, тесты |
-| Циклические импорты | Средняя | Среднее | Ленивые импорты, архитектура |
-| YAML-парсинг падает | Низкая | Среднее | Pydantic валидация, try-except |
-| simpleeval небезопасен | Низкая | Высокое | Ограничить функции, тесты на injection |
-| Плагин ломает весь бот | Средняя | Высокое | Изоляция ошибок, fallback |
-
----
-
-## Definition of Done для Фазы 2
-
-- [ ] Все задачи 2.1-2.10 выполнены
-- [ ] Модуль tools/ создан и работает
-- [ ] Builtin-плагины работают
-- [ ] Захардкоженные инструменты удалены
-- [ ] Все тесты проходят
-- [ ] Ручное тестирование пройдено
-- [ ] Нет регрессий
-- [ ] Код отревьюен
-- [ ] Документация обновлена
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|-------------|
+| importlib fails to load module | Medium | High | Detailed logging, tests |
+| Circular imports | Medium | Medium | Lazy imports, architecture |
+| YAML parsing fails | Low | Medium | Pydantic validation, try-except |
+| simpleeval unsafe | Low | High | Limit functions, injection tests |
+| Plugin breaks entire bot | Medium | High | Error isolation, fallback |
 
 ---
 
-## Что НЕ входит в Фазу 2
+## Definition of Done for Phase 2
 
-- ❌ Сохранение настроек плагинов в БД (Фаза 3)
-- ❌ API для управления плагинами (Фаза 3)
-- ❌ UI для управления плагинами (Фаза 4)
-- ❌ Бизнес-плагины (Worklog Checker и т.д.) (Фаза 6)
+- [ ] All tasks 2.1–2.10 done
+- [ ] tools/ module created and works
+- [ ] Built-in plugins work
+- [ ] Hardcoded tools removed
+- [ ] All tests pass
+- [ ] Manual testing done
+- [ ] No regressions
+- [ ] Code reviewed
+- [ ] Documentation updated
 
 ---
 
-## Версионирование документа
+## Out of scope for Phase 2
 
-| Версия | Дата | Описание |
+- ❌ Storing plugin settings in DB (Phase 3)
+- ❌ API for plugin management (Phase 3)
+- ❌ UI for plugin management (Phase 4)
+- ❌ Business plugins (Worklog Checker, etc.) (Phase 6)
+
+---
+
+## Document versioning
+
+| Version | Date | Description |
 |--------|------|----------|
-| 1.0 | 2026-02-06 | Первая версия плана Фазы 2 |
+| 1.0 | 2026-02-06 | First version of Phase 2 detailed plan |

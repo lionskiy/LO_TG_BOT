@@ -7,6 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY bot/ bot/
 COPY api/ api/
+COPY tools/ tools/
+COPY plugins/ plugins/
 COPY admin/ admin/
 COPY main.py .
 COPY run_bot_from_settings.py .

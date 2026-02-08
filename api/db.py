@@ -11,7 +11,7 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 from dotenv import load_dotenv
-from sqlalchemy import BigInteger, Boolean, DateTime, String, Text, create_engine, text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Index, Numeric, String, Text, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -88,6 +88,47 @@ class LLMSettingsModel(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_checked: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now, onupdate=_utc_now)
+
+
+class ToolSettingsModel(Base):
+    """Tool/plugin settings: enabled status and encrypted settings_json."""
+    __tablename__ = "tool_settings"
+
+    tool_name: Mapped[str] = mapped_column(String(128), primary_key=True)
+    plugin_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    settings_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now, onupdate=_utc_now)
+
+
+class EmployeeModel(Base):
+    """HR employees table: single source of truth for staff data (SPEC_HR_SERVICE)."""
+    __tablename__ = "hr_employees"
+    __table_args__ = (
+        Index("ix_hr_employees_personal_number", "personal_number", unique=True),
+        Index("ix_hr_employees_email", "email"),
+        Index("ix_hr_employees_jira_worker_id", "jira_worker_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    personal_number: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    full_name: Mapped[str] = mapped_column(String(512), nullable=False)
+    email: Mapped[str] = mapped_column(String(512), nullable=False)
+    jira_worker_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    position: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    mvz: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    supervisor: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    hire_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    fte: Mapped[float] = mapped_column(Numeric(3, 2), nullable=False, default=1)
+    dismissal_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    birth_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
+    mattermost_username: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    is_supervisor: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_delivery_manager: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    team: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now, onupdate=_utc_now)
 

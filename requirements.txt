@@ -8,8 +8,19 @@ google-generativeai==0.8.3
 # API and settings storage
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
+python-multipart
 sqlalchemy==2.0.36
 cryptography==44.0.0
+
+# Safe expression evaluation (Phase 1: calculate tool)
+simpleeval>=0.9.13
+
+# Plugin manifests (Phase 2)
+PyYAML>=6.0
+
+# HR Service: Excel import
+openpyxl>=3.1.0
+xlrd>=2.0.0
 
 # dev/test
 pytest==8.3.4

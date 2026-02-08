@@ -4,14 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin panel — Основные настройки приложения</title>
-  <link rel="stylesheet" href="/admin/styles.css">
+  <link rel="stylesheet" href="/admin/styles.css?v=2">
 </head>
 <body>
   <div class="app">
     <aside class="sidebar">
       <h1 class="sidebar-title">Admin panel</h1>
       <nav class="sidebar-nav">
-        <a href="#" class="nav-item nav-item--active">Настройки</a>
+        <a href="#settings" class="nav-item nav-item--active" data-section="settings">Настройки</a>
+        <a href="#tools" class="nav-item" data-section="tools">Инструменты</a>
+        <a href="#db" class="nav-item" data-section="db">Работа с БД</a>
+        <a href="#admins" class="nav-item" data-section="admins">Администраторы</a>
       </nav>
       <div class="sidebar-footer">
         <label class="admin-key-label">
@@ -21,8 +24,9 @@
       </div>
     </aside>
     <main class="main">
-      <h2 class="page-title">Основные настройки приложения</h2>
-      <div class="blocks">
+      <div id="section-settings" class="section">
+        <h2 class="page-title">Основные настройки приложения</h2>
+        <div class="blocks">
         <section class="block block--llm" id="blockLlm">
           <h3 class="block-title">LLM</h3>
           <div class="status-bar" id="llmStatusBar" data-status="not_configured">
@@ -117,22 +121,59 @@
             </div>
           </div>
         </section>
-        <section class="block block--service-admins" id="blockServiceAdmins">
-          <h3 class="block-title">Админы сервиса</h3>
-          <div id="serviceAdminsList" class="service-admins-list">
-            <p class="block-placeholder" id="serviceAdminsPlaceholder">Нет добавленных администраторов</p>
+        <!-- Service admins moved to section-admins (Phase 5) -->
+        </div>
+      </div>
+      <div id="section-tools" class="section" hidden>
+        <h2 class="page-title">Инструменты</h2>
+        <div class="tools-header">
+          <span class="tools-summary" id="toolsSummary">Загрузка...</span>
+          <button type="button" class="btn btn-secondary" id="toolsReload">Перезагрузить плагины</button>
+        </div>
+        <div id="toolsList" class="tools-list"></div>
+        <p class="block-placeholder" id="toolsPlaceholder" hidden>Нет инструментов. Нажмите «Перезагрузить плагины».</p>
+      </div>
+      <div id="section-db" class="section" hidden>
+        <h2 class="page-title">Работа с БД</h2>
+        <div class="db-toolbar">
+          <div class="db-views">
+            <button type="button" class="btn btn-outline db-view-btn db-view-btn--active" data-view="all">Списки сотрудников</button>
+            <button type="button" class="btn btn-outline db-view-btn" data-view="supervisors">Руководители и МВЗ</button>
+            <button type="button" class="btn btn-outline db-view-btn" data-view="delivery_managers">Деливери менеджеры</button>
           </div>
-          <div class="form">
-            <label class="field">
-              <span class="field-label">Введите Telegram ID</span>
-              <input type="text" id="serviceAdminTelegramId" class="field-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-              <span class="field-error" id="serviceAdminFieldError" role="alert"></span>
+          <div class="db-actions">
+            <label class="btn btn-primary">
+              Импорт
+              <input type="file" id="dbImportFile" accept=".xlsx,.xls" hidden>
             </label>
-            <div class="form-actions">
-              <button type="button" class="btn btn-primary" id="serviceAdminAdd">Добавить</button>
-            </div>
           </div>
-        </section>
+        </div>
+        <p class="db-import-result" id="dbImportResult" hidden></p>
+        <div class="db-table-wrap">
+          <table class="db-table" id="dbEmployeesTable">
+            <thead id="dbTableHead"></thead>
+            <tbody id="dbTableBody"></tbody>
+          </table>
+        </div>
+        <p class="block-placeholder" id="dbPlaceholder" hidden>Нет данных. Загрузите файл через «Импорт».</p>
+      </div>
+      <div id="section-admins" class="section" hidden>
+        <h2 class="page-title">Администраторы</h2>
+        <p class="section-hint">Администраторы сервиса имеют доступ к админ-панели (при вводе Admin key).</p>
+        <div id="serviceAdminsList" class="service-admins-list">
+          <p class="block-placeholder" id="serviceAdminsPlaceholder">Нет добавленных администраторов</p>
+        </div>
+        <div class="form" id="adminsAddForm">
+          <label class="field">
+            <span class="field-label">Telegram ID *</span>
+            <input type="text" id="serviceAdminTelegramId" class="field-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Числовой ID пользователя Telegram">
+            <span class="field-error" id="serviceAdminFieldError" role="alert"></span>
+          </label>
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="serviceAdminAdd">Добавить</button>
+            <button type="button" class="btn btn-secondary" id="adminsAddCancel">Отмена</button>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -147,6 +188,29 @@
       </div>
     </div>
   </div>
-  <script src="/admin/app.js"></script>
+  <div id="toolSettingsModalOverlay" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="toolSettingsModalTitle">
+    <div class="modal modal--tool-settings" id="toolSettingsModal">
+      <div class="modal-header">
+        <h4 class="modal-title" id="toolSettingsModalTitle">Настройки инструмента</h4>
+        <button type="button" class="modal-close" id="toolSettingsModalClose" aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="tool-settings-plugin-info" id="toolSettingsPluginInfo"></p>
+        <form id="toolSettingsForm" class="tool-settings-form"></form>
+        <div class="tool-settings-test" id="toolSettingsTestBlock" hidden>
+          <button type="button" class="btn btn-secondary" id="toolSettingsTestBtn">Проверить подключение</button>
+          <p class="tool-settings-test-result" id="toolSettingsTestResult" hidden></p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="toolSettingsModalCancel">Отмена</button>
+        <button type="button" class="btn btn-primary" id="toolSettingsModalSave">Сохранить</button>
+      </div>
+    </div>
+  </div>
+  <script src="/admin/app.js?v=7"></script>
+  <script src="/admin/tools.js?v=4"></script>
+  <script src="/admin/db.js?v=1"></script>
+  <script src="/admin/admins.js?v=4"></script>
 </body>
 </html>

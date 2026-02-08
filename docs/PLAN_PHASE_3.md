@@ -1,38 +1,38 @@
 # PHASE 3: Storage + API
 
-> **Детальная постановка задач для Фазы 3**  
-> Сохранение настроек плагинов в БД и API для управления инструментами
+> **Detailed task breakdown for Phase 3**  
+> Storing plugin settings in DB and API for tool management
 
-**Версия:** 1.0  
-**Дата:** 2026-02-06  
-**Ориентировочный срок:** 3-5 дней  
-**Предусловие:** Фаза 2 завершена (Plugin System работает)
+**Version:** 1.0  
+**Date:** 2026-02-06  
+**Estimated duration:** 3-5 days  
+**Prerequisite:** Phase 2 done (Plugin System works)
 
 ---
 
-## Связанные документы
+## Related documents
 
-| Документ | Описание | Статус |
+| Document | Description | Status |
 |----------|----------|--------|
-| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Целевая архитектура системы | ✅ Current (in progress) |
-| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Декомпозиция всех задач | ✅ Current (in progress) |
-| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Детальный план Фазы 0-1 | ✅ Current (in progress) |
-| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Детальный план Фазы 2 | ✅ Current (in progress) |
-| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Детальный план Фазы 3 (этот документ) | ✅ Current (in progress) |
-| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Детальный план Фазы 4 (следующая) | ✅ Current (in progress) |
+| [ARCHITECTURE_BLUEPRINT.md](ARCHITECTURE_BLUEPRINT.md) | Target system architecture | ✅ Current (in progress) |
+| [UPGRADE_TASKS.md](UPGRADE_TASKS.md) | Task breakdown | ✅ Current (in progress) |
+| [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Phase 0-1 | ✅ Current (in progress) |
+| [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Phase 2 | ✅ Current (in progress) |
+| [PLAN_PHASE_3.md](PLAN_PHASE_3.md) | Phase 3 (this document) | ✅ Current (in progress) |
+| [PLAN_PHASE_4.md](PLAN_PHASE_4.md) | Phase 4 (next) | ✅ Current (in progress) |
 
-### Текущая реализация (v1.0)
+### Current implementation (v1.0)
 
-| Документ | Описание |
+| Document | Description |
 |----------|----------|
-| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Спецификация текущей реализации |
-| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Быстрый старт и FAQ |
+| [TG_Project_Helper_v1.0.md](TG_Project_Helper_v1.0.md) | Current implementation spec |
+| [TG_Project_Helper_v1.0_QUICKSTART.md](TG_Project_Helper_v1.0_QUICKSTART.md) | Quick start and FAQ |
 
 ---
 
-## Навигация по фазам
+## Phase navigation
 
-| Фаза | Документ | Описание | Статус |
+| Phase | Document | Description | Status |
 |------|----------|----------|--------|
 | 0-1 | [PLAN_PHASE_0_1.md](PLAN_PHASE_0_1.md) | Stabilization + Tool-Calling | ✅ Current (in progress) |
 | 2 | [PLAN_PHASE_2.md](PLAN_PHASE_2.md) | Plugin System | ✅ Current (in progress) |
@@ -43,37 +43,37 @@
 
 ---
 
-## Общая цель Фазы 3
+## Phase 3 goal and scope
 
-**Было (после Фазы 2):** Plugin System работает, но настройки плагинов не сохраняются. При перезапуске всё сбрасывается.
+**Before (after Phase 2):** Plugin System works but plugin settings are not saved. On restart everything resets.
 
-**Стало:** Настройки плагинов (enabled/disabled, credentials, параметры) сохраняются в БД. Есть API для управления инструментами и их настройками.
+**After:** Plugin settings (enabled/disabled, credentials, parameters) are stored in DB. There is an API for managing tools and their settings.
 
-**Важно:** 
-- Используем существующую инфраструктуру (SQLite, encryption.py)
-- API защищён X-Admin-Key (как существующие эндпоинты)
-- Секреты шифруются (Fernet, как Telegram/LLM токены)
+**Important:** 
+- Use existing infrastructure (SQLite, encryption.py)
+- API protected X-Admin-Key (as existing endpoints)
+- Secrets encrypted (Fernet, as Telegram/LLM tokens)
 
 ---
 
-## Архитектура Фазы 3
+## Phase 3 architecture diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
-│  Admin Panel (Фаза 4)                                                       │
+│  Admin Panel (Phase 4)                                                       │
 │       │                                                                     │
 │       │  HTTP                                                               │
 │       ▼                                                                     │
 │  ┌─────────────────────────────────────────────────────────────────────────┐
 │  │  Admin API (FastAPI)                                                    │
 │  │                                                                         │
-│  │  Существующие роутеры:                                                  │
+│  │  Existing routes:                                                  │
 │  │  ├── /api/settings/telegram/*                                          │
 │  │  ├── /api/settings/llm/*                                               │
 │  │  └── /api/service-admins/*                                             │
 │  │                                                                         │
-│  │  Новые роутеры:                              [ФАЗА 3]                   │
+│  │  New routes:                              [PHASE 3]                   │
 │  │  ├── /api/tools/*          ← tools_router.py                           │
 │  │  └── /api/plugins/*        ← plugins_router.py                         │
 │  │                                                                         │
@@ -84,8 +84,8 @@
 │  ┌───────────────────┐      ┌───────────────────────────────────────────┐
 │  │  Tools Repository │      │  Plugin Settings Manager                  │
 │  │                   │      │  (tools/settings_manager.py)              │
-│  │  • CRUD операции  │◄────►│                                           │
-│  │  • Шифрование     │      │  • get_settings()                         │
+│  │  • CRUD operations  │◄────►│                                           │
+│  │  • Encryption     │      │  • get_settings()                         │
 │  │                   │      │  • save_settings()                        │
 │  └───────────────────┘      │  • validate_settings()                    │
 │       │                      │  • sync_with_registry()                   │
@@ -95,10 +95,10 @@
 │  │  SQLite           │               │
 │  │                   │               ▼
 │  │  tool_settings    │      ┌───────────────────────────────────────────┐
-│  │  ├── tool_name    │      │  Tool Registry (из Фазы 2)                │
+│  │  ├── tool_name    │      │  Tool Registry (from Phase 2)                │
 │  │  ├── plugin_id    │      │                                           │
-│  │  ├── enabled      │◄────►│  • Синхронизация enabled статусов        │
-│  │  ├── settings_json│      │  • Получение schema для валидации        │
+│  │  ├── enabled      │◄────►│  • Sync enabled statuses        │
+│  │  ├── settings_json│      │  • Get schema for validation        │
 │  │  └── updated_at   │      │                                           │
 │  │                   │      └───────────────────────────────────────────┘
 │  └───────────────────┘
@@ -108,19 +108,19 @@
 
 ---
 
-## Новые/изменяемые файлы
+## New/modified files
 
 ```
 LO_TG_BOT/
 ├── api/
-│   ├── db.py                   # [РАСШИРЕНИЕ] Добавить ToolSettingsModel
-│   ├── tools_repository.py     # [НОВЫЙ] CRUD для tool_settings
-│   ├── tools_router.py         # [НОВЫЙ] API /api/tools/*
-│   ├── plugins_router.py       # [НОВЫЙ] API /api/plugins/*
-│   └── app.py                  # [РАСШИРЕНИЕ] Подключить роутеры, startup
+│   ├── db.py                   # [EXTENSION] Add ToolSettingsModel
+│   ├── tools_repository.py     # [NEW] CRUD for tool_settings
+│   ├── tools_router.py         # [NEW] API /api/tools/*
+│   ├── plugins_router.py       # [NEW] API /api/plugins/*
+│   └── app.py                  # [EXTENSION] Wire routers, startup
 │
 ├── tools/
-│   └── settings_manager.py     # [РАСШИРЕНИЕ] Интеграция с БД
+│   └── settings_manager.py     # [EXTENSION] DB integration
 │
 └── tests/
     ├── test_tools_repository.py
@@ -130,111 +130,111 @@ LO_TG_BOT/
 
 ---
 
-# Задачи Фазы 3
+# Phase 3
 
 ---
 
-## Задача 3.1: Модель данных ToolSettingsModel
+## Task 3.1: ToolSettingsModel data model
 
-### Описание
-Добавить SQLAlchemy модель для хранения настроек инструментов в существующую БД.
+### Description
+Add SQLAlchemy model for storing tool settings in existing DB.
 
-### Файл: api/db.py (расширение)
+### File: api/db.py (extension)
 
-### Модель ToolSettingsModel
+### ToolSettingsModel model
 
 ```python
 class ToolSettingsModel(Base):
     """
-    Настройки инструмента/плагина.
+    Tool/plugin settings.
     
-    Хранит:
-    - Статус включения (enabled)
-    - Настройки плагина (settings_json) — зашифрованы
+    Stores:
+    - Enabled status
+    - Plugin settings (settings_json) — encrypted
     """
     __tablename__ = "tool_settings"
     
-    # Первичный ключ — имя инструмента
+    # Primary key — tool name
     tool_name = Column(String, primary_key=True)
     
-    # ID плагина-владельца (для группировки)
+    # Owner plugin ID (for grouping)
     plugin_id = Column(String, nullable=False, index=True)
     
-    # Включён ли инструмент
+    # Whether tool is enabled
     enabled = Column(Boolean, default=False, nullable=False)
     
-    # Настройки в JSON (зашифрованы Fernet)
-    # Формат: {"jira_url": "...", "jira_token": "..."}
+    # Settings in JSON (Fernet encrypted)
+    # Format: {"jira_url": "...", "jira_token": "..."}
     settings_json = Column(Text, nullable=True)
     
-    # Временные метки
+    # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 ```
 
-### Миграция
+### Migration
 
-Таблица создаётся автоматически при старте (как существующие таблицы):
+Table created automatically on startup (like existing tables):
 
 ```python
-# В init_db() или create_tables()
+# In init_db() or create_tables()
 Base.metadata.create_all(bind=engine)
 ```
 
-**Важно:** Существующие таблицы (telegram_settings, llm_settings, service_admins) не затрагиваются.
+**Important:** Existing tables (telegram_settings, llm_settings, service_admins) are not modified.
 
-### Индексы
+### Indexes
 
 ```python
-# Индекс для быстрого поиска по plugin_id
+# Index for fast lookup by plugin_id
 Index('ix_tool_settings_plugin_id', ToolSettingsModel.plugin_id)
 ```
 
-### Критерий готовности
-- [ ] Модель добавлена в api/db.py
-- [ ] Таблица создаётся при старте
-- [ ] Существующие таблицы не ломаются
-- [ ] Тест на создание/чтение записи
+### Done when
+- [ ] Model added to api/db.py
+- [ ] Table created on startup
+- [ ] Existing tables not broken
+- [ ] Test create/read record
 
 ---
 
-## Задача 3.2: Tools Repository
+## Task 3.2: Tools Repository
 
-### Описание
-Слой доступа к данным для tool_settings. Инкапсулирует CRUD операции и шифрование.
+### Description
+Data access layer for tool_settings. Encapsulates CRUD and encryption.
 
-### Файл: api/tools_repository.py (новый)
+### File: api/tools_repository.py (new)
 
-### Функции
+### Functions
 
-#### Чтение
+#### Read
 ```python
 def get_tool_settings(tool_name: str) -> ToolSettingsModel | None:
     """
-    Получить настройки инструмента по имени.
+    Get tool settings by name.
     
     Args:
-        tool_name: Имя инструмента
+        tool_name: Tool name
         
     Returns:
-        Модель с расшифрованными настройками или None
+        Model with decrypted settings or None
     """
 
 def get_all_tool_settings() -> List[ToolSettingsModel]:
     """
-    Получить настройки всех инструментов.
+    Get all tool settings.
     
     Returns:
-        Список моделей (настройки расшифрованы)
+        List of models (settings decrypted)
     """
 
 def get_tool_settings_by_plugin(plugin_id: str) -> List[ToolSettingsModel]:
     """
-    Получить настройки инструментов конкретного плагина.
+    Get settings for tools of a specific plugin.
     """
 ```
 
-#### Запись
+#### Write
 ```python
 def save_tool_settings(
     tool_name: str,
@@ -243,73 +243,73 @@ def save_tool_settings(
     settings: dict | None = None
 ) -> ToolSettingsModel:
     """
-    Сохранить настройки инструмента (create or update).
+    Save tool settings (create or update).
     
     Args:
-        tool_name: Имя инструмента
-        plugin_id: ID плагина
-        enabled: Включён ли
-        settings: Словарь настроек (будет зашифрован)
+        tool_name: Tool name
+        plugin_id: Plugin ID
+        enabled: Whether enabled
+        settings: Settings dict (will be encrypted)
         
     Returns:
-        Сохранённая модель
+        Saved model
     """
 
 def update_tool_enabled(tool_name: str, enabled: bool) -> bool:
     """
-    Обновить только статус enabled.
+    Update only enabled status.
     
     Returns:
-        True если успешно, False если не найден
+        True if successful, False if not found
     """
 
 def update_tool_settings(tool_name: str, settings: dict) -> bool:
     """
-    Обновить только настройки (без изменения enabled).
+    Update only settings (without changing enabled).
     
     Returns:
-        True если успешно, False если не найден
+        True if successful, False if not found
     """
 ```
 
-#### Удаление
+#### Delete
 ```python
 def delete_tool_settings(tool_name: str) -> bool:
     """
-    Удалить настройки инструмента.
+    Delete tool settings.
     
     Returns:
-        True если удалено, False если не найдено
+        True if deleted, False if not found
     """
 
 def delete_plugin_settings(plugin_id: str) -> int:
     """
-    Удалить настройки всех инструментов плагина.
+    Delete settings for all tools of a plugin.
     
     Returns:
-        Количество удалённых записей
+        Number of deleted records
     """
 ```
 
-### Шифрование
+### Encryption
 
-Используем существующий `api/encryption.py`:
+Use existing `api/encryption.py`:
 
 ```python
 from api.encryption import encrypt_value, decrypt_value
 
 def _encrypt_settings(settings: dict) -> str:
-    """Зашифровать настройки в JSON строку"""
+    """Encrypt settings to JSON string"""
     json_str = json.dumps(settings, ensure_ascii=False)
     return encrypt_value(json_str)
 
 def _decrypt_settings(encrypted: str) -> dict:
-    """Расшифровать настройки из JSON строки"""
+    """Decrypt settings from JSON string"""
     json_str = decrypt_value(encrypted)
     return json.loads(json_str)
 ```
 
-### Маскирование для API
+### Masking for API
 
 ```python
 def mask_settings(
@@ -317,28 +317,28 @@ def mask_settings(
     schema: List[PluginSettingDefinition]
 ) -> dict:
     """
-    Маскировать секретные поля для отдачи в API.
+    Mask secret fields for API response.
     
-    Поля с type='password' маскируются как '***xxxxx' (последние 5 символов).
+    Fields with type='password' masked as '***xxxxx' (last 5 chars).
     
     Args:
-        settings: Расшифрованные настройки
-        schema: Схема настроек из plugin.yaml
+        settings: Decrypted settings
+        schema: Settings schema from plugin.yaml
         
     Returns:
-        Настройки с замаскированными паролями
+        Settings with masked passwords
     """
     
 def _mask_value(value: str) -> str:
-    """Маскирует значение, оставляя последние 5 символов"""
+    """Masks value, keeping last 5 chars"""
     if not value or len(value) <= 5:
         return "***"
     return f"***{value[-5:]}"
 ```
 
-### Работа с сессиями
+### Session handling
 
-Использовать паттерн из существующего кода:
+Use pattern from existing code:
 
 ```python
 from api.db import SessionLocal
@@ -350,53 +350,53 @@ def get_tool_settings(tool_name: str) -> ToolSettingsModel | None:
         ).first()
         
         if result and result.settings_json:
-            # Расшифровываем перед возвратом
+            # Decrypt before return
             result._decrypted_settings = _decrypt_settings(result.settings_json)
         
         return result
 ```
 
-### Критерий готовности
-- [ ] Все CRUD функции реализованы
-- [ ] Шифрование работает (используется encryption.py)
-- [ ] Маскирование работает
-- [ ] Тесты на все операции
-- [ ] Тесты на шифрование/расшифровку
+### Done when
+- [ ] All CRUD functions implemented
+- [ ] Encryption works (uses encryption.py)
+- [ ] Masking works
+- [ ] Tests for all operations
+- [ ] Tests for encrypt/decrypt
 
 ---
 
-## Задача 3.3: Plugin Settings Manager (расширение)
+## Task 3.3: Plugin Settings Manager (extension)
 
-### Описание
-Расширить `tools/settings_manager.py` для работы с БД вместо заглушек.
+### Description
+Extend `tools/settings_manager.py` to use DB instead of stubs.
 
-### Файл: tools/settings_manager.py (расширение из Фазы 2)
+### File: tools/settings_manager.py (extension from Phase 2)
 
-### Было (Фаза 2)
+### Before (Phase 2)
 
 ```python
 def get_plugin_setting(plugin_id: str, key: str, default: Any = None) -> Any:
-    # Заглушка — всегда возвращает default
+    # Stub — always returns default
     return default
 ```
 
-### Стало (Фаза 3)
+### After (Phase 3)
 
 ```python
 from api.tools_repository import get_tool_settings, save_tool_settings
 
 def get_plugin_settings(plugin_id: str) -> dict:
     """
-    Получить все настройки плагина из БД.
+    Get all plugin settings from DB.
     
     Args:
-        plugin_id: ID плагина
+        plugin_id: Plugin ID
         
     Returns:
-        Словарь настроек или пустой dict
+        Settings dict or empty dict
     """
-    # Получаем настройки первого инструмента плагина
-    # (все инструменты плагина используют общие настройки)
+    # Get settings of plugin's first tool
+    # (all plugin tools share settings)
     from tools import get_registry
     registry = get_registry()
     
@@ -415,7 +415,7 @@ def get_plugin_settings(plugin_id: str) -> dict:
 
 def get_plugin_setting(plugin_id: str, key: str, default: Any = None) -> Any:
     """
-    Получить конкретную настройку плагина.
+    Get a specific plugin setting.
     """
     settings = get_plugin_settings(plugin_id)
     return settings.get(key, default)
@@ -423,8 +423,8 @@ def get_plugin_setting(plugin_id: str, key: str, default: Any = None) -> Any:
 
 def save_plugin_settings(plugin_id: str, settings: dict) -> None:
     """
-    Сохранить настройки плагина.
-    Сохраняет для всех инструментов плагина.
+    Save plugin settings.
+    Saves for all plugin tools.
     """
     from tools import get_registry
     registry = get_registry()
@@ -442,14 +442,14 @@ def save_plugin_settings(plugin_id: str, settings: dict) -> None:
 
 def is_plugin_configured(plugin_id: str) -> bool:
     """
-    Проверить что все обязательные настройки заполнены.
+    Check that all required settings are set.
     """
     from tools import get_registry
     registry = get_registry()
     
     manifest = registry.get_plugin(plugin_id)
     if not manifest or not manifest.settings:
-        return True  # Нет настроек — считаем настроенным
+        return True  # No settings — consider configured
     
     settings = get_plugin_settings(plugin_id)
     
@@ -464,7 +464,7 @@ def is_plugin_configured(plugin_id: str) -> bool:
 
 def get_missing_settings(plugin_id: str) -> List[str]:
     """
-    Получить список незаполненных обязательных настроек.
+    Get list of missing required settings.
     """
     from tools import get_registry
     registry = get_registry()
@@ -487,10 +487,10 @@ def get_missing_settings(plugin_id: str) -> List[str]:
 
 def validate_plugin_settings(settings: dict, schema: List) -> List[dict]:
     """
-    Валидировать настройки по схеме.
+    Validate settings against schema.
     
     Returns:
-        Список ошибок [{"field": "...", "error": "..."}] или []
+        List of errors [{"field": "...", "error": "..."}] or []
     """
     errors = []
     
@@ -498,14 +498,14 @@ def validate_plugin_settings(settings: dict, schema: List) -> List[dict]:
         key = setting_def.key
         value = settings.get(key)
         
-        # Проверка required
+        # Check required
         if setting_def.required and (value is None or value == ""):
-            # Пропускаем замаскированные пароли
+            # Skip masked passwords
             if not (isinstance(value, str) and value.startswith("***")):
                 errors.append({"field": key, "error": "Required field is empty"})
                 continue
         
-        # Проверка типа
+        # Check type
         if value is not None and value != "":
             if setting_def.type == "number":
                 if not isinstance(value, (int, float)):
@@ -521,13 +521,13 @@ def validate_plugin_settings(settings: dict, schema: List) -> List[dict]:
     return errors
 ```
 
-### Синхронизация с Registry
+### Sync with Registry
 
 ```python
 async def sync_settings_with_registry() -> None:
     """
-    Синхронизировать настройки из БД с Registry.
-    Вызывается при старте приложения после загрузки плагинов.
+    Sync settings from DB to Registry.
+    Called on application startup after loading plugins.
     """
     from tools import get_registry
     from api.tools_repository import get_all_tool_settings
@@ -544,30 +544,30 @@ async def sync_settings_with_registry() -> None:
                 registry.disable_tool(record.tool_name)
 ```
 
-### Критерий готовности
-- [ ] get_plugin_settings() читает из БД
-- [ ] save_plugin_settings() пишет в БД
-- [ ] is_plugin_configured() проверяет required поля
-- [ ] validate_plugin_settings() валидирует
-- [ ] sync_settings_with_registry() работает
-- [ ] Тесты
+### Done when
+- [ ] get_plugin_settings() reads from DB
+- [ ] save_plugin_settings() writes to DB
+- [ ] is_plugin_configured() checks required fields
+- [ ] validate_plugin_settings() validates
+- [ ] sync_settings_with_registry() works
+- [ ] Tests
 
 ---
 
-## Задача 3.4: Tools Router (API)
+## Task 3.4: Tools Router (API)
 
-### Описание
-REST API для управления инструментами: список, включение/выключение, настройки.
+### Description
+REST API for managing tools: list, enable/disable, settings.
 
-### Файл: api/tools_router.py (новый)
+### File: api/tools_router.py (new)
 
-### Эндпоинты
+### Endpoints
 
 ---
 
-#### GET /api/tools — Список инструментов
+#### GET /api/tools — Tool list
 
-**Описание:** Получить список всех инструментов с их статусами.
+**Description:** Get list of all tools with their statuses.
 
 **Response 200:**
 ```json
@@ -586,7 +586,7 @@ REST API для управления инструментами: список, �
       "name": "check_worklogs",
       "description": "Checks employee worklogs...",
       "plugin_id": "worklog-checker",
-      "plugin_name": "Проверка ворклогов",
+      "plugin_name": "Worklog Checker",
       "enabled": false,
       "needs_config": true,
       "has_settings": true
@@ -599,9 +599,9 @@ REST API для управления инструментами: список, �
 
 ---
 
-#### GET /api/tools/{name} — Детали инструмента
+#### GET /api/tools/{name} — Tool details
 
-**Описание:** Получить полную информацию об инструменте.
+**Description:** Get full tool information.
 
 **Response 200:**
 ```json
@@ -609,7 +609,7 @@ REST API для управления инструментами: список, �
   "name": "check_worklogs",
   "description": "Checks employee worklogs for specified period",
   "plugin_id": "worklog-checker",
-  "plugin_name": "Проверка ворклогов",
+  "plugin_name": "Worklog Checker",
   "plugin_version": "1.0.0",
   "enabled": false,
   "needs_config": true,
@@ -653,9 +653,9 @@ REST API для управления инструментами: список, �
 
 ---
 
-#### POST /api/tools/{name}/enable — Включить инструмент
+#### POST /api/tools/{name}/enable — Enable tool
 
-**Описание:** Включить инструмент. Проверяет что настройки заполнены.
+**Description:** Enable tool. Checks that settings are filled.
 
 **Response 200:**
 ```json
@@ -665,7 +665,7 @@ REST API для управления инструментами: список, �
 }
 ```
 
-**Response 400 (нужна настройка):**
+**Response 400 (settings required):**
 ```json
 {
   "success": false,
@@ -676,7 +676,7 @@ REST API для управления инструментами: список, �
 
 ---
 
-#### POST /api/tools/{name}/disable — Выключить инструмент
+#### POST /api/tools/{name}/disable — Disable tool
 
 **Response 200:**
 ```json
@@ -688,7 +688,7 @@ REST API для управления инструментами: список, �
 
 ---
 
-#### GET /api/tools/{name}/settings — Получить настройки
+#### GET /api/tools/{name}/settings — Get settings
 
 **Response 200:**
 ```json
@@ -705,7 +705,7 @@ REST API для управления инструментами: список, �
 
 ---
 
-#### PUT /api/tools/{name}/settings — Сохранить настройки
+#### PUT /api/tools/{name}/settings — Save settings
 
 **Request:**
 ```json
@@ -726,7 +726,7 @@ REST API для управления инструментами: список, �
 }
 ```
 
-**Response 400 (ошибки валидации):**
+**Response 400 (validation error):**
 ```json
 {
   "success": false,
@@ -738,11 +738,11 @@ REST API для управления инструментами: список, �
 }
 ```
 
-**Особенность:** Если поле с type=password передано как `"***..."` (маска), оно не обновляется.
+**Note:** If field with type=password is sent as `"***..."` (mask), it is not updated.
 
 ---
 
-#### POST /api/tools/{name}/test — Тест подключения
+#### POST /api/tools/{name}/test — Test connection
 
 **Response 200:**
 ```json
@@ -756,7 +756,7 @@ REST API для управления инструментами: список, �
 }
 ```
 
-**Response 400 (не поддерживается):**
+**Response 400 (not supported):**
 ```json
 {
   "success": false,
@@ -764,32 +764,32 @@ REST API для управления инструментами: список, �
 }
 ```
 
-### Критерий готовности
-- [ ] GET /api/tools работает
-- [ ] GET /api/tools/{name} работает
-- [ ] POST /api/tools/{name}/enable работает
-- [ ] POST /api/tools/{name}/disable работает
-- [ ] GET /api/tools/{name}/settings работает
-- [ ] PUT /api/tools/{name}/settings работает
-- [ ] POST /api/tools/{name}/test работает
-- [ ] Авторизация через X-Admin-Key
-- [ ] Swagger документация
-- [ ] Тесты на все эндпоинты
+### Done when
+- [ ] GET /api/tools works
+- [ ] GET /api/tools/{name} works
+- [ ] POST /api/tools/{name}/enable works
+- [ ] POST /api/tools/{name}/disable works
+- [ ] GET /api/tools/{name}/settings works
+- [ ] PUT /api/tools/{name}/settings works
+- [ ] POST /api/tools/{name}/test works
+- [ ] Auth via X-Admin-Key
+- [ ] Swagger documentation
+- [ ] Tests for all endpoints
 
 ---
 
-## Задача 3.5: Plugins Router (API)
+## Task 3.5: Plugins Router (API)
 
-### Описание
-API для управления плагинами: список, перезагрузка.
+### Description
+API for managing plugins: list, reload.
 
-### Файл: api/plugins_router.py (новый)
+### File: api/plugins_router.py (new)
 
-### Эндпоинты
+### Endpoints
 
 ---
 
-#### GET /api/plugins — Список плагинов
+#### GET /api/plugins — List plugins
 
 **Response 200:**
 ```json
@@ -818,7 +818,7 @@ API для управления плагинами: список, перезаг
 
 ---
 
-#### POST /api/plugins/reload — Перезагрузить все плагины
+#### POST /api/plugins/reload — Reload all plugins
 
 **Response 200:**
 ```json
@@ -833,7 +833,7 @@ API для управления плагинами: список, перезаг
 
 ---
 
-#### POST /api/plugins/{id}/reload — Перезагрузить один плагин
+#### POST /api/plugins/{id}/reload — Reload one plugin
 
 **Response 200:**
 ```json
@@ -851,31 +851,31 @@ API для управления плагинами: список, перезаг
 }
 ```
 
-### Критерий готовности
-- [ ] GET /api/plugins работает
-- [ ] POST /api/plugins/reload работает
-- [ ] POST /api/plugins/{id}/reload работает
-- [ ] Синхронизация с БД после reload
-- [ ] Тесты
+### Done when
+- [ ] GET /api/plugins works
+- [ ] POST /api/plugins/reload works
+- [ ] POST /api/plugins/{id}/reload works
+- [ ] Sync with DB after reload
+- [ ] Tests
 
 ---
 
-## Задача 3.6: Интеграция в app.py
+## Task 3.6: Integration in app.py
 
-### Описание
-Подключить новые роутеры и настроить загрузку плагинов при старте.
+### Description
+Wire new routers and configure plugin loading on startup.
 
-### Файл: api/app.py (расширение)
+### File: api/app.py (extension)
 
-### Изменения
+### Changes
 
-#### Подключение роутеров
+#### Wire routers
 
 ```python
 from api.tools_router import router as tools_router
 from api.plugins_router import router as plugins_router
 
-# После существующих роутеров
+# After existing routers
 app.include_router(tools_router)
 app.include_router(plugins_router)
 ```
@@ -885,9 +885,9 @@ app.include_router(plugins_router)
 ```python
 @app.on_event("startup")
 async def startup_event():
-    # Существующая логика...
+    # Existing logic...
     
-    # НОВОЕ: Загрузка плагинов
+    # NEW: Load plugins
     from tools import load_all_plugins
     from tools.settings_manager import sync_settings_with_registry
     
@@ -899,45 +899,45 @@ async def startup_event():
         for error in result.failed:
             logger.error(f"Failed to load plugin: {error.plugin_path} - {error.error}")
     
-    # Синхронизируем настройки из БД
+    # Sync settings from DB
     await sync_settings_with_registry()
     logger.info("Plugin settings synchronized with database")
 ```
 
-### Порядок инициализации
+### Initialization order
 
 ```
 app startup:
 │
-├── 1. Инициализация БД (существующее)
+├── 1. DB init (existing)
 │   └── create_tables()
 │
-├── 2. Загрузка плагинов (НОВОЕ)
+├── 2. Load plugins (NEW)
 │   ├── load_all_plugins()
-│   └── Плагины регистрируются в Registry
+│   └── Plugins registered in Registry
 │
-├── 3. Синхронизация настроек (НОВОЕ)
+├── 3. Sync settings (NEW)
 │   ├── sync_settings_with_registry()
-│   └── enabled статусы из БД → Registry
+│   └── enabled statuses from DB → Registry
 │
-├── 4. Запуск бота (существующее)
+├── 4. Start bot (existing)
 │   └── start_bot_subprocess()
 │
-└── 5. Готов к приёму запросов
+└── 5. Ready to accept requests
 ```
 
-### Критерий готовности
-- [ ] Роутеры подключены
-- [ ] Плагины загружаются при старте
-- [ ] Настройки синхронизируются
-- [ ] Логирование
-- [ ] Существующая функциональность не сломана
+### Done when
+- [ ] Routers wired
+- [ ] Plugins load on startup
+- [ ] Settings synced
+- [ ] Logging
+- [ ] Existing functionality not broken
 
 ---
 
-## Задача 3.7: Тестирование Фазы 3
+## Task 3.7: Phase 3 testing
 
-### Unit-тесты
+### Unit tests
 
 #### tests/test_tools_repository.py
 ```
@@ -987,97 +987,97 @@ test_reload_one_plugin
 test_reload_one_plugin_not_found
 ```
 
-### Ручное тестирование (чеклист)
+### Manual testing (checklist)
 
-**Проверка API через Swagger (/docs):**
-- [ ] GET /api/tools — возвращает список
-- [ ] GET /api/tools/calculate — возвращает детали
-- [ ] POST /api/tools/calculate/enable — включает
-- [ ] POST /api/tools/calculate/disable — выключает
-- [ ] PUT /api/tools/{name}/settings — сохраняет
-- [ ] GET /api/plugins — возвращает список плагинов
-- [ ] POST /api/plugins/reload — перезагружает
+**API check via Swagger (/docs):**
+- [ ] GET /api/tools — returns list
+- [ ] GET /api/tools/calculate — returns details
+- [ ] POST /api/tools/calculate/enable — enables
+- [ ] POST /api/tools/calculate/disable — disables
+- [ ] PUT /api/tools/{name}/settings — saves
+- [ ] GET /api/plugins — returns plugin list
+- [ ] POST /api/plugins/reload — reloads
 
-**Проверка персистентности:**
-- [ ] Включить инструмент → перезапустить → проверить что включён
-- [ ] Сохранить настройки → перезапустить → проверить что сохранены
+**Persistence check:**
+- [ ] Enable tool → restart → check still enabled
+- [ ] Save settings → restart → check saved
 
-**Проверка шифрования:**
-- [ ] Посмотреть в БД — settings_json зашифрован
-- [ ] API возвращает расшифрованные (с маской для паролей)
+**Encryption check:**
+- [ ] Look in DB — settings_json encrypted
+- [ ] API returns decrypted (with mask for passwords)
 
-### Критерий готовности
-- [ ] Все unit-тесты проходят
-- [ ] Ручное тестирование пройдено
-- [ ] Нет регрессий
+### Done when
+- [ ] All unit tests pass
+- [ ] Manual testing done
+- [ ] No regressions
 
 ---
 
-## Последовательность работ
+## Work sequence
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 1: Storage                                                            │
+│  DAY 1: Storage                                                            │
 │                                                                             │
-│  Утро:                                                                      │
-│  ├── 3.1 Модель ToolSettingsModel в db.py                                  │
-│  └── Тест создания таблицы                                                 │
+│  Morning:                                                                      │
+│  ├── 3.1 ToolSettingsModel model in db.py                                  │
+│  └── Test table creation                                                 │
 │                                                                             │
-│  После обеда:                                                               │
+│  Afternoon:                                                               │
 │  ├── 3.2 Tools Repository                                                  │
-│  └── Тесты CRUD и шифрования                                               │
+│  └── Tests CRUD and encryption                                               │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 2: Settings Manager + API (часть 1)                                   │
+│  DAY 2: Settings Manager + API (part 1)                                   │
 │                                                                             │
-│  Утро:                                                                      │
-│  ├── 3.3 Расширение settings_manager.py                                    │
-│  └── Тесты settings_manager                                                │
+│  Morning:                                                                      │
+│  ├── 3.3 Extend settings_manager.py                                    │
+│  └── Tests settings_manager                                                │
 │                                                                             │
-│  После обеда:                                                               │
+│  Afternoon:                                                               │
 │  ├── 3.4 Tools Router (GET /api/tools, GET /api/tools/{name})              │
-│  └── Тесты                                                                 │
+│  └── Tests                                                                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 3: API (часть 2) + Интеграция                                        │
+│  DAY 3: API (part 2) + Integration                                        │
 │                                                                             │
-│  Утро:                                                                      │
+│  Morning:                                                                      │
 │  ├── 3.4 Tools Router (enable, disable, settings, test)                    │
-│  └── Тесты                                                                 │
+│  └── Tests                                                                 │
 │                                                                             │
-│  После обеда:                                                               │
+│  Afternoon:                                                               │
 │  ├── 3.5 Plugins Router                                                    │
-│  ├── 3.6 Интеграция в app.py                                               │
-│  └── Тесты                                                                 │
+│  ├── 3.6 Integration in app.py                                               │
+│  └── Tests                                                                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ДЕНЬ 4: Тестирование                                                      │
+│  DAY 4: Testing                                                      │
 │                                                                             │
-│  ├── 3.7 Ручное тестирование по чеклисту                                   │
-│  ├── Исправление багов                                                     │
-│  └── Документация API (Swagger)                                            │
+│  ├── 3.7 Manual testing by checklist                                   │
+│  ├── Bug fixes                                                     │
+│  └── API documentation (Swagger)                                            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  РЕЗУЛЬТАТ ФАЗЫ 3                                                          │
+│  PHASE 3 RESULT                                                          │
 │                                                                             │
-│  ✅ Настройки плагинов сохраняются в БД                                    │
-│  ✅ Секреты зашифрованы                                                     │
-│  ✅ API для управления инструментами работает                              │
-│  ✅ API для управления плагинами работает                                  │
-│  ✅ Персистентность: настройки переживают перезапуск                       │
-│  ✅ Готов бэкенд для Фазы 4 (Admin Tools)                          │
+│  ✅ Plugin settings stored in DB                                    │
+│  ✅ Secrets encrypted                                                     │
+│  ✅ API for managing tools works                              │
+│  ✅ API for managing plugins works                                  │
+│  ✅ Persistence: settings survive restart                       │
+│  ✅ Backend ready for Phase 4 (Admin Tools)                          │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1088,61 +1088,61 @@ test_reload_one_plugin_not_found
 
 ### Tools Router (/api/tools)
 
-| Метод | Эндпоинт | Описание |
-|-------|----------|----------|
-| GET | /api/tools | Список инструментов |
-| GET | /api/tools/{name} | Детали инструмента |
-| POST | /api/tools/{name}/enable | Включить |
-| POST | /api/tools/{name}/disable | Выключить |
-| GET | /api/tools/{name}/settings | Получить настройки |
-| PUT | /api/tools/{name}/settings | Сохранить настройки |
-| POST | /api/tools/{name}/test | Тест подключения |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/tools | Tool list |
+| GET | /api/tools/{name} | Tool details |
+| POST | /api/tools/{name}/enable | Enable |
+| POST | /api/tools/{name}/disable | Disable |
+| GET | /api/tools/{name}/settings | Get settings |
+| PUT | /api/tools/{name}/settings | Save settings |
+| POST | /api/tools/{name}/test | Test connection |
 
 ### Plugins Router (/api/plugins)
 
-| Метод | Эндпоинт | Описание |
-|-------|----------|----------|
-| GET | /api/plugins | Список плагинов |
-| POST | /api/plugins/reload | Перезагрузить все |
-| POST | /api/plugins/{id}/reload | Перезагрузить один |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/plugins | List plugins |
+| POST | /api/plugins/reload | Reload all |
+| POST | /api/plugins/{id}/reload | Reload one |
 
 ---
 
-## Риски и митигации
+## Risks and mitigations
 
-| Риск | Вероятность | Влияние | Митигация |
+| Risk | Likelihood | Impact | Mitigation |
 |------|-------------|---------|-----------|
-| Миграция БД сломает данные | Низкая | Высокое | Новая таблица, не трогаем старые |
-| Шифрование несовместимо | Низкая | Среднее | Используем существующий encryption.py |
-| Гонки при параллельных запросах | Средняя | Среднее | Транзакции SQLAlchemy |
+| DB migration breaks data | Low | High | New table, do not touch existing |
+| Encryption incompatible | Low | Medium | Use existing encryption.py |
+| Race on parallel requests | Medium | Medium | SQLAlchemy transactions |
 
 ---
 
-## Definition of Done для Фазы 3
+## Definition of Done for Phase 3
 
-- [ ] Все задачи 3.1-3.7 выполнены
-- [ ] Модель ToolSettingsModel создана
-- [ ] Repository работает
-- [ ] Settings Manager интегрирован с БД
-- [ ] Tools Router реализован
-- [ ] Plugins Router реализован
-- [ ] Интеграция в app.py завершена
-- [ ] Все тесты проходят
-- [ ] Ручное тестирование пройдено
-- [ ] Swagger документация актуальна
-- [ ] Нет регрессий
-
----
-
-## Что НЕ входит в Фазу 3
-
-- ❌ UI админки (Фаза 4)
-- ❌ Бизнес-плагины (Фаза 6)
+- [ ] All tasks 3.1-3.7 done
+- [ ] ToolSettingsModel created
+- [ ] Repository works
+- [ ] Settings Manager integrated with DB
+- [ ] Tools Router implemented
+- [ ] Plugins Router implemented
+- [ ] Integration in app.py done
+- [ ] All tests pass
+- [ ] Manual testing done
+- [ ] Swagger docs up to date
+- [ ] No regressions
 
 ---
 
-## Версионирование документа
+## Out of scope for Phase 3
 
-| Версия | Дата | Описание |
+- ❌ Admin UI (Phase 4)
+- ❌ Business plugins (Phase 6)
+
+---
+
+## Document versioning
+
+| Version | Date | Description |
 |--------|------|----------|
-| 1.0 | 2026-02-06 | Первая версия плана Фазы 3 |
+| 1.0 | 2026-02-06 | First version of Phase 3 detailed plan |
