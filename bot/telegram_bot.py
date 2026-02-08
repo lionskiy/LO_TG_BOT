@@ -153,7 +153,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             name="hr",
             arguments={"action": "import_employees", "file_path": tmp_path},
         )
-        result = await execute_tool(tc)
+        result = await execute_tool(tc, telegram_id=user_id)
         if result.success:
             text = result.content
             if isinstance(text, str) and text.startswith("{"):
