@@ -88,8 +88,10 @@ if _admin_dir.exists():
 
 from api.tools_router import router as tools_router
 from api.plugins_router import router as plugins_router
+from api.hr_router import router as hr_router
 app.include_router(tools_router)
 app.include_router(plugins_router)
+app.include_router(hr_router)
 
 
 @app.get("/api/settings")
