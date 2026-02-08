@@ -1,13 +1,9 @@
 /**
  * Admin Tools section: list tools, enable/disable, reload plugins.
- * Uses same auth as app.js (X-Admin-Key from #adminKey).
  */
 (function () {
   function getHeaders() {
-    const key = document.getElementById('adminKey')?.value?.trim();
-    const headers = { 'Content-Type': 'application/json' };
-    if (key) headers['X-Admin-Key'] = key;
-    return headers;
+    return { 'Content-Type': 'application/json' };
   }
 
   function api(path, options = {}) {

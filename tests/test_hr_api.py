@@ -18,42 +18,24 @@ def client():
     return TestClient(app)
 
 
-@pytest.fixture
-def admin_headers():
-    os.environ["ADMIN_API_KEY"] = "test_hr_admin_key"
-    return {"X-Admin-Key": "test_hr_admin_key"}
-
-
-def test_hr_employees_list_empty(client, admin_headers):
+def test_hr_employees_list_empty(client):
     """GET /api/hr/employees returns empty list when no employees."""
-    r = client.get("/api/hr/employees", headers=admin_headers)
+    r = client.get("/api/hr/employees")
     assert r.status_code == 200
     assert r.json() == []
 
 
-def test_hr_employees_list_views(client, admin_headers):
+def test_hr_employees_list_views(client):
     """GET /api/hr/employees?view=supervisors works."""
-    r = client.get("/api/hr/employees?view=supervisors", headers=admin_headers)
+    r = client.get("/api/hr/employees?view=supervisors")
     assert r.status_code == 200
     assert isinstance(r.json(), list)
 
 
-def test_hr_employee_not_found(client, admin_headers):
+def test_hr_employee_not_found(client):
     """GET /api/hr/employees/99999 returns 404."""
-    r = client.get("/api/hr/employees/99999", headers=admin_headers)
+    r = client.get("/api/hr/employees/99999")
     assert r.status_code == 404
-
-
-def test_hr_requires_admin(client):
-    """GET /api/hr/employees returns 403 without admin key when set."""
-    import api.hr_router as hr_router
-    orig = hr_router.ADMIN_API_KEY
-    try:
-        hr_router.ADMIN_API_KEY = "required"
-        r = client.get("/api/hr/employees")
-        assert r.status_code == 403
-    finally:
-        hr_router.ADMIN_API_KEY = orig
 
 
 def test_employees_repository_create_and_get():

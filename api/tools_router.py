@@ -1,10 +1,9 @@
 """REST API for tools: list, get, enable/disable, settings."""
 import logging
-import os
 from typing import List
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from api.tools_repository import (
     get_tool_settings,
@@ -23,19 +22,10 @@ from tools.settings_manager import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
-ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "").strip()
-
-
-def _require_admin(x_admin_key: str | None = Header(None, alias="X-Admin-Key")) -> None:
-    """Raise 403 if ADMIN_API_KEY is set and request does not provide it (consistent with app.py)."""
-    if not ADMIN_API_KEY:
-        return
-    if not x_admin_key or x_admin_key != ADMIN_API_KEY:
-        raise HTTPException(status_code=403, detail="Admin access required")
 
 
 @router.get("")
-async def list_tools(_: None = Depends(_require_admin)):
+async def list_tools():
     """Get list of all tools with statuses."""
     reg = get_registry()
     db_records = {r.tool_name: r for r in get_all_tool_settings()}
@@ -63,7 +53,7 @@ async def list_tools(_: None = Depends(_require_admin)):
 
 
 @router.get("/{name}")
-async def get_tool(name: str, _: None = Depends(_require_admin)):
+async def get_tool(name: str):
     """Get full tool information."""
     reg = get_registry()
     tool = reg.get_tool(name)
@@ -96,7 +86,7 @@ async def get_tool(name: str, _: None = Depends(_require_admin)):
 
 
 @router.post("/{name}/enable")
-async def enable_tool(name: str, _: None = Depends(_require_admin)):
+async def enable_tool(name: str):
     """Enable tool. Returns 400 if required settings missing."""
     reg = get_registry()
     tool = reg.get_tool(name)
@@ -118,7 +108,7 @@ async def enable_tool(name: str, _: None = Depends(_require_admin)):
 
 
 @router.post("/{name}/disable")
-async def disable_tool(name: str, _: None = Depends(_require_admin)):
+async def disable_tool(name: str):
     """Disable tool."""
     reg = get_registry()
     tool = reg.get_tool(name)
@@ -134,7 +124,7 @@ async def disable_tool(name: str, _: None = Depends(_require_admin)):
 
 
 @router.get("/{name}/settings")
-async def get_tool_settings_endpoint(name: str, _: None = Depends(_require_admin)):
+async def get_tool_settings_endpoint(name: str):
     """Get tool settings (masked)."""
     reg = get_registry()
     tool = reg.get_tool(name)
@@ -149,7 +139,7 @@ async def get_tool_settings_endpoint(name: str, _: None = Depends(_require_admin
 
 
 @router.put("/{name}/settings")
-async def put_tool_settings(name: str, body: dict, _: None = Depends(_require_admin)):
+async def put_tool_settings(name: str, body: dict):
     """Save tool settings. Masked password values (***...) are preserved. Does not change enabled (per plan)."""
     reg = get_registry()
     tool = reg.get_tool(name)
@@ -206,7 +196,7 @@ async def _test_get_worklogs_connection() -> tuple[bool, str]:
 
 
 @router.post("/{name}/test")
-async def test_tool_connection(name: str, _: None = Depends(_require_admin)):
+async def test_tool_connection(name: str):
     """Test tool connection. Supported for get_worklogs (Jira/Tempo)."""
     reg = get_registry()
     if not reg.get_tool(name):

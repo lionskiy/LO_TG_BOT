@@ -5,7 +5,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import FastAPI, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 
 from api.db import CONNECTION_STATUS_SUCCESS, init_db
@@ -48,16 +48,6 @@ from api.service_admins_repository import (
 
 logger = logging.getLogger(__name__)
 
-ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "").strip()
-
-
-def _require_admin(x_admin_key: str = Header(None, alias="X-Admin-Key")) -> None:
-    """Raise 403 if ADMIN_API_KEY is set and request does not provide it."""
-    if not ADMIN_API_KEY:
-        return
-    if not x_admin_key or x_admin_key != ADMIN_API_KEY:
-        raise HTTPException(status_code=403, detail="Admin access required")
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -95,7 +85,7 @@ app.include_router(hr_router)
 
 
 @app.get("/api/settings")
-def get_settings(_: None = Depends(_require_admin)):
+def get_settings():
     """Return all settings (Telegram and LLM). Secrets are masked (last 5 chars)."""
     return {
         "telegram": get_telegram_settings(),
@@ -104,14 +94,14 @@ def get_settings(_: None = Depends(_require_admin)):
 
 
 @app.post("/api/settings/telegram/test")
-async def telegram_test(_: None = Depends(_require_admin)):
+async def telegram_test():
     """Test Telegram Bot API connection (getMe). Uses saved settings from DB. Async to avoid blocking."""
     status, message = await test_telegram_connection_async()
     return {"status": status, "message": message}
 
 
 @app.put("/api/settings/telegram")
-async def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
+async def put_telegram_settings(body: dict):
     """
     Save Telegram block. Validate (accessToken required unless existing token).
     Task 5: if accessToken empty but we have saved token, keep it and only update base_url.
@@ -151,7 +141,7 @@ async def put_telegram_settings(body: dict, _: None = Depends(_require_admin)):
 
 
 @app.delete("/api/settings/telegram")
-def delete_telegram_settings(_: None = Depends(_require_admin)):
+def delete_telegram_settings():
     """Clear saved Telegram settings (token, base URL). Stops bot subprocess."""
     clear_telegram_settings()
     stop_bot()
@@ -160,7 +150,7 @@ def delete_telegram_settings(_: None = Depends(_require_admin)):
 
 
 @app.delete("/api/settings/telegram/token")
-def delete_telegram_token(_: None = Depends(_require_admin)):
+def delete_telegram_token():
     """Unbind Telegram token (remove token, set is_active=False). Stops bot subprocess."""
     clear_telegram_token()
     stop_bot()
@@ -169,7 +159,7 @@ def delete_telegram_token(_: None = Depends(_require_admin)):
 
 
 @app.post("/api/settings/telegram/activate")
-async def telegram_activate(_: None = Depends(_require_admin)):
+async def telegram_activate():
     """Run connection test in thread; if success, mark saved Telegram settings as active."""
     status, message = await asyncio.to_thread(test_telegram_connection)
     activated = status == CONNECTION_STATUS_SUCCESS
@@ -181,14 +171,14 @@ async def telegram_activate(_: None = Depends(_require_admin)):
 
 
 @app.post("/api/settings/llm/test")
-async def llm_test(_: None = Depends(_require_admin)):
+async def llm_test():
     """Test LLM provider connection. Uses saved settings from DB. Runs in thread to avoid blocking."""
     status, message = await asyncio.to_thread(test_llm_connection)
     return {"status": status, "message": message}
 
 
 @app.patch("/api/settings/llm")
-async def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
+async def patch_llm_settings(body: dict):
     """
     Update only model_type, system_prompt, azure fields, project_id. No connection test; keeps is_active.
     Use when only model or system prompt changed (Task 4, 6).
@@ -218,7 +208,7 @@ async def patch_llm_settings(body: dict, _: None = Depends(_require_admin)):
 
 
 @app.put("/api/settings/llm")
-async def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
+async def put_llm_settings(body: dict):
     """
     Save LLM block. Validate llmType, apiKey (optional for ollama), modelType.
     If apiKey empty but active LLM exists, keep existing key. Base URL default from provider if empty.
@@ -274,7 +264,7 @@ async def put_llm_settings(body: dict, _: None = Depends(_require_admin)):
 
 
 @app.delete("/api/settings/llm")
-def delete_llm_settings(_: None = Depends(_require_admin)):
+def delete_llm_settings():
     """Clear saved LLM settings (provider, API key, model, etc.)."""
     clear_llm_settings()
     logger.info("settings_cleared block=llm")
@@ -282,7 +272,7 @@ def delete_llm_settings(_: None = Depends(_require_admin)):
 
 
 @app.delete("/api/settings/llm/token")
-def delete_llm_token(_: None = Depends(_require_admin)):
+def delete_llm_token():
     """Unbind LLM API key (remove key, set is_active=False). Keeps provider, base_url, model, system_prompt."""
     clear_llm_token()
     logger.info("llm_token_unbound")
@@ -290,7 +280,7 @@ def delete_llm_token(_: None = Depends(_require_admin)):
 
 
 @app.post("/api/settings/llm/activate")
-async def llm_activate(_: None = Depends(_require_admin)):
+async def llm_activate():
     """Run connection test in thread; if success, mark saved LLM settings as active."""
     status, message = await asyncio.to_thread(test_llm_connection)
     activated = status == CONNECTION_STATUS_SUCCESS
@@ -307,7 +297,7 @@ def get_llm_providers():
 
 
 @app.post("/api/settings/llm/fetch-models")
-def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
+def fetch_llm_models(body: dict):
     """
     Fetch model list from provider API (OpenAI-compatible GET /models or Anthropic GET /v1/models).
     Body: optional baseUrl, apiKey, llmType, projectId. If omitted, use saved LLM settings.
@@ -385,7 +375,7 @@ def fetch_llm_models(body: dict, _: None = Depends(_require_admin)):
 
 
 @app.get("/api/service-admins", response_model=ServiceAdminList)
-async def list_service_admins(_: None = Depends(_require_admin)):
+async def list_service_admins():
     """Return all service admins."""
     admins = await asyncio.to_thread(get_all_service_admins)
     return ServiceAdminList(admins=admins, total=len(admins))
@@ -396,7 +386,7 @@ async def list_service_admins(_: None = Depends(_require_admin)):
     response_model=ServiceAdminResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_service_admin(body: ServiceAdminCreate, _: None = Depends(_require_admin)):
+async def add_service_admin(body: ServiceAdminCreate):
     """Add a service admin by Telegram ID. Fetches profile from Telegram in thread to avoid blocking."""
     try:
         admin, warning = await asyncio.to_thread(create_service_admin, body.telegram_id)
@@ -411,7 +401,7 @@ async def add_service_admin(body: ServiceAdminCreate, _: None = Depends(_require
 
 
 @app.get("/api/service-admins/{telegram_id}", response_model=ServiceAdminResponse)
-async def get_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+async def get_service_admin(telegram_id: int):
     """Return one service admin by Telegram ID."""
     admin = await asyncio.to_thread(get_service_admin_by_telegram_id, telegram_id)
     if not admin:
@@ -420,7 +410,7 @@ async def get_service_admin(telegram_id: int, _: None = Depends(_require_admin))
 
 
 @app.delete("/api/service-admins/{telegram_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+async def remove_service_admin(telegram_id: int):
     """Remove a service admin."""
     deleted = await asyncio.to_thread(delete_service_admin, telegram_id)
     if not deleted:
@@ -428,7 +418,7 @@ async def remove_service_admin(telegram_id: int, _: None = Depends(_require_admi
 
 
 @app.post("/api/service-admins/{telegram_id}/refresh", response_model=ServiceAdminResponse)
-async def refresh_service_admin(telegram_id: int, _: None = Depends(_require_admin)):
+async def refresh_service_admin(telegram_id: int):
     """Refresh service admin profile from Telegram (runs in thread to avoid blocking)."""
     admin = await asyncio.to_thread(refresh_service_admin_profile, telegram_id)
     if not admin:

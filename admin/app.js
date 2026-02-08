@@ -25,10 +25,7 @@ let lastTelegram = {};
 let lastLlm = {};
 
 function getHeaders() {
-  const key = document.getElementById('adminKey').value.trim();
-  const headers = { 'Content-Type': 'application/json' };
-  if (key) headers['X-Admin-Key'] = key;
-  return headers;
+  return { 'Content-Type': 'application/json' };
 }
 
 function api(path, options = {}) {
@@ -517,7 +514,7 @@ async function loadSettings() {
     const r = await api('/api/settings');
     if (!r.ok) {
       if (r.status === 403) {
-        showToast('Требуется Admin key (заголовок X-Admin-Key)', 'warning');
+        showToast('Доступ запрещён (403)', 'warning');
         return;
       }
       const errText = await responseText(r);
@@ -1055,7 +1052,7 @@ async function loadServiceAdmins() {
     const r = await api('/api/service-admins');
     if (!r.ok) {
       if (r.status === 403) {
-        showToast('Требуется Admin key (заголовок X-Admin-Key)', 'warning');
+        showToast('Доступ запрещён (403)', 'warning');
         return;
       }
       throw new Error(r.statusText);
@@ -1294,13 +1291,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   });
-  const savedKey = sessionStorage.getItem('adminApiKey');
-  if (savedKey) document.getElementById('adminKey').value = savedKey;
-  document.getElementById('adminKey').addEventListener('change', (e) => {
-    sessionStorage.setItem('adminApiKey', e.target.value);
-  });
 
-  // Load LLM providers first so dropdown is populated even if /api/settings returns 403
+  // Load LLM providers first so dropdown is populated
   await loadLlmProviders().catch((e) => {
     console.warn('loadLlmProviders:', e);
     showToast('Не удалось загрузить список провайдеров LLM. Обновите страницу.', 'warning');

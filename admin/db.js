@@ -14,10 +14,7 @@ const DB_EDITABLE = new Set(['fte', 'dismissal_date', 'is_supervisor', 'is_deliv
 let currentDbView = 'all';
 
 function getHeaders() {
-  const key = document.getElementById('adminKey').value.trim();
-  const headers = { 'Content-Type': 'application/json' };
-  if (key) headers['X-Admin-Key'] = key;
-  return headers;
+  return { 'Content-Type': 'application/json' };
 }
 
 async function api(path, options = {}) {

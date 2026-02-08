@@ -1,8 +1,7 @@
 """REST API for plugins: list, reload."""
 import logging
-import os
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from api.tools_repository import get_all_tool_settings
 from tools import get_registry, reload_plugin, reload_all_plugins
@@ -11,19 +10,10 @@ from tools.settings_manager import sync_settings_with_registry
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/plugins", tags=["plugins"])
-ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "").strip()
-
-
-def _admin_dep(x_admin_key: str | None = Header(None, alias="X-Admin-Key")) -> None:
-    """Raise 403 if ADMIN_API_KEY is set and request does not provide it (consistent with app.py)."""
-    if not ADMIN_API_KEY:
-        return
-    if not x_admin_key or x_admin_key != ADMIN_API_KEY:
-        raise HTTPException(status_code=403, detail="Admin access required")
 
 
 @router.get("")
-async def list_plugins(_: None = Depends(_admin_dep)):
+async def list_plugins():
     """List all plugins with tool counts."""
     reg = get_registry()
     db_records = get_all_tool_settings()
@@ -51,7 +41,7 @@ async def list_plugins(_: None = Depends(_admin_dep)):
 
 
 @router.post("/reload")
-async def reload_all(_: None = Depends(_admin_dep)):
+async def reload_all():
     """Reload all plugins and sync settings from DB."""
     result = await reload_all_plugins()
     await sync_settings_with_registry()
@@ -65,7 +55,7 @@ async def reload_all(_: None = Depends(_admin_dep)):
 
 
 @router.post("/{plugin_id}/reload")
-async def reload_one(plugin_id: str, _: None = Depends(_admin_dep)):
+async def reload_one(plugin_id: str):
     """Reload one plugin by id."""
     ok = await reload_plugin(plugin_id)
     if not ok:
