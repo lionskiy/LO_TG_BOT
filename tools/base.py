@@ -42,10 +42,11 @@ def get_plugin_logger(plugin_id: str) -> logging.Logger:
 
 @dataclass
 class ToolContext:
-    """Tool execution context (for future use)."""
+    """Tool execution context (for future use). telegram_id used by hr_service for admin check."""
     user_id: Optional[str] = None
     chat_id: Optional[str] = None
     plugin_id: Optional[str] = None
+    telegram_id: Optional[int] = None
 
 
 _current_context: Optional[ToolContext] = None
@@ -54,3 +55,9 @@ _current_context: Optional[ToolContext] = None
 def get_current_context() -> Optional[ToolContext]:
     """Get current execution context."""
     return _current_context
+
+
+def set_current_context(ctx: Optional[ToolContext]) -> None:
+    """Set current execution context (used by bot when invoking tools)."""
+    global _current_context
+    _current_context = ctx

@@ -3,7 +3,7 @@ Orchestrates tool-calling: loads plugins, gets tools from registry, calls LLM, e
 """
 import json
 import logging
-from typing import List
+from typing import List, Optional
 
 from bot.llm import ToolCall as LLMToolCall, get_reply
 from tools import get_registry, load_all_plugins, execute_tool
@@ -66,10 +66,12 @@ def _append_tool_results_openai(
 async def get_reply_with_tools(
     messages: List[dict],
     max_iterations: int = MAX_ITERATIONS,
+    telegram_id: Optional[int] = None,
 ) -> str:
     """
     Get reply from LLM with tool-calling loop. Uses plugin registry and executor.
     If no tools or LLM returns text, returns that text. On max_iterations returns fallback message.
+    telegram_id: when set (e.g. from Telegram bot), passed to tools for admin checks (hr_service).
     """
     await _ensure_plugins_loaded()
     registry = get_registry()
@@ -96,7 +98,7 @@ async def get_reply_with_tools(
             results = []
             for tc in tool_calls:
                 tools_tc = ToolsToolCall(id=tc.id, name=tc.name, arguments=tc.arguments or {})
-                tr = await execute_tool(tools_tc)
+                tr = await execute_tool(tools_tc, telegram_id=telegram_id)
                 results.append(tr.content)
             _append_tool_results_openai(current_messages, tool_calls, results)
             continue

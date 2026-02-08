@@ -23,10 +23,29 @@ async def execute_tool(
     tool_call: ToolCall,
     registry: Optional[ToolRegistry] = None,
     timeout: Optional[int] = None,
+    telegram_id: Optional[int] = None,
 ) -> ToolResult:
     """
     Execute a tool call. Returns ToolResult with result or error.
+    telegram_id: optional Telegram user id for context (e.g. hr_service admin check).
     """
+    from tools.base import ToolContext, set_current_context
+    if telegram_id is not None:
+        set_current_context(ToolContext(telegram_id=telegram_id))
+    else:
+        set_current_context(None)
+    try:
+        return await _execute_tool_impl(tool_call, registry=registry, timeout=timeout)
+    finally:
+        set_current_context(None)
+
+
+async def _execute_tool_impl(
+    tool_call: ToolCall,
+    registry: Optional[ToolRegistry] = None,
+    timeout: Optional[int] = None,
+) -> ToolResult:
+    """Internal: execute without context cleanup."""
     reg = registry or get_registry()
     tool = reg.get_tool(tool_call.name)
     if not tool:

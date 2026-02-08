@@ -2,10 +2,15 @@
 import asyncio
 import logging
 import os
+import tempfile
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict, List
 
 logger = logging.getLogger(__name__)
+
+# Max size for HR import file (bytes)
+HR_IMPORT_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 ENABLE_TOOL_CALLING = os.getenv("ENABLE_TOOL_CALLING", "").strip().lower() in ("1", "true", "yes")
 
@@ -66,6 +71,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from bot.config import BOT_TOKEN, validate_config
 from bot.llm import get_reply
 from bot.tool_calling import get_reply_with_tools, get_system_prompt_for_tools
+from tools import execute_tool, load_all_plugins
+from tools.models import ToolCall as ToolsToolCall
 
 # Per-chat conversation history for LLM context (last N messages)
 MAX_HISTORY_MESSAGES = 20
@@ -113,11 +120,77 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle document messages: if Excel and from service admin, run HR import; else pass to LLM with text."""
+    if not update.message or not update.message.document:
+        return
+    user_id = update.effective_user.id if update.effective_user else None
+    chat_id = update.effective_chat.id if update.effective_chat else 0
+    doc = update.message.document
+    file_name = (doc.file_name or "").lower()
+    if not file_name.endswith(".xlsx") and not file_name.endswith(".xls"):
+        await update.message.reply_text(
+            "Поддерживаются только файлы Excel (.xlsx, .xls). Для импорта сотрудников отправьте файл с листами ДДЖ и Инфоком."
+        )
+        return
+    if doc.file_size and doc.file_size > HR_IMPORT_MAX_FILE_SIZE:
+        await update.message.reply_text(f"Файл слишком большой (макс. {HR_IMPORT_MAX_FILE_SIZE // (1024*1024)} МБ).")
+        return
+    if not is_service_admin(user_id):
+        await update.message.reply_text("Импорт сотрудников доступен только сервисным администраторам.")
+        return
+    await update.message.chat.send_action("typing")
+    tmp_path = None
+    try:
+        tg_file = await context.bot.get_file(doc.file_id)
+        suffix = Path(file_name).suffix or ".xlsx"
+        fd, tmp_path = tempfile.mkstemp(suffix=suffix, prefix="hr_import_")
+        os.close(fd)
+        await tg_file.download_to_drive(tmp_path)
+        await load_all_plugins()
+        tc = ToolsToolCall(
+            id="hr_import",
+            name="hr",
+            arguments={"action": "import_employees", "file_path": tmp_path},
+        )
+        result = await execute_tool(tc)
+        if result.success:
+            text = result.content
+            if isinstance(text, str) and text.startswith("{"):
+                import json
+                try:
+                    data = json.loads(text)
+                    added = data.get("added_count", 0)
+                    names = data.get("added_names", [])
+                    errs = data.get("errors", [])
+                    msg = f"Импорт выполнен. Добавлено сотрудников: {added}."
+                    if names:
+                        msg += " Фамилии: " + ", ".join(names[:10])
+                    if errs:
+                        msg += f" Ошибки при обработке: {len(errs)}."
+                    text = msg
+                except Exception:
+                    pass
+            await update.message.reply_text(text[:4000] if len(text) > 4000 else text)
+        else:
+            await update.message.reply_text(result.content or "Ошибка импорта.")
+    except Exception as e:
+        logger.exception("HR document import failed: %s", e)
+        await update.message.reply_text("Ошибка при обработке файла. Попробуйте позже.")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except Exception as e:
+                logger.debug("Cleanup temp file %s: %s", tmp_path, e)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle text messages: send to LLM and reply."""
     if not update.message or not update.message.text:
         return
     chat_id = update.effective_chat.id if update.effective_chat else 0
+    user_id = update.effective_user.id if update.effective_user else None
     user_text = update.message.text.strip()
     if not user_text:
         return
@@ -151,7 +224,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         typing_task = asyncio.create_task(_typing_loop())
         if use_tools:
             try:
-                reply = await get_reply_with_tools(messages)
+                reply = await get_reply_with_tools(messages, telegram_id=user_id)
             except Exception as e:
                 logger.warning("Tool-calling failed, falling back to plain reply: %s", e)
                 content, _ = await get_reply(messages)
@@ -201,6 +274,7 @@ def build_application() -> Application:
     validate_config()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_error_handler(_error_handler)
     return app
@@ -210,6 +284,7 @@ def build_application_with_token(token: str) -> Application:
     """Create application with given token (for hot-swap from settings DB)."""
     app = Application.builder().token(token).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_error_handler(_error_handler)
     return app

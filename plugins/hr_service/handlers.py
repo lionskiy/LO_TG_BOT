@@ -2,10 +2,26 @@
 HR Service plugin: one tool 'hr' with action dispatch.
 Actions: get_employee, list_employees, search_employees, update_employee, import_employees.
 Error contract: "Error: ..." string (DOCUMENTATION_AUDIT).
+Write actions (update_employee, import_employees) require service admin when called from bot.
 """
 import json
 import logging
 from typing import Any, Optional
+
+from tools.base import get_current_context
+
+
+def _is_service_admin_from_context() -> bool:
+    """True if current tool context has telegram_id and it is a service admin."""
+    ctx = get_current_context()
+    if not ctx or ctx.telegram_id is None:
+        return False
+    try:
+        from api.service_admins_repository import is_service_admin
+        return is_service_admin(ctx.telegram_id)
+    except Exception:
+        return False
+
 
 from api.employees_repository import (
     get_employee as repo_get_employee,
@@ -78,6 +94,8 @@ async def hr_dispatch(
         return json.dumps(items, ensure_ascii=False, indent=2)
 
     if action == "update_employee":
+        if not _is_service_admin_from_context():
+            return _err("Only service administrators can update employee data.")
         if not updates and not kwargs:
             return _err("updates (or fields) required for update_employee")
         payload = dict(updates) if updates else {}
@@ -107,6 +125,8 @@ async def hr_dispatch(
         return json.dumps(updated, ensure_ascii=False, indent=2)
 
     if action == "import_employees":
+        if not _is_service_admin_from_context():
+            return _err("Only service administrators can import employees.")
         if not file_path or not str(file_path).strip():
             return _err("file_path is required for import_employees (path to Excel file).")
         from plugins.hr_service.import_excel import import_employees_from_file
